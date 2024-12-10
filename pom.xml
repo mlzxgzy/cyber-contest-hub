@@ -233,7 +233,14 @@
             </exclusions>
         </dependency>
 
-	</dependencies>
+        <!-- https://mvnrepository.com/artifact/org.flywaydb/flyway-core -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+            <version>11.0.1</version>
+        </dependency>
+
+    </dependencies>
 
 	<build>
 	    <finalName>${project.artifactId}</finalName>
