@@ -7,7 +7,7 @@ import com.kdajv.common.constant.Constants;
 /**
  * VelocityEngine工厂
  * 
- * @author ruoyi
+ * @author GZY
  */
 public class VelocityInitializer
 {

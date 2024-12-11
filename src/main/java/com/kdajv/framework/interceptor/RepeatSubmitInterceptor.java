@@ -14,7 +14,7 @@ import com.kdajv.framework.web.domain.AjaxResult;
 /**
  * 防止重复提交拦截器
  *
- * @author ruoyi
+ * @author GZY
  */
 @Component
 public abstract class RepeatSubmitInterceptor implements HandlerInterceptor

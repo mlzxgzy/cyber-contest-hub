@@ -1,13 +1,14 @@
 package com.kdajv.project.tool.gen.domain;
 
-import javax.validation.constraints.NotBlank;
 import com.kdajv.common.utils.StringUtils;
 import com.kdajv.framework.web.domain.BaseEntity;
+
+import javax.validation.constraints.NotBlank;
 
 /**
  * 代码生成业务字段表 gen_table_column
  * 
- * @author ruoyi
+ * @author GZY
  */
 public class GenTableColumn extends BaseEntity
 {

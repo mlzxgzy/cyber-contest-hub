@@ -1,12 +1,13 @@
 package com.kdajv.project.system.service;
 
-import java.util.List;
 import com.kdajv.project.system.domain.SysNotice;
+
+import java.util.List;
 
 /**
  * 公告 服务层
  * 
- * @author ruoyi
+ * @author GZY
  */
 public interface ISysNoticeService
 {

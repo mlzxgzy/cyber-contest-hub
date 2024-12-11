@@ -1,22 +1,23 @@
 package com.kdajv.framework.security.handle;
 
-import java.io.IOException;
-import java.io.Serializable;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.web.AuthenticationEntryPoint;
-import org.springframework.stereotype.Component;
 import com.alibaba.fastjson2.JSON;
 import com.kdajv.common.constant.HttpStatus;
 import com.kdajv.common.utils.ServletUtils;
 import com.kdajv.common.utils.StringUtils;
 import com.kdajv.framework.web.domain.AjaxResult;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.stereotype.Component;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.Serializable;
 
 /**
  * 认证失败处理类 返回未授权
  * 
- * @author ruoyi
+ * @author GZY
  */
 @Component
 public class AuthenticationEntryPointImpl implements AuthenticationEntryPoint, Serializable

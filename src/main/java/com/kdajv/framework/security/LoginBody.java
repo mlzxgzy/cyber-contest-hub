@@ -3,7 +3,7 @@ package com.kdajv.framework.security;
 /**
  * 用户登录对象
  * 
- * @author ruoyi
+ * @author GZY
  */
 public class LoginBody
 {

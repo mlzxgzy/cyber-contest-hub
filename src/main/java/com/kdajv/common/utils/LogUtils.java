@@ -3,7 +3,7 @@ package com.kdajv.common.utils;
 /**
  * 处理并记录日志文件
  * 
- * @author ruoyi
+ * @author GZY
  */
 public class LogUtils
 {

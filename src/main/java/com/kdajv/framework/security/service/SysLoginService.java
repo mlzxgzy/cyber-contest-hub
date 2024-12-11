@@ -32,7 +32,7 @@ import com.kdajv.project.system.service.ISysUserService;
 /**
  * 登录校验方法
  * 
- * @author ruoyi
+ * @author GZY
  */
 @Component
 public class SysLoginService

@@ -16,7 +16,7 @@ import com.kdajv.framework.security.LoginUser;
 /**
  * 数据脱敏序列化过滤
  *
- * @author ruoyi
+ * @author GZY
  */
 public class SensitiveJsonSerializer extends JsonSerializer<String> implements ContextualSerializer
 {

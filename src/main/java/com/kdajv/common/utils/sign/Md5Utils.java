@@ -1,14 +1,15 @@
 package com.kdajv.common.utils.sign;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 
 /**
  * Md5加密方法
  * 
- * @author ruoyi
+ * @author GZY
  */
 public class Md5Utils
 {

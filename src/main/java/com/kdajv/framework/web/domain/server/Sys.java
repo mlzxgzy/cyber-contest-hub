@@ -3,7 +3,7 @@ package com.kdajv.framework.web.domain.server;
 /**
  * 系统相关信息
  * 
- * @author ruoyi
+ * @author GZY
  */
 public class Sys
 {

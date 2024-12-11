@@ -1,17 +1,14 @@
 package com.kdajv.framework.aspectj.lang.annotation;
 
-import java.lang.annotation.Documented;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
 import com.kdajv.framework.aspectj.lang.enums.BusinessType;
 import com.kdajv.framework.aspectj.lang.enums.OperatorType;
+
+import java.lang.annotation.*;
 
 /**
  * 自定义操作日志记录注解
  * 
- * @author ruoyi
+ * @author GZY
  *
  */
 @Target({ ElementType.PARAMETER, ElementType.METHOD })

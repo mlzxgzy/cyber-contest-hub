@@ -1,12 +1,13 @@
 package com.kdajv.project.system.service;
 
-import java.util.List;
 import com.kdajv.project.system.domain.SysConfig;
+
+import java.util.List;
 
 /**
  * 参数配置 服务层
  * 
- * @author ruoyi
+ * @author GZY
  */
 public interface ISysConfigService
 {

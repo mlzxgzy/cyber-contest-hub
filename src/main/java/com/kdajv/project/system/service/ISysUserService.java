@@ -1,12 +1,13 @@
 package com.kdajv.project.system.service;
 
-import java.util.List;
 import com.kdajv.project.system.domain.SysUser;
+
+import java.util.List;
 
 /**
  * 用户 业务层
  * 
- * @author ruoyi
+ * @author GZY
  */
 public interface ISysUserService
 {

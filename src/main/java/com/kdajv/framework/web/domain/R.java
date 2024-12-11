@@ -1,12 +1,13 @@
 package com.kdajv.framework.web.domain;
 
-import java.io.Serializable;
 import com.kdajv.common.constant.HttpStatus;
+
+import java.io.Serializable;
 
 /**
  * 响应信息主体
  *
- * @author ruoyi
+ * @author GZY
  */
 public class R<T> implements Serializable
 {

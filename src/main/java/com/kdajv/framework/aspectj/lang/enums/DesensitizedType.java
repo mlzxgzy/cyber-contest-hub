@@ -1,12 +1,13 @@
 package com.kdajv.framework.aspectj.lang.enums;
 
-import java.util.function.Function;
 import com.kdajv.common.utils.DesensitizedUtil;
+
+import java.util.function.Function;
 
 /**
  * 脱敏类型
  *
- * @author ruoyi
+ * @author GZY
  */
 public enum DesensitizedType
 {

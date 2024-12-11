@@ -13,7 +13,7 @@ import com.kdajv.framework.web.domain.BaseEntity;
 /**
  * 角色表 sys_role
  * 
- * @author ruoyi
+ * @author GZY
  */
 public class SysRole extends BaseEntity
 {

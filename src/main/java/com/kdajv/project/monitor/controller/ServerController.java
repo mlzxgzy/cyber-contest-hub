@@ -10,7 +10,7 @@ import com.kdajv.framework.web.domain.Server;
 /**
  * 服务器监控
  * 
- * @author ruoyi
+ * @author GZY
  */
 @RestController
 @RequestMapping("/monitor/server")

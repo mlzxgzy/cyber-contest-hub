@@ -3,7 +3,7 @@ package com.kdajv.common.constant;
 /**
  * 任务调度通用常量
  * 
- * @author ruoyi
+ * @author GZY
  */
 public class ScheduleConstants
 {

@@ -1,13 +1,14 @@
 package com.kdajv.common.core.text;
 
+import com.kdajv.common.utils.StringUtils;
+
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import com.kdajv.common.utils.StringUtils;
 
 /**
  * 字符集工具类
  * 
- * @author ruoyi
+ * @author GZY
  */
 public class CharsetKit
 {

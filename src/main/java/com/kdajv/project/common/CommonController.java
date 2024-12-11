@@ -1,9 +1,12 @@
 package com.kdajv.project.common;
 
-import java.util.ArrayList;
-import java.util.List;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import com.kdajv.common.constant.Constants;
+import com.kdajv.common.utils.StringUtils;
+import com.kdajv.common.utils.file.FileUploadUtils;
+import com.kdajv.common.utils.file.FileUtils;
+import com.kdajv.framework.config.CyberContestHubConfig;
+import com.kdajv.framework.config.ServerConfig;
+import com.kdajv.framework.web.domain.AjaxResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,18 +16,16 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-import com.kdajv.common.constant.Constants;
-import com.kdajv.common.utils.StringUtils;
-import com.kdajv.common.utils.file.FileUploadUtils;
-import com.kdajv.common.utils.file.FileUtils;
-import com.kdajv.framework.config.RuoYiConfig;
-import com.kdajv.framework.config.ServerConfig;
-import com.kdajv.framework.web.domain.AjaxResult;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 通用请求处理
  * 
- * @author ruoyi
+ * @author GZY
  */
 @RestController
 @RequestMapping("/common")
@@ -53,7 +54,7 @@ public class CommonController
                 throw new Exception(StringUtils.format("文件名称({})非法，不允许下载。 ", fileName));
             }
             String realFileName = System.currentTimeMillis() + fileName.substring(fileName.indexOf("_") + 1);
-            String filePath = RuoYiConfig.getDownloadPath() + fileName;
+            String filePath = CyberContestHubConfig.getDownloadPath() + fileName;
 
             response.setContentType(MediaType.APPLICATION_OCTET_STREAM_VALUE);
             FileUtils.setAttachmentResponseHeader(response, realFileName);
@@ -78,7 +79,7 @@ public class CommonController
         try
         {
             // 上传文件路径
-            String filePath = RuoYiConfig.getUploadPath();
+            String filePath = CyberContestHubConfig.getUploadPath();
             // 上传并返回新文件名称
             String fileName = FileUploadUtils.upload(filePath, file);
             String url = serverConfig.getUrl() + fileName;
@@ -104,7 +105,7 @@ public class CommonController
         try
         {
             // 上传文件路径
-            String filePath = RuoYiConfig.getUploadPath();
+            String filePath = CyberContestHubConfig.getUploadPath();
             List<String> urls = new ArrayList<String>();
             List<String> fileNames = new ArrayList<String>();
             List<String> newFileNames = new ArrayList<String>();
@@ -146,7 +147,7 @@ public class CommonController
                 throw new Exception(StringUtils.format("资源文件({})非法，不允许下载。 ", resource));
             }
             // 本地资源路径
-            String localPath = RuoYiConfig.getProfile();
+            String localPath = CyberContestHubConfig.getProfile();
             // 数据库资源地址
             String downloadPath = localPath + StringUtils.substringAfter(resource, Constants.RESOURCE_PREFIX);
             // 下载名称

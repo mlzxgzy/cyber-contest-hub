@@ -3,7 +3,7 @@ package com.kdajv.common.exception.file;
 /**
  * 文件名称超长限制异常类
  * 
- * @author ruoyi
+ * @author GZY
  */
 public class FileNameLengthLimitExceededException extends FileException
 {

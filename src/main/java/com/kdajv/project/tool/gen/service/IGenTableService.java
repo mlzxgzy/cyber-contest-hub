@@ -1,13 +1,14 @@
 package com.kdajv.project.tool.gen.service;
 
+import com.kdajv.project.tool.gen.domain.GenTable;
+
 import java.util.List;
 import java.util.Map;
-import com.kdajv.project.tool.gen.domain.GenTable;
 
 /**
  * 业务 服务层
  * 
- * @author ruoyi
+ * @author GZY
  */
 public interface IGenTableService
 {

@@ -6,7 +6,7 @@ import com.kdajv.project.system.domain.SysNotice;
 /**
  * 通知公告表 数据层
  * 
- * @author ruoyi
+ * @author GZY
  */
 public interface SysNoticeMapper
 {

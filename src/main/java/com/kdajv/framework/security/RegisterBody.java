@@ -3,7 +3,7 @@ package com.kdajv.framework.security;
 /**
  * 用户注册对象
  * 
- * @author ruoyi
+ * @author GZY
  */
 public class RegisterBody extends LoginBody
 {

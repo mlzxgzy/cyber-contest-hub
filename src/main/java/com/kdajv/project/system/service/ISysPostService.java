@@ -1,12 +1,13 @@
 package com.kdajv.project.system.service;
 
-import java.util.List;
 import com.kdajv.project.system.domain.SysPost;
+
+import java.util.List;
 
 /**
  * 岗位信息 服务层
  * 
- * @author ruoyi
+ * @author GZY
  */
 public interface ISysPostService
 {

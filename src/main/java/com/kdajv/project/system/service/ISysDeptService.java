@@ -1,13 +1,14 @@
 package com.kdajv.project.system.service;
 
-import java.util.List;
 import com.kdajv.framework.web.domain.TreeSelect;
 import com.kdajv.project.system.domain.SysDept;
+
+import java.util.List;
 
 /**
  * 部门管理 服务层
  * 
- * @author ruoyi
+ * @author GZY
  */
 public interface ISysDeptService
 {

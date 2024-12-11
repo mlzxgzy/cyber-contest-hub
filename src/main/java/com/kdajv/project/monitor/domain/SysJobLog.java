@@ -9,7 +9,7 @@ import com.kdajv.framework.web.domain.BaseEntity;
 /**
  * 定时任务调度日志表 sys_job_log
  * 
- * @author ruoyi
+ * @author GZY
  */
 public class SysJobLog extends BaseEntity
 {

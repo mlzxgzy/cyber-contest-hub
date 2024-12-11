@@ -1,17 +1,18 @@
 package com.kdajv.common.utils;
 
-import java.util.Collection;
-import java.util.List;
 import com.alibaba.fastjson2.JSONArray;
 import com.kdajv.common.constant.CacheConstants;
 import com.kdajv.common.utils.spring.SpringUtils;
 import com.kdajv.framework.redis.RedisCache;
 import com.kdajv.project.system.domain.SysDictData;
 
+import java.util.Collection;
+import java.util.List;
+
 /**
  * 字典工具类
  * 
- * @author ruoyi
+ * @author GZY
  */
 public class DictUtils
 {

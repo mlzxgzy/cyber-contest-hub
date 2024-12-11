@@ -3,7 +3,7 @@ package com.kdajv.common.utils.uuid;
 /**
  * ID生成器工具类
  * 
- * @author ruoyi
+ * @author GZY
  */
 public class IdUtils
 {

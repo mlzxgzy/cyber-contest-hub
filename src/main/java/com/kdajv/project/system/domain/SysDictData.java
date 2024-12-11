@@ -12,7 +12,7 @@ import com.kdajv.framework.web.domain.BaseEntity;
 /**
  * 字典数据表 sys_dict_data
  * 
- * @author ruoyi
+ * @author GZY
  */
 public class SysDictData extends BaseEntity
 {

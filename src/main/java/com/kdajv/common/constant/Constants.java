@@ -1,12 +1,13 @@
 package com.kdajv.common.constant;
 
-import java.util.Locale;
 import io.jsonwebtoken.Claims;
+
+import java.util.Locale;
 
 /**
  * 通用常量信息
  * 
- * @author ruoyi
+ * @author GZY
  */
 public class Constants
 {

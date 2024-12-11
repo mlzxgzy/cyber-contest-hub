@@ -1,17 +1,18 @@
 package com.kdajv.project.tool.gen.util;
 
-import java.util.Arrays;
-import org.apache.commons.lang3.RegExUtils;
 import com.kdajv.common.constant.GenConstants;
 import com.kdajv.common.utils.StringUtils;
 import com.kdajv.framework.config.GenConfig;
 import com.kdajv.project.tool.gen.domain.GenTable;
 import com.kdajv.project.tool.gen.domain.GenTableColumn;
+import org.apache.commons.lang3.RegExUtils;
+
+import java.util.Arrays;
 
 /**
  * 代码生成器 工具类
  * 
- * @author ruoyi
+ * @author GZY
  */
 public class GenUtils
 {
@@ -215,7 +216,7 @@ public class GenUtils
      */
     public static String replaceText(String text)
     {
-        return RegExUtils.replaceAll(text, "(?:表|若依)", "");
+        return RegExUtils.replaceAll(text, "(?:表)", "");
     }
 
     /**

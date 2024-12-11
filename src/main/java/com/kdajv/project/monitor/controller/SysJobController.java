@@ -30,7 +30,7 @@ import com.kdajv.project.monitor.service.ISysJobService;
 /**
  * 调度任务信息操作处理
  * 
- * @author ruoyi
+ * @author GZY
  */
 @RestController
 @RequestMapping("/monitor/job")

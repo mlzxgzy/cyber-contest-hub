@@ -5,7 +5,7 @@ import com.kdajv.common.utils.StringUtils;
 /**
  * 缓存信息
  * 
- * @author ruoyi
+ * @author GZY
  */
 public class SysCache
 {

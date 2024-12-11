@@ -1,13 +1,13 @@
 package com.kdajv.common.utils.job;
 
+import com.kdajv.project.monitor.domain.SysJob;
 import org.quartz.DisallowConcurrentExecution;
 import org.quartz.JobExecutionContext;
-import com.kdajv.project.monitor.domain.SysJob;
 
 /**
  * 定时任务处理（禁止并发执行）
  * 
- * @author ruoyi
+ * @author GZY
  *
  */
 @DisallowConcurrentExecution

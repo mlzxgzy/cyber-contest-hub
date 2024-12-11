@@ -21,7 +21,7 @@ import com.kdajv.project.system.service.ISysUserService;
 /**
  * 注册校验方法
  * 
- * @author ruoyi
+ * @author GZY
  */
 @Component
 public class SysRegisterService

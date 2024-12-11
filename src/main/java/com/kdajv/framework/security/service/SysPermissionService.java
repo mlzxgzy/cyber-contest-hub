@@ -16,7 +16,7 @@ import com.kdajv.project.system.service.ISysRoleService;
 /**
  * 用户权限处理
  * 
- * @author ruoyi
+ * @author GZY
  */
 @Component
 public class SysPermissionService

@@ -1,8 +1,5 @@
 package com.kdajv.framework.manager.factory;
 
-import java.util.TimerTask;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import com.kdajv.common.constant.Constants;
 import com.kdajv.common.utils.LogUtils;
 import com.kdajv.common.utils.ServletUtils;
@@ -15,11 +12,15 @@ import com.kdajv.project.monitor.domain.SysOperLog;
 import com.kdajv.project.monitor.service.ISysLogininforService;
 import com.kdajv.project.monitor.service.ISysOperLogService;
 import eu.bitwalker.useragentutils.UserAgent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.TimerTask;
 
 /**
  * 异步工厂（产生任务用）
  * 
- * @author ruoyi
+ * @author GZY
  */
 public class AsyncFactory
 {

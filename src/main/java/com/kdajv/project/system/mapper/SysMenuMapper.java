@@ -7,7 +7,7 @@ import com.kdajv.project.system.domain.SysMenu;
 /**
  * 菜单表 数据层
  * 
- * @author ruoyi
+ * @author GZY
  */
 public interface SysMenuMapper
 {

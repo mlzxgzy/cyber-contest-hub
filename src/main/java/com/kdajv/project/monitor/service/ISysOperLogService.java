@@ -1,12 +1,13 @@
 package com.kdajv.project.monitor.service;
 
-import java.util.List;
 import com.kdajv.project.monitor.domain.SysOperLog;
+
+import java.util.List;
 
 /**
  * 操作日志 服务层
  * 
- * @author ruoyi
+ * @author GZY
  */
 public interface ISysOperLogService
 {

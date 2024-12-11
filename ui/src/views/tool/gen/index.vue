@@ -161,7 +161,7 @@
 </template>
 
 <script setup name="Gen">
-import { listTable, previewTable, delTable, genCode, synchDb } from "@/api/tool/gen";
+import {delTable, genCode, listTable, previewTable, synchDb} from "@/api/tool/gen";
 import router from "@/router";
 import importTable from "./importTable";
 import createTable from "./createTable";
@@ -236,7 +236,7 @@ function handleGenTable(row) {
       proxy.$modal.msgSuccess("成功生成到自定义路径：" + row.genPath);
     });
   } else {
-    proxy.$download.zip("/tool/gen/batchGenCode?tables=" + tbNames, "ruoyi.zip");
+    proxy.$download.zip("/tool/gen/batchGenCode?tables=" + tbNames, "cch.zip");
   }
 }
 

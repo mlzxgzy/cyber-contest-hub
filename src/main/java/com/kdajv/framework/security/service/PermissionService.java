@@ -1,19 +1,20 @@
 package com.kdajv.framework.security.service;
 
-import java.util.Set;
-import org.springframework.stereotype.Service;
-import org.springframework.util.CollectionUtils;
 import com.kdajv.common.constant.Constants;
 import com.kdajv.common.utils.SecurityUtils;
 import com.kdajv.common.utils.StringUtils;
 import com.kdajv.framework.security.LoginUser;
 import com.kdajv.framework.security.context.PermissionContextHolder;
 import com.kdajv.project.system.domain.SysRole;
+import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
+
+import java.util.Set;
 
 /**
- * RuoYi首创 自定义权限实现，ss取自SpringSecurity首字母
+ * 自定义权限实现，ss取自SpringSecurity首字母
  * 
- * @author ruoyi
+ * @author GZY
  */
 @Service("ss")
 public class PermissionService

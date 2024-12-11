@@ -13,7 +13,7 @@ import com.kdajv.framework.web.domain.BaseEntity;
 /**
  * 部门表 sys_dept
  * 
- * @author ruoyi
+ * @author GZY
  */
 public class SysDept extends BaseEntity
 {

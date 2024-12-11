@@ -6,7 +6,7 @@ import com.kdajv.project.monitor.domain.SysUserOnline;
 /**
  * 在线用户 服务层
  * 
- * @author ruoyi
+ * @author GZY
  */
 public interface ISysUserOnlineService
 {

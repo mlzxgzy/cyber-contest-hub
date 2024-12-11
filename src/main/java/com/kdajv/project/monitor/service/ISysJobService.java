@@ -1,14 +1,15 @@
 package com.kdajv.project.monitor.service;
 
-import java.util.List;
-import org.quartz.SchedulerException;
 import com.kdajv.common.exception.job.TaskException;
 import com.kdajv.project.monitor.domain.SysJob;
+import org.quartz.SchedulerException;
+
+import java.util.List;
 
 /**
  * 定时任务调度信息信息 服务层
  * 
- * @author ruoyi
+ * @author GZY
  */
 public interface ISysJobService
 {

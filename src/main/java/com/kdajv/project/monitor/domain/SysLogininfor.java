@@ -9,7 +9,7 @@ import com.kdajv.framework.web.domain.BaseEntity;
 /**
  * 系统访问记录表 sys_logininfor
  * 
- * @author ruoyi
+ * @author GZY
  */
 public class SysLogininfor extends BaseEntity
 {

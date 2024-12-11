@@ -3,7 +3,7 @@ package com.kdajv.framework.aspectj.lang.enums;
 /**
  * 操作状态
  * 
- * @author ruoyi
+ * @author GZY
  *
  */
 public enum BusinessStatus

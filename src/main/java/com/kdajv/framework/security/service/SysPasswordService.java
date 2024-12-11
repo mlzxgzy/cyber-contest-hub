@@ -16,7 +16,7 @@ import com.kdajv.project.system.domain.SysUser;
 /**
  * 登录密码方法
  * 
- * @author ruoyi
+ * @author GZY
  */
 @Component
 public class SysPasswordService

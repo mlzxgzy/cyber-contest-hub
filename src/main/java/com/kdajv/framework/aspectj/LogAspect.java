@@ -1,21 +1,5 @@
 package com.kdajv.framework.aspectj;
 
-import java.util.Collection;
-import java.util.Map;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import org.apache.commons.lang3.ArrayUtils;
-import org.aspectj.lang.JoinPoint;
-import org.aspectj.lang.annotation.AfterReturning;
-import org.aspectj.lang.annotation.AfterThrowing;
-import org.aspectj.lang.annotation.Aspect;
-import org.aspectj.lang.annotation.Before;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.core.NamedThreadLocal;
-import org.springframework.stereotype.Component;
-import org.springframework.validation.BindingResult;
-import org.springframework.web.multipart.MultipartFile;
 import com.alibaba.fastjson2.JSON;
 import com.kdajv.common.enums.HttpMethod;
 import com.kdajv.common.filter.PropertyPreExcludeFilter;
@@ -30,11 +14,28 @@ import com.kdajv.framework.manager.factory.AsyncFactory;
 import com.kdajv.framework.security.LoginUser;
 import com.kdajv.project.monitor.domain.SysOperLog;
 import com.kdajv.project.system.domain.SysUser;
+import org.apache.commons.lang3.ArrayUtils;
+import org.aspectj.lang.JoinPoint;
+import org.aspectj.lang.annotation.AfterReturning;
+import org.aspectj.lang.annotation.AfterThrowing;
+import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.annotation.Before;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.core.NamedThreadLocal;
+import org.springframework.stereotype.Component;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.multipart.MultipartFile;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.util.Collection;
+import java.util.Map;
 
 /**
  * 操作日志记录处理
  * 
- * @author ruoyi
+ * @author GZY
  */
 @Aspect
 @Component

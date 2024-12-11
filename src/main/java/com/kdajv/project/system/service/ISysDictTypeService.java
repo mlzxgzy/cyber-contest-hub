@@ -1,13 +1,14 @@
 package com.kdajv.project.system.service;
 
-import java.util.List;
 import com.kdajv.project.system.domain.SysDictData;
 import com.kdajv.project.system.domain.SysDictType;
+
+import java.util.List;
 
 /**
  * 字典 业务层
  * 
- * @author ruoyi
+ * @author GZY
  */
 public interface ISysDictTypeService
 {

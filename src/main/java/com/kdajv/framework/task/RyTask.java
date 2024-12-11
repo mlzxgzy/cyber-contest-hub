@@ -6,7 +6,7 @@ import com.kdajv.common.utils.StringUtils;
 /**
  * 定时任务调度测试
  * 
- * @author ruoyi
+ * @author GZY
  */
 @Component("ryTask")
 public class RyTask

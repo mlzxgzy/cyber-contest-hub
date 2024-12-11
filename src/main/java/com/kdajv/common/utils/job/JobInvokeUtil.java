@@ -1,17 +1,18 @@
 package com.kdajv.common.utils.job;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.LinkedList;
-import java.util.List;
 import com.kdajv.common.utils.StringUtils;
 import com.kdajv.common.utils.spring.SpringUtils;
 import com.kdajv.project.monitor.domain.SysJob;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.LinkedList;
+import java.util.List;
+
 /**
  * 任务执行工具
  *
- * @author ruoyi
+ * @author GZY
  */
 public class JobInvokeUtil
 {

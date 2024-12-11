@@ -1,15 +1,16 @@
 package com.kdajv.common.utils.ip;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import javax.servlet.http.HttpServletRequest;
 import com.kdajv.common.utils.ServletUtils;
 import com.kdajv.common.utils.StringUtils;
+
+import javax.servlet.http.HttpServletRequest;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 /**
  * 获取IP方法
  * 
- * @author ruoyi
+ * @author GZY
  */
 public class IpUtils
 {

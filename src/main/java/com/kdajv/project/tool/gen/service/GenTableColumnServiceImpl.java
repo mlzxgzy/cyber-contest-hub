@@ -1,16 +1,17 @@
 package com.kdajv.project.tool.gen.service;
 
-import java.util.List;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 import com.kdajv.common.core.text.Convert;
 import com.kdajv.project.tool.gen.domain.GenTableColumn;
 import com.kdajv.project.tool.gen.mapper.GenTableColumnMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 /**
  * 业务字段 服务层实现
  * 
- * @author ruoyi
+ * @author GZY
  */
 @Service
 public class GenTableColumnServiceImpl implements IGenTableColumnService 

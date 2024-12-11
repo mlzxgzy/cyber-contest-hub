@@ -1,16 +1,5 @@
 package com.kdajv.project.common;
 
-import java.awt.image.BufferedImage;
-import java.io.IOException;
-import java.util.concurrent.TimeUnit;
-import javax.annotation.Resource;
-import javax.imageio.ImageIO;
-import javax.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.util.FastByteArrayOutputStream;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
 import com.google.code.kaptcha.Producer;
 import com.kdajv.common.constant.CacheConstants;
 import com.kdajv.common.constant.Constants;
@@ -19,11 +8,23 @@ import com.kdajv.common.utils.uuid.IdUtils;
 import com.kdajv.framework.redis.RedisCache;
 import com.kdajv.framework.web.domain.AjaxResult;
 import com.kdajv.project.system.service.ISysConfigService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.util.FastByteArrayOutputStream;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import javax.annotation.Resource;
+import javax.imageio.ImageIO;
+import javax.servlet.http.HttpServletResponse;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 验证码操作处理
  * 
- * @author ruoyi
+ * @author GZY
  */
 @RestController
 public class CaptchaController
@@ -38,7 +39,7 @@ public class CaptchaController
     private RedisCache redisCache;
     
     // 验证码类型
-    @Value("${ruoyi.captchaType}")
+    @Value("${cch.captchaType}")
     private String captchaType;
     
     @Autowired

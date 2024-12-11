@@ -17,7 +17,7 @@ import com.kdajv.project.system.service.ISysUserService;
 /**
  * 用户验证处理
  *
- * @author ruoyi
+ * @author GZY
  */
 @Service
 public class UserDetailsServiceImpl implements UserDetailsService

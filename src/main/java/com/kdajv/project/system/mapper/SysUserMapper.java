@@ -9,7 +9,7 @@ import com.kdajv.project.system.domain.SysUser;
 /**
  * 用户表 数据层
  * 
- * @author ruoyi
+ * @author GZY
  */
 public interface SysUserMapper
 {

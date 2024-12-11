@@ -22,7 +22,7 @@ import com.kdajv.project.monitor.service.ISysOperLogService;
 /**
  * 操作日志记录
  * 
- * @author ruoyi
+ * @author GZY
  */
 @RestController
 @RequestMapping("/monitor/operlog")

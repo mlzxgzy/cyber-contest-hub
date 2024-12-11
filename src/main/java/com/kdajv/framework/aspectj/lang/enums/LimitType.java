@@ -3,7 +3,7 @@ package com.kdajv.framework.aspectj.lang.enums;
 /**
  * 限流类型
  *
- * @author ruoyi
+ * @author GZY
  */
 
 public enum LimitType

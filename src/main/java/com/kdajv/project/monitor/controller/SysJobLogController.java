@@ -22,7 +22,7 @@ import com.kdajv.project.monitor.service.ISysJobLogService;
 /**
  * 调度日志操作处理
  * 
- * @author ruoyi
+ * @author GZY
  */
 @RestController
 @RequestMapping("/monitor/jobLog")

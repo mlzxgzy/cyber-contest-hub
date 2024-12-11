@@ -6,7 +6,7 @@ import com.kdajv.project.monitor.domain.SysJob;
 /**
  * 调度任务信息 数据层
  * 
- * @author ruoyi
+ * @author GZY
  */
 public interface SysJobMapper
 {

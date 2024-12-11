@@ -10,7 +10,7 @@ import com.kdajv.framework.web.domain.BaseEntity;
 /**
  * 通知公告表 sys_notice
  * 
- * @author ruoyi
+ * @author GZY
  */
 public class SysNotice extends BaseEntity
 {

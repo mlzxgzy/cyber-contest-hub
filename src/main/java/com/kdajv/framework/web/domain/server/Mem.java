@@ -5,7 +5,7 @@ import com.kdajv.common.utils.Arith;
 /**
  * 內存相关信息
  * 
- * @author ruoyi
+ * @author GZY
  */
 public class Mem
 {

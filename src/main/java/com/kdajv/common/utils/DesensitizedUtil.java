@@ -3,7 +3,7 @@ package com.kdajv.common.utils;
 /**
  * 脱敏工具类
  *
- * @author ruoyi
+ * @author GZY
  */
 public class DesensitizedUtil
 {

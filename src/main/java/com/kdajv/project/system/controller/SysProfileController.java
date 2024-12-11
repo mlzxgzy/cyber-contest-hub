@@ -15,7 +15,7 @@ import com.kdajv.common.utils.file.FileUploadUtils;
 import com.kdajv.common.utils.file.MimeTypeUtils;
 import com.kdajv.framework.aspectj.lang.annotation.Log;
 import com.kdajv.framework.aspectj.lang.enums.BusinessType;
-import com.kdajv.framework.config.RuoYiConfig;
+import com.kdajv.framework.config.CyberContestHubConfig;
 import com.kdajv.framework.security.LoginUser;
 import com.kdajv.framework.security.service.TokenService;
 import com.kdajv.framework.web.controller.BaseController;
@@ -26,7 +26,7 @@ import com.kdajv.project.system.service.ISysUserService;
 /**
  * 个人信息 业务处理
  * 
- * @author ruoyi
+ * @author GZY
  */
 @RestController
 @RequestMapping("/system/user/profile")
@@ -121,7 +121,7 @@ public class SysProfileController extends BaseController
         if (!file.isEmpty())
         {
             LoginUser loginUser = getLoginUser();
-            String avatar = FileUploadUtils.upload(RuoYiConfig.getAvatarPath(), file, MimeTypeUtils.IMAGE_EXTENSION);
+            String avatar = FileUploadUtils.upload(CyberContestHubConfig.getAvatarPath(), file, MimeTypeUtils.IMAGE_EXTENSION);
             if (userService.updateUserAvatar(loginUser.getUsername(), avatar))
             {
                 AjaxResult ajax = AjaxResult.success();

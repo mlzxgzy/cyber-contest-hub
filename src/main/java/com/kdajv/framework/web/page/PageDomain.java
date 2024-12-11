@@ -5,7 +5,7 @@ import com.kdajv.common.utils.StringUtils;
 /**
  * 分页数据
  * 
- * @author ruoyi
+ * @author GZY
  */
 public class PageDomain
 {

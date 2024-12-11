@@ -24,7 +24,7 @@ import com.kdajv.framework.security.handle.LogoutSuccessHandlerImpl;
 /**
  * spring security配置
  * 
- * @author ruoyi
+ * @author GZY
  */
 @EnableMethodSecurity(prePostEnabled = true, securedEnabled = true)
 @Configuration

@@ -1,12 +1,5 @@
 package com.kdajv.framework.web.controller;
 
-import java.beans.PropertyEditorSupport;
-import java.util.Date;
-import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.web.bind.WebDataBinder;
-import org.springframework.web.bind.annotation.InitBinder;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import com.kdajv.common.constant.HttpStatus;
@@ -20,11 +13,19 @@ import com.kdajv.framework.web.domain.AjaxResult;
 import com.kdajv.framework.web.page.PageDomain;
 import com.kdajv.framework.web.page.TableDataInfo;
 import com.kdajv.framework.web.page.TableSupport;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.web.bind.WebDataBinder;
+import org.springframework.web.bind.annotation.InitBinder;
+
+import java.beans.PropertyEditorSupport;
+import java.util.Date;
+import java.util.List;
 
 /**
  * web层通用数据处理
  * 
- * @author ruoyi
+ * @author GZY
  */
 public class BaseController
 {

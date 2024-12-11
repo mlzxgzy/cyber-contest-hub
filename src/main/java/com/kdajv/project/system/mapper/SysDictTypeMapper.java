@@ -6,7 +6,7 @@ import com.kdajv.project.system.domain.SysDictType;
 /**
  * 字典表 数据层
  * 
- * @author ruoyi
+ * @author GZY
  */
 public interface SysDictTypeMapper
 {

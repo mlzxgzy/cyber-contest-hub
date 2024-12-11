@@ -3,7 +3,7 @@ package com.kdajv.common.exception.user;
 /**
  * 用户错误最大次数异常类
  * 
- * @author ruoyi
+ * @author GZY
  */
 public class UserPasswordRetryLimitExceedException extends UserException
 {

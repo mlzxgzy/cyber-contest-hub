@@ -6,7 +6,7 @@ import com.kdajv.project.monitor.domain.SysOperLog;
 /**
  * 操作日志 数据层
  * 
- * @author ruoyi
+ * @author GZY
  */
 public interface SysOperLogMapper
 {

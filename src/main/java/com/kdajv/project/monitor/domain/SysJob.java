@@ -16,7 +16,7 @@ import com.kdajv.framework.web.domain.BaseEntity;
 /**
  * 定时任务调度表 sys_job
  * 
- * @author ruoyi
+ * @author GZY
  */
 public class SysJob extends BaseEntity
 {

@@ -14,7 +14,7 @@ import com.kdajv.project.system.service.ISysConfigService;
 /**
  * 注册验证
  * 
- * @author ruoyi
+ * @author GZY
  */
 @RestController
 public class SysRegisterController extends BaseController

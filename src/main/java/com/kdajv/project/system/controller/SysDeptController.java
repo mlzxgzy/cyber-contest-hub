@@ -25,7 +25,7 @@ import com.kdajv.project.system.service.ISysDeptService;
 /**
  * 部门信息
  * 
- * @author ruoyi
+ * @author GZY
  */
 @RestController
 @RequestMapping("/system/dept")

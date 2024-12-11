@@ -6,7 +6,7 @@ import com.kdajv.project.system.domain.SysRole;
 /**
  * 角色表 数据层
  * 
- * @author ruoyi
+ * @author GZY
  */
 public interface SysRoleMapper
 {

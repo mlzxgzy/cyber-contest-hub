@@ -34,7 +34,7 @@ import com.kdajv.project.system.service.ISysUserService;
 /**
  * 角色信息
  * 
- * @author ruoyi
+ * @author GZY
  */
 @RestController
 @RequestMapping("/system/role")

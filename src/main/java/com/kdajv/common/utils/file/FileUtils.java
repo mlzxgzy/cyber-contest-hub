@@ -1,28 +1,23 @@
 package com.kdajv.common.utils.file;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.ArrayUtils;
 import com.kdajv.common.utils.DateUtils;
 import com.kdajv.common.utils.StringUtils;
 import com.kdajv.common.utils.uuid.IdUtils;
-import com.kdajv.framework.config.RuoYiConfig;
+import com.kdajv.framework.config.CyberContestHubConfig;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.ArrayUtils;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.*;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 /**
  * 文件处理工具类
  * 
- * @author ruoyi
+ * @author GZY
  */
 public class FileUtils
 {
@@ -73,7 +68,7 @@ public class FileUtils
      */
     public static String writeImportBytes(byte[] data) throws IOException
     {
-        return writeBytes(data, RuoYiConfig.getImportPath());
+        return writeBytes(data, CyberContestHubConfig.getImportPath());
     }
 
     /**
@@ -256,7 +251,7 @@ public class FileUtils
     }
 
     /**
-     * 获取文件名称 /profile/upload/2022/04/16/ruoyi.png -- ruoyi.png
+     * 获取文件名称 /profile/upload/2022/04/16/cch.png -- cch.png
      * 
      * @param fileName 路径名称
      * @return 没有文件路径的名称
@@ -274,7 +269,7 @@ public class FileUtils
     }
 
     /**
-     * 获取不带后缀文件名称 /profile/upload/2022/04/16/ruoyi.png -- ruoyi
+     * 获取不带后缀文件名称 /profile/upload/2022/04/16/cch.png -- cch
      * 
      * @param fileName 路径名称
      * @return 没有文件路径和后缀的名称

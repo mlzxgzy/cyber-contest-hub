@@ -14,7 +14,7 @@ import com.kdajv.project.system.service.ISysPostService;
 /**
  * 岗位信息 服务层处理
  * 
- * @author ruoyi
+ * @author GZY
  */
 @Service
 public class SysPostServiceImpl implements ISysPostService

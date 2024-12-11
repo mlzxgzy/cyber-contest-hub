@@ -1,18 +1,18 @@
 package com.kdajv.common.utils.ip;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.kdajv.common.constant.Constants;
 import com.kdajv.common.utils.StringUtils;
 import com.kdajv.common.utils.http.HttpUtils;
-import com.kdajv.framework.config.RuoYiConfig;
+import com.kdajv.framework.config.CyberContestHubConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 获取地址类
  * 
- * @author ruoyi
+ * @author GZY
  */
 public class AddressUtils
 {
@@ -31,7 +31,7 @@ public class AddressUtils
         {
             return "内网IP";
         }
-        if (RuoYiConfig.isAddressEnabled())
+        if (CyberContestHubConfig.isAddressEnabled())
         {
             try
             {

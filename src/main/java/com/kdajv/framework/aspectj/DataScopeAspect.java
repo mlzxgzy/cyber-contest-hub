@@ -1,11 +1,5 @@
 package com.kdajv.framework.aspectj;
 
-import java.util.ArrayList;
-import java.util.List;
-import org.aspectj.lang.JoinPoint;
-import org.aspectj.lang.annotation.Aspect;
-import org.aspectj.lang.annotation.Before;
-import org.springframework.stereotype.Component;
 import com.kdajv.common.constant.UserConstants;
 import com.kdajv.common.core.text.Convert;
 import com.kdajv.common.utils.SecurityUtils;
@@ -16,11 +10,18 @@ import com.kdajv.framework.security.context.PermissionContextHolder;
 import com.kdajv.framework.web.domain.BaseEntity;
 import com.kdajv.project.system.domain.SysRole;
 import com.kdajv.project.system.domain.SysUser;
+import org.aspectj.lang.JoinPoint;
+import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.annotation.Before;
+import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 数据过滤处理
  *
- * @author ruoyi
+ * @author GZY
  */
 @Aspect
 @Component

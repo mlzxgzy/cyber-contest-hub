@@ -22,7 +22,7 @@ import com.kdajv.project.system.service.ISysMenuService;
 /**
  * 登录验证
  * 
- * @author ruoyi
+ * @author GZY
  */
 @RestController
 public class SysLoginController

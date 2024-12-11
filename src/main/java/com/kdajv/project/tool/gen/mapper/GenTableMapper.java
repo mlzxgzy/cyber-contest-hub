@@ -1,12 +1,13 @@
 package com.kdajv.project.tool.gen.mapper;
 
-import java.util.List;
 import com.kdajv.project.tool.gen.domain.GenTable;
+
+import java.util.List;
 
 /**
  * 业务 数据层
  * 
- * @author ruoyi
+ * @author GZY
  */
 public interface GenTableMapper
 {

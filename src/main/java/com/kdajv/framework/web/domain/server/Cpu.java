@@ -5,7 +5,7 @@ import com.kdajv.common.utils.Arith;
 /**
  * CPU相关信息
  * 
- * @author ruoyi
+ * @author GZY
  */
 public class Cpu
 {

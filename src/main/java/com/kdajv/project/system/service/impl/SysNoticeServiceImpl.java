@@ -10,7 +10,7 @@ import com.kdajv.project.system.service.ISysNoticeService;
 /**
  * 公告 服务层实现
  * 
- * @author ruoyi
+ * @author GZY
  */
 @Service
 public class SysNoticeServiceImpl implements ISysNoticeService

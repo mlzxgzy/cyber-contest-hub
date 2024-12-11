@@ -1,17 +1,14 @@
 package com.kdajv.framework.aspectj.lang.annotation;
 
-import java.lang.annotation.Documented;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
 import com.kdajv.common.constant.CacheConstants;
 import com.kdajv.framework.aspectj.lang.enums.LimitType;
+
+import java.lang.annotation.*;
 
 /**
  * 限流注解
  * 
- * @author ruoyi
+ * @author GZY
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)

@@ -3,7 +3,7 @@ package com.kdajv.project.monitor.domain;
 /**
  * 当前在线会话
  * 
- * @author ruoyi
+ * @author GZY
  */
 public class SysUserOnline
 {

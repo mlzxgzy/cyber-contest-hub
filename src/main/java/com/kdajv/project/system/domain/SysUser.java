@@ -15,7 +15,7 @@ import com.kdajv.framework.web.domain.BaseEntity;
 /**
  * 用户对象 sys_user
  * 
- * @author ruoyi
+ * @author GZY
  */
 public class SysUser extends BaseEntity
 {

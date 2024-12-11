@@ -1,22 +1,23 @@
 package com.kdajv.common.utils.file;
 
+import com.kdajv.common.constant.Constants;
+import com.kdajv.common.utils.StringUtils;
+import com.kdajv.framework.config.CyberContestHubConfig;
+import org.apache.poi.util.IOUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.Arrays;
-import org.apache.poi.util.IOUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import com.kdajv.common.constant.Constants;
-import com.kdajv.common.utils.StringUtils;
-import com.kdajv.framework.config.RuoYiConfig;
 
 /**
  * 图片处理工具类
  *
- * @author ruoyi
+ * @author GZY
  */
 public class ImageUtils
 {
@@ -79,7 +80,7 @@ public class ImageUtils
             else
             {
                 // 本机地址
-                String localPath = RuoYiConfig.getProfile();
+                String localPath = CyberContestHubConfig.getProfile();
                 String downloadPath = localPath + StringUtils.substringAfter(url, Constants.RESOURCE_PREFIX);
                 in = new FileInputStream(downloadPath);
             }

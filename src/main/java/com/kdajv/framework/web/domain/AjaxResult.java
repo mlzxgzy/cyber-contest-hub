@@ -1,14 +1,15 @@
 package com.kdajv.framework.web.domain;
 
-import java.util.HashMap;
-import java.util.Objects;
 import com.kdajv.common.constant.HttpStatus;
 import com.kdajv.common.utils.StringUtils;
+
+import java.util.HashMap;
+import java.util.Objects;
 
 /**
  * 操作消息提醒
  * 
- * @author ruoyi
+ * @author GZY
  */
 public class AjaxResult extends HashMap<String, Object>
 {

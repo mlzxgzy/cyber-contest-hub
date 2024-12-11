@@ -1,8 +1,8 @@
 {
-  "name": "ruoyi",
+  "name": "cyber-contest-hub",
   "version": "3.8.8",
-  "description": "若依管理系统",
-  "author": "若依",
+  "description": "竞赛资源管理系统",
+  "author": "GZY",
   "license": "MIT",
   "type": "module",
   "scripts": {
@@ -13,7 +13,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://gitee.com/y_project/RuoYi-Vue.git"
+    "url": "https://github.com/mlzxgzy/cyber-contest-hub"
   },
   "dependencies": {
     "@element-plus/icons-vue": "2.3.1",

@@ -6,7 +6,7 @@ import com.kdajv.project.system.domain.SysConfig;
 /**
  * 参数配置 数据层
  * 
- * @author ruoyi
+ * @author GZY
  */
 public interface SysConfigMapper
 {

@@ -1,11 +1,5 @@
 package com.kdajv.common.utils.job;
 
-import java.util.Date;
-import org.quartz.Job;
-import org.quartz.JobExecutionContext;
-import org.quartz.JobExecutionException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import com.kdajv.common.constant.Constants;
 import com.kdajv.common.constant.ScheduleConstants;
 import com.kdajv.common.utils.ExceptionUtil;
@@ -15,11 +9,18 @@ import com.kdajv.common.utils.spring.SpringUtils;
 import com.kdajv.project.monitor.domain.SysJob;
 import com.kdajv.project.monitor.domain.SysJobLog;
 import com.kdajv.project.monitor.service.ISysJobLogService;
+import org.quartz.Job;
+import org.quartz.JobExecutionContext;
+import org.quartz.JobExecutionException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Date;
 
 /**
  * 抽象quartz调用
  *
- * @author ruoyi
+ * @author GZY
  */
 public abstract class AbstractQuartzJob implements Job
 {

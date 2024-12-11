@@ -1,13 +1,14 @@
 package com.kdajv.framework.web.domain.server;
 
-import java.lang.management.ManagementFactory;
 import com.kdajv.common.utils.Arith;
 import com.kdajv.common.utils.DateUtils;
+
+import java.lang.management.ManagementFactory;
 
 /**
  * JVM相关信息
  * 
- * @author ruoyi
+ * @author GZY
  */
 public class Jvm
 {

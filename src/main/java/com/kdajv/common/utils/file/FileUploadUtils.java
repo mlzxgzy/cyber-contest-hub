@@ -1,11 +1,5 @@
 package com.kdajv.common.utils.file;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Paths;
-import java.util.Objects;
-import org.apache.commons.io.FilenameUtils;
-import org.springframework.web.multipart.MultipartFile;
 import com.kdajv.common.constant.Constants;
 import com.kdajv.common.exception.file.FileNameLengthLimitExceededException;
 import com.kdajv.common.exception.file.FileSizeLimitExceededException;
@@ -13,12 +7,19 @@ import com.kdajv.common.exception.file.InvalidExtensionException;
 import com.kdajv.common.utils.DateUtils;
 import com.kdajv.common.utils.StringUtils;
 import com.kdajv.common.utils.uuid.Seq;
-import com.kdajv.framework.config.RuoYiConfig;
+import com.kdajv.framework.config.CyberContestHubConfig;
+import org.apache.commons.io.FilenameUtils;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Paths;
+import java.util.Objects;
 
 /**
  * 文件上传工具类
  *
- * @author ruoyi
+ * @author GZY
  */
 public class FileUploadUtils
 {
@@ -35,7 +36,7 @@ public class FileUploadUtils
     /**
      * 默认上传的地址
      */
-    private static String defaultBaseDir = RuoYiConfig.getProfile();
+    private static String defaultBaseDir = CyberContestHubConfig.getProfile();
 
     public static void setDefaultBaseDir(String defaultBaseDir)
     {
@@ -142,7 +143,7 @@ public class FileUploadUtils
 
     public static final String getPathFileName(String uploadDir, String fileName) throws IOException
     {
-        int dirLastIndex = RuoYiConfig.getProfile().length() + 1;
+        int dirLastIndex = CyberContestHubConfig.getProfile().length() + 1;
         String currentDir = StringUtils.substring(uploadDir, dirLastIndex);
         return Constants.RESOURCE_PREFIX + "/" + currentDir + "/" + fileName;
     }

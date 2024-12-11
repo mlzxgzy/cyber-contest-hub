@@ -1,6 +1,12 @@
 package com.kdajv.framework.web.exception;
 
-import javax.servlet.http.HttpServletRequest;
+import com.kdajv.common.constant.HttpStatus;
+import com.kdajv.common.core.text.Convert;
+import com.kdajv.common.exception.DemoModeException;
+import com.kdajv.common.exception.ServiceException;
+import com.kdajv.common.utils.StringUtils;
+import com.kdajv.common.utils.html.EscapeUtil;
+import com.kdajv.framework.web.domain.AjaxResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
@@ -11,18 +17,13 @@ import org.springframework.web.bind.MissingPathVariableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
-import com.kdajv.common.constant.HttpStatus;
-import com.kdajv.common.core.text.Convert;
-import com.kdajv.common.exception.DemoModeException;
-import com.kdajv.common.exception.ServiceException;
-import com.kdajv.common.utils.StringUtils;
-import com.kdajv.common.utils.html.EscapeUtil;
-import com.kdajv.framework.web.domain.AjaxResult;
+
+import javax.servlet.http.HttpServletRequest;
 
 /**
  * 全局异常处理器
  * 
- * @author ruoyi
+ * @author GZY
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler

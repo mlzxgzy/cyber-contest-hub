@@ -12,7 +12,7 @@ import com.kdajv.framework.config.SensitiveJsonSerializer;
 /**
  * 数据脱敏注解
  *
- * @author ruoyi
+ * @author GZY
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.FIELD)

@@ -8,7 +8,7 @@ import com.kdajv.framework.web.page.TableSupport;
 /**
  * 分页工具类
  * 
- * @author ruoyi
+ * @author GZY
  */
 public class PageUtils extends PageHelper
 {
