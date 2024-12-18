@@ -5,15 +5,14 @@ import com.kdajv.project.system.domain.TCompetitor;
 
 /**
  * 选手Service接口
- * 
+ *
  * @author GZY
  * @date 2024-12-18
  */
-public interface ITCompetitorService 
-{
+public interface ITCompetitorService {
     /**
      * 查询选手
-     * 
+     *
      * @param id 选手主键
      * @return 选手
      */
@@ -21,7 +20,7 @@ public interface ITCompetitorService
 
     /**
      * 查询选手列表
-     * 
+     *
      * @param tCompetitor 选手
      * @return 选手集合
      */
@@ -29,7 +28,7 @@ public interface ITCompetitorService
 
     /**
      * 新增选手
-     * 
+     *
      * @param tCompetitor 选手
      * @return 结果
      */
@@ -37,7 +36,7 @@ public interface ITCompetitorService
 
     /**
      * 修改选手
-     * 
+     *
      * @param tCompetitor 选手
      * @return 结果
      */
@@ -45,7 +44,7 @@ public interface ITCompetitorService
 
     /**
      * 批量删除选手
-     * 
+     *
      * @param ids 需要删除的选手主键集合
      * @return 结果
      */
@@ -53,9 +52,18 @@ public interface ITCompetitorService
 
     /**
      * 删除选手信息
-     * 
+     *
      * @param id 选手主键
      * @return 结果
      */
     public int deleteTCompetitorById(Long id);
+
+    /**
+     * 导入选手数据
+     *
+     * @param competitorList 选手数据列表
+     * @param operName 操作用户
+     * @return 结果
+     */
+    public String importUser(List<TCompetitor> competitorList, String operName);
 }

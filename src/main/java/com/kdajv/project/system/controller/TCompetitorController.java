@@ -20,17 +20,17 @@ import com.kdajv.framework.web.controller.BaseController;
 import com.kdajv.framework.web.domain.AjaxResult;
 import com.kdajv.common.utils.poi.ExcelUtil;
 import com.kdajv.framework.web.page.TableDataInfo;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * 选手Controller
- * 
+ *
  * @author GZY
  * @date 2024-12-18
  */
 @RestController
 @RequestMapping("/exam/competitor")
-public class TCompetitorController extends BaseController
-{
+public class TCompetitorController extends BaseController {
     @Autowired
     private ITCompetitorService tCompetitorService;
 
@@ -39,8 +39,7 @@ public class TCompetitorController extends BaseController
      */
     @PreAuthorize("@ss.hasPermi('exam:competitor:list')")
     @GetMapping("/list")
-    public TableDataInfo list(TCompetitor tCompetitor)
-    {
+    public TableDataInfo list(TCompetitor tCompetitor) {
         startPage();
         List<TCompetitor> list = tCompetitorService.selectTCompetitorList(tCompetitor);
         return getDataTable(list);
@@ -52,11 +51,34 @@ public class TCompetitorController extends BaseController
     @PreAuthorize("@ss.hasPermi('exam:competitor:export')")
     @Log(title = "选手", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
-    public void export(HttpServletResponse response, TCompetitor tCompetitor)
-    {
+    public void export(HttpServletResponse response, TCompetitor tCompetitor) {
         List<TCompetitor> list = tCompetitorService.selectTCompetitorList(tCompetitor);
         ExcelUtil<TCompetitor> util = new ExcelUtil<TCompetitor>(TCompetitor.class);
         util.exportExcel(response, list, "选手数据");
+    }
+
+    /**
+     * 导入选手
+     */
+    @Log(title = "选手", businessType = BusinessType.IMPORT)
+    @PreAuthorize("@ss.hasPermi('exam:competitor:add')")
+    @PostMapping("/importData")
+    public AjaxResult importData(MultipartFile file) throws Exception
+    {
+        ExcelUtil<TCompetitor> util = new ExcelUtil<>(TCompetitor.class);
+        List<TCompetitor> userList = util.importExcel(file.getInputStream());
+        String operName = getUsername();
+        String message = tCompetitorService.importUser(userList, operName);
+        return success(message);
+    }
+
+    /**
+     * 导入选手模板下载
+     */
+    @PostMapping("/importTemplate")
+    public void importTemplate(HttpServletResponse response) {
+        ExcelUtil<TCompetitor> util = new ExcelUtil<>(TCompetitor.class);
+        util.importTemplateExcel(response, "选手数据");
     }
 
     /**
@@ -64,8 +86,7 @@ public class TCompetitorController extends BaseController
      */
     @PreAuthorize("@ss.hasPermi('exam:competitor:query')")
     @GetMapping(value = "/{id}")
-    public AjaxResult getInfo(@PathVariable("id") Long id)
-    {
+    public AjaxResult getInfo(@PathVariable("id") Long id) {
         return success(tCompetitorService.selectTCompetitorById(id));
     }
 
@@ -75,8 +96,7 @@ public class TCompetitorController extends BaseController
     @PreAuthorize("@ss.hasPermi('exam:competitor:add')")
     @Log(title = "选手", businessType = BusinessType.INSERT)
     @PostMapping
-    public AjaxResult add(@RequestBody TCompetitor tCompetitor)
-    {
+    public AjaxResult add(@RequestBody TCompetitor tCompetitor) {
         return toAjax(tCompetitorService.insertTCompetitor(tCompetitor));
     }
 
@@ -86,8 +106,7 @@ public class TCompetitorController extends BaseController
     @PreAuthorize("@ss.hasPermi('exam:competitor:edit')")
     @Log(title = "选手", businessType = BusinessType.UPDATE)
     @PutMapping
-    public AjaxResult edit(@RequestBody TCompetitor tCompetitor)
-    {
+    public AjaxResult edit(@RequestBody TCompetitor tCompetitor) {
         return toAjax(tCompetitorService.updateTCompetitor(tCompetitor));
     }
 
@@ -96,9 +115,8 @@ public class TCompetitorController extends BaseController
      */
     @PreAuthorize("@ss.hasPermi('exam:competitor:remove')")
     @Log(title = "选手", businessType = BusinessType.DELETE)
-	@DeleteMapping("/{ids}")
-    public AjaxResult remove(@PathVariable Long[] ids)
-    {
+    @DeleteMapping("/{ids}")
+    public AjaxResult remove(@PathVariable Long[] ids) {
         return toAjax(tCompetitorService.deleteTCompetitorByIds(ids));
     }
 }
