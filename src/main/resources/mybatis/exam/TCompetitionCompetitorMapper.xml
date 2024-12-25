@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kdajv.project.system.mapper.TCompetitionCompetitorMapper">
+    
+    <resultMap type="TCompetitionCompetitor" id="TCompetitionCompetitorResult">
+        <result property="id"    column="id"    />
+        <result property="competitionId"    column="competition_id"    />
+        <result property="competitionName"    column="competition_name"    />
+        <result property="competitorId"    column="competitor_id"    />
+        <result property="competitorName"    column="competitor_name"    />
+    </resultMap>
+
+    <sql id="selectTCompetitionCompetitorVo">
+        select id, competition_id, competition_name, competitor_id, competitor_name from t_competition_competitor
+    </sql>
+
+    <select id="selectTCompetitionCompetitorList" parameterType="TCompetitionCompetitor" resultMap="TCompetitionCompetitorResult">
+        <include refid="selectTCompetitionCompetitorVo"/>
+        <where>  
+            <if test="competitionId != null "> and competition_id = #{competitionId}</if>
+            <if test="competitionName != null  and competitionName != ''"> and competition_name like concat('%', #{competitionName}, '%')</if>
+            <if test="competitorId != null "> and competitor_id = #{competitorId}</if>
+            <if test="competitorName != null  and competitorName != ''"> and competitor_name like concat('%', #{competitorName}, '%')</if>
+        </where>
+    </select>
+    
+    <select id="selectTCompetitionCompetitorById" parameterType="Long" resultMap="TCompetitionCompetitorResult">
+        <include refid="selectTCompetitionCompetitorVo"/>
+        where id = #{id}
+    </select>
+
+    <insert id="insertTCompetitionCompetitor" parameterType="TCompetitionCompetitor" useGeneratedKeys="true" keyProperty="id">
+        insert into t_competition_competitor
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="competitionId != null">competition_id,</if>
+            <if test="competitionName != null and competitionName != ''">competition_name,</if>
+            <if test="competitorId != null">competitor_id,</if>
+            <if test="competitorName != null and competitorName != ''">competitor_name,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="competitionId != null">#{competitionId},</if>
+            <if test="competitionName != null and competitionName != ''">#{competitionName},</if>
+            <if test="competitorId != null">#{competitorId},</if>
+            <if test="competitorName != null and competitorName != ''">#{competitorName},</if>
+         </trim>
+    </insert>
+
+    <update id="updateTCompetitionCompetitor" parameterType="TCompetitionCompetitor">
+        update t_competition_competitor
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="competitionId != null">competition_id = #{competitionId},</if>
+            <if test="competitionName != null and competitionName != ''">competition_name = #{competitionName},</if>
+            <if test="competitorId != null">competitor_id = #{competitorId},</if>
+            <if test="competitorName != null and competitorName != ''">competitor_name = #{competitorName},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteTCompetitionCompetitorById" parameterType="Long">
+        delete from t_competition_competitor where id = #{id}
+    </delete>
+
+    <delete id="deleteTCompetitionCompetitorByIds" parameterType="String">
+        delete from t_competition_competitor where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>
