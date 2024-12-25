@@ -1,6 +1,6 @@
 -- 菜单 SQL
 insert into sys_menu (menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark)
-values('竞赛选手', '3', '11', 'competiitonCompetitor', 'exam/competiitonCompetitor/index', 1, 0, 'C', '0', '0', 'exam:competiitonCompetitor:list', '#', 'admin', sysdate(), '', null, '竞赛选手菜单');
+values('竞赛选手', '0', '11', 'competiitonCompetitor', 'exam/competiitonCompetitor/index', 1, 0, 'C', '0', '0', 'exam:competiitonCompetitor:list', '#', 'admin', sysdate(), '', null, '竞赛选手菜单');
 
 -- 按钮父菜单ID
 SELECT @parentId := LAST_INSERT_ID();
