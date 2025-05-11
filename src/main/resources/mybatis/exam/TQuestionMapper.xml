@@ -38,6 +38,29 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         where id = #{id}
     </select>
 
+    <select id="countByCategory" resultType="java.util.Map">
+        SELECT category AS name, COUNT(*) AS value
+        FROM t_question
+        GROUP BY category
+    </select>
+
+    <select id="countByDifficulty" resultType="com.kdajv.project.system.domain.DifficultyStats">
+        SELECT difficult AS level, COUNT(*) AS count
+        FROM t_question
+        GROUP BY difficult
+        ORDER BY difficult
+    </select>
+
+    <select id="getAvgDifficulty" resultType="java.lang.Double">
+        SELECT ROUND(AVG(difficult), 1)
+        FROM t_question
+    </select>
+
+    <select id="selectCount" resultType="java.lang.Integer">
+        select count(0)
+        from t_question
+    </select>
+
     <insert id="insertTQuestion" parameterType="TQuestion" useGeneratedKeys="true" keyProperty="id">
         insert into t_question
         <trim prefix="(" suffix=")" suffixOverrides=",">

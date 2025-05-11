@@ -31,6 +31,15 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         where id = #{id}
     </select>
 
+    <select id="getActiveCompetitorsTop10"
+            resultType="com.kdajv.project.system.domain.dto.ActiveCompetitorDTO">
+        SELECT competitor_id AS id, competitor_name AS name, COUNT(*) AS count
+        FROM t_competition_competitor
+        GROUP BY competitor_id, competitor_name
+        ORDER BY count DESC
+        LIMIT 10
+    </select>
+
     <insert id="insertTCompetitionCompetitor" parameterType="TCompetitionCompetitor" useGeneratedKeys="true" keyProperty="id">
         insert into t_competition_competitor
         <trim prefix="(" suffix=")" suffixOverrides=",">

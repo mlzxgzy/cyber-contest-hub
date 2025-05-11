@@ -1,6 +1,7 @@
 package com.kdajv.project.system.mapper;
 
 import com.kdajv.project.system.domain.TCompetitionCompetitor;
+import com.kdajv.project.system.domain.dto.ActiveCompetitorDTO;
 
 import java.util.List;
 
@@ -59,4 +60,6 @@ public interface TCompetitionCompetitorMapper
      * @return 结果
      */
     public int deleteTCompetitionCompetitorByIds(Long[] ids);
+
+    List<ActiveCompetitorDTO> getActiveCompetitorsTop10();
 }

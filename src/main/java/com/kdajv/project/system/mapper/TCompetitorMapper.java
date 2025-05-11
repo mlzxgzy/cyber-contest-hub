@@ -58,4 +58,6 @@ public interface TCompetitorMapper
      * @return 结果
      */
     public int deleteTCompetitorByIds(Long[] ids);
+
+    int selectCount();
 }

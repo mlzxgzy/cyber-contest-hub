@@ -1,6 +1,8 @@
 package com.kdajv.project.system.mapper;
 
 import java.util.List;
+
+import com.kdajv.project.system.domain.CompetitionTimeStats;
 import com.kdajv.project.system.domain.TCompetition;
 
 /**
@@ -58,4 +60,8 @@ public interface TCompetitionMapper
      * @return 结果
      */
     public int deleteTCompetitionByIds(Long[] ids);
+
+    List<CompetitionTimeStats> countByMonth();
+
+    public int selectCount();
 }

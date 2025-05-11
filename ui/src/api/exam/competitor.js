@@ -17,6 +17,14 @@ export function getCompetitor(id) {
   })
 }
 
+// 查询选手更详细
+export function getCompetitorDetail(id) {
+  return request({
+    url: '/exam/competitor/detail/' + id,
+    method: 'get'
+  })
+}
+
 // 新增选手
 export function addCompetitor(data) {
   return request({

@@ -1,6 +1,8 @@
 package com.kdajv.project.system.service;
 
 import java.util.List;
+import java.util.Map;
+
 import com.kdajv.project.system.domain.TCompetitor;
 
 /**
@@ -66,4 +68,6 @@ public interface ITCompetitorService {
      * @return 结果
      */
     public String importUser(List<TCompetitor> competitorList, String operName);
+
+    Map<String, Object> getCompetitorDetail(Long id);
 }

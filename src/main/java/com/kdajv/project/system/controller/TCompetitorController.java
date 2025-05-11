@@ -90,6 +90,12 @@ public class TCompetitorController extends BaseController {
         return success(tCompetitorService.selectTCompetitorById(id));
     }
 
+    @PreAuthorize("@ss.hasPermi('exam:competitor:query')")
+    @GetMapping("/detail/{id}")
+    public AjaxResult getDetailInfo(@PathVariable("id") Long id) {
+        return AjaxResult.success(tCompetitorService.getCompetitorDetail(id));
+    }
+
     /**
      * 新增选手
      */

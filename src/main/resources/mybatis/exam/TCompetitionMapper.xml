@@ -34,6 +34,18 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         where id = #{id}
     </select>
 
+    <select id="countByMonth" resultType="com.kdajv.project.system.domain.CompetitionTimeStats">
+        SELECT DATE_FORMAT(date, '%Y-%m') AS date, COUNT(*) AS count
+        FROM t_competition
+        GROUP BY DATE_FORMAT(date, '%Y-%m')
+        ORDER BY date
+    </select>
+
+    <select id="selectCount" resultType="java.lang.Integer">
+        select count(0)
+        from t_competition
+    </select>
+
     <insert id="insertTCompetition" parameterType="TCompetition" useGeneratedKeys="true" keyProperty="id">
         insert into t_competition
         <trim prefix="(" suffix=")" suffixOverrides=",">

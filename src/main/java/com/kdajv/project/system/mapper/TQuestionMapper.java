@@ -1,19 +1,21 @@
 package com.kdajv.project.system.mapper;
 
 import java.util.List;
+import java.util.Map;
+
+import com.kdajv.project.system.domain.DifficultyStats;
 import com.kdajv.project.system.domain.TQuestion;
 
 /**
  * 题目Mapper接口
- * 
+ *
  * @author GZY
  * @date 2024-12-18
  */
-public interface TQuestionMapper 
-{
+public interface TQuestionMapper {
     /**
      * 查询题目
-     * 
+     *
      * @param id 题目主键
      * @return 题目
      */
@@ -21,7 +23,7 @@ public interface TQuestionMapper
 
     /**
      * 查询题目列表
-     * 
+     *
      * @param tQuestion 题目
      * @return 题目集合
      */
@@ -29,7 +31,7 @@ public interface TQuestionMapper
 
     /**
      * 新增题目
-     * 
+     *
      * @param tQuestion 题目
      * @return 结果
      */
@@ -37,7 +39,7 @@ public interface TQuestionMapper
 
     /**
      * 修改题目
-     * 
+     *
      * @param tQuestion 题目
      * @return 结果
      */
@@ -45,7 +47,7 @@ public interface TQuestionMapper
 
     /**
      * 删除题目
-     * 
+     *
      * @param id 题目主键
      * @return 结果
      */
@@ -53,9 +55,17 @@ public interface TQuestionMapper
 
     /**
      * 批量删除题目
-     * 
+     *
      * @param ids 需要删除的数据主键集合
      * @return 结果
      */
     public int deleteTQuestionByIds(Long[] ids);
+
+    List<Map<String, Object>> countByCategory();
+
+    List<DifficultyStats> countByDifficulty();
+
+    Double getAvgDifficulty();
+
+    int selectCount();
 }
