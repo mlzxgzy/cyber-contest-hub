@@ -84,6 +84,7 @@
       <el-table-column label="备注" align="center" prop="remark" />
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
+          <el-button link type="primary" icon="Discount" @click="handleAddTag(scope.row)" v-hasPermi="['exam:question:edit', 'exam:questionTag:add']">添加Tag</el-button>
           <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['exam:question:edit']">修改</el-button>
           <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['exam:question:remove']">删除</el-button>
         </template>
@@ -127,11 +128,37 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- 添加Tag对话框 -->
+    <el-dialog title="添加题目Tag" v-model="addTagOpen" width="400px" append-to-body>
+      <el-form ref="tagFormRef" :model="tagForm" :rules="tagRules" label-width="80px">
+        <el-form-item label="题目ID" prop="questionId" v-show="false">
+          <el-input v-model="tagForm.questionId" placeholder="请输入题目ID" />
+        </el-form-item>
+        <el-form-item label="题目名称" prop="questionName" v-show="false">
+          <el-input v-model="tagForm.questionName" placeholder="请输入题目名称" />
+        </el-form-item>
+        <el-form-item label="Tag名称" prop="tag">
+          <el-input
+              v-model="tagForm.tag"
+              placeholder="请输入Tag名称"
+              clearable
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button type="primary" @click="submitTagForm">确 定</el-button>
+          <el-button @click="cancelTagForm">取 消</el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup name="Question">
 import { listQuestion, getQuestion, delQuestion, addQuestion, updateQuestion } from "@/api/exam/question";
+import { addQuestionTag } from "@/api/exam/questionTag";
 
 const { proxy } = getCurrentInstance();
 
@@ -176,6 +203,21 @@ const data = reactive({
       { required: true, message: "修改时间不能为空", trigger: "blur" }
     ],
   }
+});
+
+// 新增状态
+const addTagOpen = ref(false);
+const tagForm = ref({
+  questionId: null,
+  questionName: null,
+  tag: null
+});
+
+// 验证规则
+const tagRules = reactive({
+  tag: [
+    { required: true, message: "Tag名称不能为空", trigger: "blur" }
+  ]
 });
 
 const { queryParams, form, rules } = toRefs(data);
@@ -249,6 +291,38 @@ function handleUpdate(row) {
     open.value = true;
     title.value = "修改题目";
   });
+}
+
+/** 添加Tag按钮操作 */
+function handleAddTag(row) {
+  // 重置表单
+  tagForm.value = {
+    questionId: row.id,  // 使用当前题目的ID
+    questionName: row.name,  // 使用当前题目的ID
+    tag: null
+  };
+  addTagOpen.value = true;
+}
+
+/** 提交Tag表单 */
+function submitTagForm() {
+  proxy.$refs["tagFormRef"].validate(valid => {
+    if (valid) {
+      addQuestionTag(tagForm.value).then(response => {
+        proxy.$modal.msgSuccess("Tag添加成功");
+        addTagOpen.value = false;
+        // 可以根据需要刷新题目列表或Tag列表
+      }).catch(() => {
+        proxy.$modal.msgError("Tag添加失败");
+      });
+    }
+  });
+}
+
+/** 取消Tag添加 */
+function cancelTagForm() {
+  addTagOpen.value = false;
+  proxy.resetForm("tagFormRef");
 }
 
 /** 提交按钮 */
