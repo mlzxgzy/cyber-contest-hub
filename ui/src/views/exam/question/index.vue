@@ -73,7 +73,9 @@
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
 
-    <el-table v-loading="loading" :data="questionList" @selection-change="handleSelectionChange">
+    <el-table v-loading="loading" :data="questionList" @selection-change="handleSelectionChange"
+              :row-key="row => row.id"
+              @expand-change="handleExpandChange">
       <el-table-column type="selection" width="55" align="center" />
       <el-table-column label="ID" align="center" prop="id" />
       <el-table-column label="名称" align="center" prop="name" />
@@ -87,6 +89,87 @@
           <el-button link type="primary" icon="Discount" @click="handleAddTag(scope.row)" v-hasPermi="['exam:question:edit', 'exam:questionTag:add']">添加Tag</el-button>
           <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['exam:question:edit']">修改</el-button>
           <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['exam:question:remove']">删除</el-button>
+        </template>
+      </el-table-column>
+      <el-table-column type="expand">
+        <template #default="{row}">
+          <div v-if="row.expandLoading" class="expand-loading">
+            <el-icon class="is-loading">
+              <Loading/>
+            </el-icon>
+            加载中...
+          </div>
+          <div v-else class="expand-content">
+            <!-- Tag展示区域 -->
+            <div class="section">
+              <h4>题目标签</h4>
+              <div class="tag-container">
+                <el-tag
+                    v-for="tag in tagsMap[row.id]"
+                    :key="tag.id"
+                    class="tag-item"
+                    closable
+                    @close="handleDeleteTag(row.id, tag.id)"
+                    v-hasPermi="['exam:questionTag:remove']"
+                >
+                  {{ tag.tag }}
+                </el-tag>
+                <el-button
+                    v-hasPermi="['exam:questionTag:add']"
+                    type="primary"
+                    size="small"
+                    @click="handleAddTag(row)"
+                >
+                  + 添加标签
+                </el-button>
+                <div v-if="!tagsMap[row.id]?.length" class="empty-tip">
+                  暂无标签
+                </div>
+              </div>
+            </div>
+
+            <!-- 附件展示区域 -->
+            <div class="section">
+              <h4>题目附件</h4>
+              <div class="attachment-container">
+                <div
+                    v-for="file in attachmentsMap[row.id]"
+                    :key="file.id"
+                    class="attachment-item"
+                >
+                  <div class="file-info">
+                    <el-link
+                        type="primary"
+                        :underline="false"
+                        @click="handleDownload(file)"
+                    >
+                      <el-icon>
+                        <Document/>
+                      </el-icon>
+                      {{ file.name }}
+                    </el-link>
+                    <div class="file-desc" v-if="file.description">
+                      {{ file.description }}
+                    </div>
+                  </div>
+                  <div class="file-actions">
+                    <el-button
+                        link
+                        type="danger"
+                        size="small"
+                        @click="handleDeleteAttachment(row.id, file.id)"
+                        v-hasPermi="['exam:questionAttachment:remove']"
+                    >
+                      删除
+                    </el-button>
+                  </div>
+                </div>
+                <div v-if="!attachmentsMap[row.id]?.length" class="empty-tip">
+                  暂无附件
+                </div>
+              </div>
+            </div>
+          </div>
         </template>
       </el-table-column>
     </el-table>
@@ -158,7 +241,8 @@
 
 <script setup name="Question">
 import { listQuestion, getQuestion, delQuestion, addQuestion, updateQuestion } from "@/api/exam/question";
-import { addQuestionTag } from "@/api/exam/questionTag";
+import { listQuestionTag, addQuestionTag } from "@/api/exam/questionTag";
+import { listQuestionAttachment } from "@/api/exam/questionAttachment";
 
 const { proxy } = getCurrentInstance();
 
@@ -213,12 +297,58 @@ const tagForm = ref({
   tag: null
 });
 
+// 新增状态
+const tagsMap = ref({});         // {题目ID: Tag列表}
+const attachmentsMap = ref({});  // {题目ID: 附件列表}
+const expandedRows = ref(new Set());// 已展开的行
+
 // 验证规则
 const tagRules = reactive({
   tag: [
     { required: true, message: "Tag名称不能为空", trigger: "blur" }
   ]
 });
+
+// 新增方法 - 处理展开行
+const handleExpandChange = async (row) => {
+  if (!expandedRows.value.has(row.id)) {
+    try {
+      row.expandLoading = true;
+      // 并行获取Tag和附件
+      const [tagsRes, attachmentsRes] = await Promise.all([
+        listQuestionTag({ questionId: row.id }),
+        listQuestionAttachment({ questionId: row.id })
+      ]);
+
+      tagsMap.value[row.id] = tagsRes.rows;
+      attachmentsMap.value[row.id] = attachmentsRes.rows;
+      expandedRows.value.add(row.id);
+    } finally {
+      row.expandLoading = false;
+    }
+  }
+};
+
+// 新增方法 - 删除Tag
+const handleDeleteTag = async (questionId, tagId) => {
+  await proxy.$modal.confirm('确认删除该Tag?');
+  await delQuestionTag(tagId);
+  tagsMap.value[questionId] = tagsMap.value[questionId].filter(t => t.id !== tagId);
+  proxy.$modal.msgSuccess("删除成功");
+};
+
+// 新增方法 - 删除附件
+const handleDeleteAttachment = async (questionId, attachmentId) => {
+  await proxy.$modal.confirm('确认删除该附件?');
+  await delQuestionAttachment(attachmentId);
+  attachmentsMap.value[questionId] = attachmentsMap.value[questionId].filter(a => a.id !== attachmentId);
+  proxy.$modal.msgSuccess("删除成功");
+};
+
+// 新增方法 - 下载附件
+const handleDownload = (row) => {
+  window.location.href = row.path;
+};
 
 const { queryParams, form, rules } = toRefs(data);
 
@@ -306,15 +436,22 @@ function handleAddTag(row) {
 
 /** 提交Tag表单 */
 function submitTagForm() {
-  proxy.$refs["tagFormRef"].validate(valid => {
+  proxy.$refs["tagFormRef"].validate(async (valid) => {
     if (valid) {
-      addQuestionTag(tagForm.value).then(response => {
+      try {
+        await addQuestionTag(tagForm.value);
         proxy.$modal.msgSuccess("Tag添加成功");
         addTagOpen.value = false;
-        // 可以根据需要刷新题目列表或Tag列表
-      }).catch(() => {
+        // 更新本地缓存
+        if (tagsMap.value[tagForm.value.questionId]) {
+          tagsMap.value[tagForm.value.questionId].push({
+            id: Date.now(), // 临时ID，实际应使用接口返回数据
+            ...tagForm.value
+          });
+        }
+      } catch {
         proxy.$modal.msgError("Tag添加失败");
-      });
+      }
     }
   });
 }
@@ -366,3 +503,74 @@ function handleExport() {
 
 getList();
 </script>
+
+<style scoped>
+.expand-content {
+  padding: 0 40px;
+}
+
+.section {
+  margin: 20px 0;
+}
+
+.section h4 {
+  color: #606266;
+  font-size: 14px;
+  margin: 0 0 12px 0;
+}
+
+.tag-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.tag-item {
+  margin-right: 8px;
+  transition: all 0.3s;
+}
+
+.tag-item:hover {
+  transform: translateY(-2px);
+}
+
+.attachment-container {
+  border-radius: 4px;
+  background: #f8f9fa;
+  padding: 12px;
+}
+
+.attachment-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+  margin: 4px 0;
+  background: white;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s;
+}
+
+.attachment-item:hover {
+  transform: translateX(4px);
+}
+
+.file-info {
+  flex: 1;
+}
+
+.file-desc {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 4px;
+}
+
+.empty-tip {
+  color: #909399;
+  font-size: 13px;
+  padding: 8px 0;
+}
+</style>
