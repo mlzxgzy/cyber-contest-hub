@@ -4,7 +4,7 @@
       <template #header>
         <div class="card-header">
           <span>选手基本信息</span>
-          <el-button type="primary" @click="$router.go(-1)">返回</el-button>
+          <el-button type="primary" @click="emits('close')">返回</el-button>
         </div>
       </template>
 
@@ -47,6 +47,8 @@ const props = defineProps({
     default: "选手ID"
   },
 });
+
+const emits = defineEmits(['close'])
 
 const competitorId = ref(null)
 const competitorInfo = ref({})

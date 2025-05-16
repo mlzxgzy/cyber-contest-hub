@@ -108,7 +108,7 @@
     </el-row>
 
     <el-dialog title="选手信息" v-model="competitorDetailDialog.open" width="80%" append-to-body>
-      <competor-detail :id="competitorDetailDialog.id"/>
+      <competor-detail @close="competitorDetailDialog.open=false" :id="competitorDetailDialog.id"/>
     </el-dialog>
   </div>
 </template>
