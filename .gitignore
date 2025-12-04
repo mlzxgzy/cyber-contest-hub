@@ -27,20 +27,23 @@ target/
 
 ### JRebel ###
 rebel.xml
+
 ### NetBeans ###
 nbproject/private/
 build/*
 nbbuild/
-dist/
 nbdist/
 .nb-gradle/
 
 ######################################################################
 # Others
 *.log
+*.log.gz
 *.xml.versionsBackup
 *.swp
 
 !*/build/*.java
 !*/build/*.html
 !*/build/*.xml
+
+.flattened-pom.xml
