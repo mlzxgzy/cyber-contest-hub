@@ -104,6 +104,17 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Flyway数据库版本控制 -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-mysql</artifactId>
+        </dependency>
+
         <!-- skywalking 整合 logback -->
 <!--        <dependency>-->
 <!--            <groupId>org.apache.skywalking</groupId>-->

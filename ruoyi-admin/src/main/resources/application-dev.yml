@@ -65,6 +65,13 @@ spring:
         maxLifetime: 1800000
         # 多久检查一次连接的活性
         keepaliveTime: 30000
+  flyway:
+    enabled: true
+    # 是否在启动时执行基线检测
+    # 当迁移发现目标schema非空且没有元数据表时，是否自动执行基准迁移
+    baseline-on-migrate: true
+    # 基线版本
+    baseline-version: 0
 
 --- # redis 单机配置(单机与集群只能开启一个另一个需要注释掉)
 spring.data:
