@@ -53,7 +53,7 @@ const {columns, columnChecks, data, getData, getDataByPage, loading, mobilePagin
         key: 'id',
         title: '主键',
         align: 'center',
-        minWidth: 120
+        minWidth: 120,
       },
       {
         key: 'category',
@@ -113,6 +113,21 @@ const {columns, columnChecks, data, getData, getDataByPage, loading, mobilePagin
             );
           };
 
+          const editContentBtn = () => {
+            if (!hasAuth('cch:challenge:edit')) {
+              return null;
+            }
+            return (
+              <ButtonIcon
+                text
+                type="primary"
+                icon="material-symbols:edit-note-outline"
+                tooltipContent="编辑题目内容"
+                onClick={() => handleEditContent(row.id)}
+              />
+            );
+          };
+
           const deleteBtn = () => {
             if (!hasAuth('cch:challenge:remove')) {
               return null;
@@ -133,6 +148,8 @@ const {columns, columnChecks, data, getData, getDataByPage, loading, mobilePagin
             <div class="flex-center gap-8px">
               {editBtn()}
               {divider()}
+              {editContentBtn()}
+              {divider()}
               {deleteBtn()}
             </div>
           );
@@ -140,6 +157,19 @@ const {columns, columnChecks, data, getData, getDataByPage, loading, mobilePagin
       }
     ]
   });
+
+console.log(columns);
+console.log(columnChecks);
+
+// 设置 index id 列默认隐藏
+columnChecks.value.forEach(check => {
+  if (check.key === 'index') {
+    check.checked = false;
+  }
+  if (check.key === 'id') {
+    check.checked = false;
+  }
+});
 
 const {drawerVisible, operateType, editingData, handleAdd, handleEdit, checkedRowKeys, onBatchDeleted, onDeleted} =
   useTableOperate(data, 'id', getData);
@@ -162,6 +192,11 @@ function edit(id: CommonType.IdType) {
   handleEdit(id);
 }
 
+function handleEditContent(id: CommonType.IdType) {
+  window.$message?.info('编辑题目内容功能待实现，题目ID: ' + id);
+  // TODO: 实现跳转到题目内容编辑页面的逻辑
+}
+
 function handleExport() {
   download('/cch/challenge/export', searchParams, `题目列表_${new Date().getTime()}.xlsx`);
 }
@@ -170,7 +205,7 @@ function handleExport() {
 <template>
   <div class="min-h-500px flex-col-stretch gap-16px overflow-hidden lt-sm:overflow-auto">
     <ChallengeSearch v-model:model="searchParams" @search="getDataByPage"/>
-    <NCard :bordered="false" class="card-wrapper sm:flex-1-hidden" size="small" title="题目列表列表">
+    <NCard :bordered="false" class="card-wrapper sm:flex-1-hidden" size="small" title="题目列表">
       <template #header-extra>
         <TableHeaderOperation
           v-model:columns="columnChecks"
