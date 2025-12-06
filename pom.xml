@@ -357,6 +357,12 @@
                 <version>${revision}</version>
             </dependency>
 
+            <dependency>
+                <groupId>com.kdajv.cch</groupId>
+                <artifactId>cch-system</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
 
@@ -365,6 +371,7 @@
         <module>ruoyi-common</module>
         <module>ruoyi-extend</module>
         <module>ruoyi-modules</module>
+        <module>cch-system</module>
     </modules>
     <packaging>pom</packaging>
 
