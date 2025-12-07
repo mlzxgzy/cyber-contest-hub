@@ -165,6 +165,9 @@ console.log(draftData)
                     <NFormItem label="题干" path="stem">
                       <NInput v-model:value="draftData.config.stem" :rows="3" placeholder="请输入题干" type="textarea"/>
                     </NFormItem>
+                    <NFormItem label="知识点" path="knowledge">
+                      <n-select v-model:value="draftData.config.knowledge" filterable multiple tag/>
+                    </NFormItem>
                   </NForm>
                 </n-card>
               </n-gi>
