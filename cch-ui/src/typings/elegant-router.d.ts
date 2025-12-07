@@ -28,6 +28,7 @@ declare module "@elegant-router/types" {
     "cch_challenge": "/cch/challenge";
     "cch_challenge-draft": "/cch/challenge-draft";
     "cch_challenge-draft-edit": "/cch/challenge-draft-edit";
+    "cch_challenge-file": "/cch/challenge-file";
     "cch_challenge-version": "/cch/challenge-version";
     "demo": "/demo";
     "demo_demo": "/demo/demo";
@@ -132,6 +133,7 @@ declare module "@elegant-router/types" {
     | "user-center"
     | "cch_challenge-draft-edit"
     | "cch_challenge-draft"
+    | "cch_challenge-file"
     | "cch_challenge-version"
     | "cch_challenge"
     | "demo_demo"

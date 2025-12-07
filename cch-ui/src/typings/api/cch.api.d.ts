@@ -144,5 +144,57 @@ declare namespace Api {
 
         /** challenge version list */
         type ChallengeVersionList = Api.Common.PaginatingQueryRecord<ChallengeVersion>;
+
+        /** challenge file */
+        type ChallengeFile = Common.CommonRecord<{
+            /** 主键 */
+            id: CommonType.IdType;
+            /** 题目id */
+            challengeId: CommonType.IdType;
+            /** 文件名 */
+            fileName: string;
+            /** 原名 */
+            originalName: string;
+            /** 文件后缀名 */
+            fileSuffix: string;
+            /** URL地址 */
+            url: string;
+            /** 扩展字段 */
+            ext1: string;
+            /** 服务商 */
+            service: string;
+        }>;
+
+        /** challenge file search params */
+        type ChallengeFileSearchParams = CommonType.RecordNullable<
+            Pick<
+                Api.Cch.ChallengeFile,
+                | 'challengeId'
+                | 'fileName'
+                | 'originalName'
+                | 'fileSuffix'
+                | 'url'
+                | 'service'
+            > &
+            Api.Common.CommonSearchParams
+        >;
+
+        /** challenge file operate params */
+        type ChallengeFileOperateParams = CommonType.RecordNullable<
+            Pick<
+                Api.Cch.ChallengeFile,
+                | 'id'
+                | 'challengeId'
+                | 'fileName'
+                | 'originalName'
+                | 'fileSuffix'
+                | 'url'
+                | 'ext1'
+                | 'service'
+            >
+        >;
+
+        /** challenge file list */
+        type ChallengeFileList = Api.Common.PaginatingQueryRecord<ChallengeFile>;
     }
 }

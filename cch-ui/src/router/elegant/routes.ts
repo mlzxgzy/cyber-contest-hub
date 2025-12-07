@@ -67,15 +67,24 @@ export const generatedRoutes: GeneratedRoute[] = [
         }
       },
       {
-          name: 'cch_challenge-draft-edit',
-          path: '/cch/challenge-draft-edit',
-          component: 'view.cch_challenge-draft-edit',
-          meta: {
-              title: 'cch_challenge-draft-edit',
-              i18nKey: 'route.cch_challenge-draft-edit'
-          }
+        name: 'cch_challenge-draft-edit',
+        path: '/cch/challenge-draft-edit',
+        component: 'view.cch_challenge-draft-edit',
+        meta: {
+          title: 'cch_challenge-draft-edit',
+          i18nKey: 'route.cch_challenge-draft-edit'
+        }
       },
-        {
+      {
+        name: 'cch_challenge-file',
+        path: '/cch/challenge-file',
+        component: 'view.cch_challenge-file',
+        meta: {
+          title: 'cch_challenge-file',
+          i18nKey: 'route.cch_challenge-file'
+        }
+      },
+      {
         name: 'cch_challenge-version',
         path: '/cch/challenge-version',
         component: 'view.cch_challenge-version',
