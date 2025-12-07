@@ -1,5 +1,6 @@
 <script lang="tsx" setup>
 import {ref} from 'vue';
+import {useRouter} from 'vue-router';
 import {NDivider} from 'naive-ui';
 import {fetchBatchDeleteChallenge, fetchGetChallengeList} from '@/service/api/cch/challenge';
 import {useAppStore} from '@/store/modules/app';
@@ -15,6 +16,7 @@ defineOptions({
   name: 'ChallengeList'
 });
 
+const router = useRouter();
 const appStore = useAppStore();
 const {download} = useDownload();
 const {hasAuth} = useAuth();
@@ -103,13 +105,13 @@ const {columns, columnChecks, data, getData, getDataByPage, loading, mobilePagin
               return null;
             }
             return (
-              <ButtonIcon
-                text
-                type="primary"
-                icon="material-symbols:drive-file-rename-outline-outline"
-                tooltipContent={$t('common.edit')}
-                onClick={() => edit(row.id)}
-              />
+                <ButtonIcon
+                    text
+                    type="primary"
+                    icon="material-symbols:drive-file-rename-outline-outline"
+                    tooltipContent={$t('common.edit')}
+                    onClick={() => edit(row.id)}
+                />
             );
           };
 
@@ -118,13 +120,13 @@ const {columns, columnChecks, data, getData, getDataByPage, loading, mobilePagin
               return null;
             }
             return (
-              <ButtonIcon
-                text
-                type="primary"
-                icon="material-symbols:edit-note-outline"
-                tooltipContent="编辑题目内容"
-                onClick={() => handleEditContent(row.id)}
-              />
+                <ButtonIcon
+                    text
+                    type="primary"
+                    icon="material-symbols:edit-note-outline"
+                    tooltipContent="编辑题目内容"
+                    onClick={() => handleEditContent(row.id)}
+                />
             );
           };
 
@@ -133,25 +135,25 @@ const {columns, columnChecks, data, getData, getDataByPage, loading, mobilePagin
               return null;
             }
             return (
-              <ButtonIcon
-                text
-                type="error"
-                icon="material-symbols:delete-outline"
-                tooltipContent={$t('common.delete')}
-                popconfirmContent={$t('common.confirmDelete')}
-                onPositiveClick={() => handleDelete(row.id)}
-              />
+                <ButtonIcon
+                    text
+                    type="error"
+                    icon="material-symbols:delete-outline"
+                    tooltipContent={$t('common.delete')}
+                    popconfirmContent={$t('common.confirmDelete')}
+                    onPositiveClick={() => handleDelete(row.id)}
+                />
             );
           };
 
           return (
-            <div class="flex-center gap-8px">
-              {editBtn()}
-              {divider()}
-              {editContentBtn()}
-              {divider()}
-              {deleteBtn()}
-            </div>
+              <div class="flex-center gap-8px">
+                {editBtn()}
+                {divider()}
+                {editContentBtn()}
+                {divider()}
+                {deleteBtn()}
+              </div>
           );
         }
       }
@@ -172,7 +174,7 @@ columnChecks.value.forEach(check => {
 });
 
 const {drawerVisible, operateType, editingData, handleAdd, handleEdit, checkedRowKeys, onBatchDeleted, onDeleted} =
-  useTableOperate(data, 'id', getData);
+    useTableOperate(data, 'id', getData);
 
 async function handleBatchDelete() {
   // request
@@ -192,9 +194,14 @@ function edit(id: CommonType.IdType) {
   handleEdit(id);
 }
 
-function handleEditContent(id: CommonType.IdType) {
-  window.$message?.info('编辑题目内容功能待实现，题目ID: ' + id);
-  // TODO: 实现跳转到题目内容编辑页面的逻辑
+async function handleEditContent(id: CommonType.IdType) {
+  // 跳转到草稿编辑页面
+  await router.push({
+    path: '/cch/challenge/edit',
+    query: {
+      challengeId: id
+    }
+  });
 }
 
 function handleExport() {
@@ -208,36 +215,36 @@ function handleExport() {
     <NCard :bordered="false" class="card-wrapper sm:flex-1-hidden" size="small" title="题目列表">
       <template #header-extra>
         <TableHeaderOperation
-          v-model:columns="columnChecks"
-          :disabled-delete="checkedRowKeys.length === 0"
-          :loading="loading"
-          :show-add="hasAuth('cch:challenge:add')"
-          :show-delete="hasAuth('cch:challenge:remove')"
-          :show-export="hasAuth('cch:challenge:export')"
-          @add="handleAdd"
-          @delete="handleBatchDelete"
-          @export="handleExport"
-          @refresh="getData"
+            v-model:columns="columnChecks"
+            :disabled-delete="checkedRowKeys.length === 0"
+            :loading="loading"
+            :show-add="hasAuth('cch:challenge:add')"
+            :show-delete="hasAuth('cch:challenge:remove')"
+            :show-export="hasAuth('cch:challenge:export')"
+            @add="handleAdd"
+            @delete="handleBatchDelete"
+            @export="handleExport"
+            @refresh="getData"
         />
       </template>
       <NDataTable
-        v-model:checked-row-keys="checkedRowKeys"
-        :columns="columns"
-        :data="data"
-        :flex-height="!appStore.isMobile"
-        :loading="loading"
-        :pagination="mobilePagination"
-        :row-key="row => row.id"
-        :scroll-x="scrollX"
-        class="sm:h-full"
-        remote
-        size="small"
+          v-model:checked-row-keys="checkedRowKeys"
+          :columns="columns"
+          :data="data"
+          :flex-height="!appStore.isMobile"
+          :loading="loading"
+          :pagination="mobilePagination"
+          :row-key="row => row.id"
+          :scroll-x="scrollX"
+          class="sm:h-full"
+          remote
+          size="small"
       />
       <ChallengeOperateDrawer
-        v-model:visible="drawerVisible"
-        :operate-type="operateType"
-        :row-data="editingData"
-        @submitted="getDataByPage"
+          v-model:visible="drawerVisible"
+          :operate-type="operateType"
+          :row-data="editingData"
+          @submitted="getDataByPage"
       />
     </NCard>
   </div>

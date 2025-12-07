@@ -1,8 +1,10 @@
 package com.kdajv.cch.domain;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.dromara.common.mybatis.core.domain.BaseEntity;
@@ -17,7 +19,7 @@ import java.io.Serial;
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-@TableName("t_challenge_draft")
+@TableName(value = "t_challenge_draft", autoResultMap = true)
 public class ChallengeDraft extends BaseEntity {
 
     @Serial
@@ -47,7 +49,8 @@ public class ChallengeDraft extends BaseEntity {
     /**
      * 配置
      */
-    private String config;
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private DraftConfig config;
 
     /**
      * 删除标志

@@ -1,6 +1,7 @@
 package com.kdajv.cch.domain.bo;
 
 import com.kdajv.cch.domain.ChallengeDraft;
+import com.kdajv.cch.domain.DraftConfig;
 import io.github.linpeilie.annotations.AutoMapper;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -47,8 +48,7 @@ public class ChallengeDraftBo extends BaseEntity {
     /**
      * 配置
      */
-    @NotBlank(message = "配置不能为空", groups = {AddGroup.class, EditGroup.class})
-    private String config;
+    private DraftConfig config;
 
 
 }

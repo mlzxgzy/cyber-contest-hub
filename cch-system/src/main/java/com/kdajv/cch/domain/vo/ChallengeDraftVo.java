@@ -3,6 +3,7 @@ package com.kdajv.cch.domain.vo;
 import cn.idev.excel.annotation.ExcelIgnoreUnannotated;
 import cn.idev.excel.annotation.ExcelProperty;
 import com.kdajv.cch.domain.ChallengeDraft;
+import com.kdajv.cch.domain.DraftConfig;
 import io.github.linpeilie.annotations.AutoMapper;
 import lombok.Data;
 
@@ -47,6 +48,12 @@ public class ChallengeDraftVo implements Serializable {
      */
     @ExcelProperty(value = "草稿描述")
     private String challengeDescription;
+
+    /**
+     * 配置
+     */
+    @ExcelProperty(value = "配置")
+    private DraftConfig config;
 
 
 }

@@ -70,6 +70,22 @@ public class ChallengeDraftServiceImpl implements IChallengeDraftService {
         return baseMapper.selectVoList(lqw);
     }
 
+    /**
+     * 查询最新的题目草稿
+     *
+     * @param challengeId 题目ID
+     * @return 最新的题目草稿
+     */
+    @Override
+    public ChallengeDraftVo queryTop1ByChallengeIdOrderByCreateTimeDesc(Long challengeId) {
+        // 查询最新的草稿记录
+        LambdaQueryWrapper<ChallengeDraft> draftQueryWrapper = Wrappers.lambdaQuery();
+        draftQueryWrapper.eq(ChallengeDraft::getChallengeId, challengeId);
+        draftQueryWrapper.orderByDesc(ChallengeDraft::getCreateTime);
+        draftQueryWrapper.last("LIMIT 1");
+        return baseMapper.selectVoOne(draftQueryWrapper);
+    }
+
     private LambdaQueryWrapper<ChallengeDraft> buildQueryWrapper(ChallengeDraftBo bo) {
         Map<String, Object> params = bo.getParams();
         LambdaQueryWrapper<ChallengeDraft> lqw = Wrappers.lambdaQuery();

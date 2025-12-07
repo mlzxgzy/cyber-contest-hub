@@ -42,6 +42,14 @@ public interface IChallengeDraftService {
     List<ChallengeDraftVo> queryList(ChallengeDraftBo bo);
 
     /**
+     * 查询最新的题目草稿
+     *
+     * @param challengeId 题目ID
+     * @return 最新的题目草稿
+     */
+    ChallengeDraftVo queryTop1ByChallengeIdOrderByCreateTimeDesc(Long challengeId);
+
+    /**
      * 新增题目草稿
      *
      * @param bo 题目草稿

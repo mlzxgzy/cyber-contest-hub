@@ -1,8 +1,12 @@
 package com.kdajv.cch.controller;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
+import com.kdajv.cch.domain.DraftConfig;
 import com.kdajv.cch.domain.bo.ChallengeBo;
+import com.kdajv.cch.domain.bo.ChallengeDraftBo;
+import com.kdajv.cch.domain.vo.ChallengeDraftVo;
 import com.kdajv.cch.domain.vo.ChallengeVo;
+import com.kdajv.cch.service.IChallengeDraftService;
 import com.kdajv.cch.service.IChallengeService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.constraints.NotEmpty;
@@ -36,6 +40,7 @@ import java.util.List;
 public class ChallengeController extends BaseController {
 
     private final IChallengeService challengeService;
+    private final IChallengeDraftService challengeDraftService;
 
     /**
      * 查询题目列表列表
@@ -64,9 +69,39 @@ public class ChallengeController extends BaseController {
      */
     @SaCheckPermission("cch:challenge:query")
     @GetMapping("/{id}")
-    public R<ChallengeVo> getInfo(@NotNull(message = "主键不能为空")
-                                  @PathVariable Long id) {
+    public R<ChallengeVo> getInfo(@NotNull(message = "主键不能为空") @PathVariable Long id) {
         return R.ok(challengeService.queryById(id));
+    }
+
+    /**
+     * 获取题目的草稿信息
+     *
+     * @param id 题目ID
+     */
+    @SaCheckPermission({"cch:challenge:edit", "cch:challengeDraft:query", "cch:challengeDraft:add", "cch:challengeDraft:edit"})
+    @GetMapping("/{id}/draft")
+    public R<ChallengeDraftVo> draft(@NotNull(message = "主键不能为空") @PathVariable Long id) {
+        // 查找最新的草稿
+        ChallengeDraftVo latestDraft = challengeDraftService.queryTop1ByChallengeIdOrderByCreateTimeDesc(id);
+        // 如果没有找到草稿，则创建新的草稿
+        if (latestDraft == null) {
+            ChallengeVo challenge = challengeService.queryById(id);
+            if (challenge != null) {
+                ChallengeDraftBo draftBo = new ChallengeDraftBo();
+                draftBo.setChallengeId(challenge.getId());
+                draftBo.setChallengeName(challenge.getName());
+                draftBo.setConfig(new DraftConfig());
+                challengeDraftService.insertByBo(draftBo);
+                // 重新查询确保获取完整信息
+                ChallengeDraftVo newDraft = challengeDraftService.queryById(draftBo.getId());
+                return R.ok(newDraft);
+            } else {
+                return R.fail("找不到指定的题目");
+            }
+        } else {
+            // 返回找到的草稿
+            return R.ok(latestDraft);
+        }
     }
 
     /**
@@ -99,8 +134,7 @@ public class ChallengeController extends BaseController {
     @SaCheckPermission("cch:challenge:remove")
     @Log(title = "题目列表", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
-    public R<Void> remove(@NotEmpty(message = "主键不能为空")
-                          @PathVariable Long[] ids) {
+    public R<Void> remove(@NotEmpty(message = "主键不能为空") @PathVariable Long[] ids) {
         return toAjax(challengeService.deleteWithValidByIds(List.of(ids), true));
     }
 }
