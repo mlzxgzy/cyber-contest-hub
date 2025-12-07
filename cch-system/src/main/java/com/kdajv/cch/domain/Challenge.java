@@ -40,9 +40,9 @@ public class Challenge extends BaseEntity {
     private String name;
 
     /**
-     * 题目描述
+     * 题目备注
      */
-    private String description;
+    private String remark;
 
     /**
      * 题目最新版ID

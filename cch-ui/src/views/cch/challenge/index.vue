@@ -24,7 +24,7 @@ const searchParams = ref<Api.Cch.ChallengeSearchParams>({
   pageSize: 10,
   category: null,
   name: null,
-  description: null,
+  remark: null,
   params: {}
 });
 
@@ -68,8 +68,8 @@ const {columns, columnChecks, data, getData, getDataByPage, loading, mobilePagin
         minWidth: 120
       },
       {
-        key: 'description',
-        title: '题目描述',
+        key: 'remark',
+        title: '题目备注',
         align: 'center',
         minWidth: 120
       },

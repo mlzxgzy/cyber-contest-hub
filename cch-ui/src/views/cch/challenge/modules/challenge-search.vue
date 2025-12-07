@@ -56,8 +56,8 @@ async function search() {
             <NFormItemGi class="pr-24px" label="题目名称" label-width="auto" path="name" span="24 s:12 m:6">
               <NInput v-model:value="model.name" placeholder="请输入题目名称"/>
             </NFormItemGi>
-            <NFormItemGi class="pr-24px" label="题目描述" label-width="auto" path="description" span="24 s:12 m:6">
-              <NInput v-model:value="model.description" placeholder="请输入题目描述"/>
+            <NFormItemGi class="pr-24px" label="题目备注" label-width="auto" path="remark" span="24 s:12 m:6">
+              <NInput v-model:value="model.remark" placeholder="请输入题目备注"/>
             </NFormItemGi>
             <NFormItemGi :show-feedback="false" class="pr-24px" span="24">
               <NSpace class="w-full" justify="end">

@@ -4,7 +4,7 @@ create or replace table cch2.t_challenge
         primary key,
     category          varchar(50)                          not null comment '题目类型',
     name              varchar(128)                         not null comment '题目名称',
-    description       text     default ''                  not null comment '题目描述',
+    remark text default '' not null comment '题目备注',
     latest_version_id bigint                               null comment '题目最新版ID',
     create_dept       bigint                               null comment '创建部门',
     create_time       datetime default current_timestamp() not null comment '创建时间',

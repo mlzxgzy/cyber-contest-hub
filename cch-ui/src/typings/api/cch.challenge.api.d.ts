@@ -18,8 +18,8 @@ declare namespace Api {
       category: string;
       /** 题目名称 */
       name: string;
-      /** 题目描述 */
-      description: string;
+      /** 题目备注 */
+      remark: string;
       /** 题目最新版ID */
       latestVersionId: CommonType.IdType;
       /** 删除标志 */
@@ -32,7 +32,7 @@ declare namespace Api {
         Api.Cch.Challenge,
         | 'category'
         | 'name'
-        | 'description'
+          | 'remark'
       > &
       Api.Common.CommonSearchParams
     >;
@@ -44,7 +44,7 @@ declare namespace Api {
         | 'id'
         | 'category'
         | 'name'
-        | 'description'
+          | 'remark'
       >
     >;
 

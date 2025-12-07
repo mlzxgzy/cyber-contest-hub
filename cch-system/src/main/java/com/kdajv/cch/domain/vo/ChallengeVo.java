@@ -47,10 +47,10 @@ public class ChallengeVo implements Serializable {
     private String name;
 
     /**
-     * 题目描述
+     * 题目备注
      */
-    @ExcelProperty(value = "题目描述")
-    private String description;
+    @ExcelProperty(value = "题目备注")
+    private String remark;
 
     /**
      * 题目最新版ID

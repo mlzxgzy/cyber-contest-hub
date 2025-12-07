@@ -76,7 +76,7 @@ public class ChallengeServiceImpl implements IChallengeService {
         lqw.orderByAsc(Challenge::getId);
         lqw.eq(StringUtils.isNotBlank(bo.getCategory()), Challenge::getCategory, bo.getCategory());
         lqw.like(StringUtils.isNotBlank(bo.getName()), Challenge::getName, bo.getName());
-        lqw.eq(StringUtils.isNotBlank(bo.getDescription()), Challenge::getDescription, bo.getDescription());
+        lqw.eq(StringUtils.isNotBlank(bo.getRemark()), Challenge::getRemark, bo.getRemark());
         return lqw;
     }
 

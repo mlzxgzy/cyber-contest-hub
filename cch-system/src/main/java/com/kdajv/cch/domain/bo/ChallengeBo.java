@@ -40,10 +40,10 @@ public class ChallengeBo extends BaseEntity {
     private String name;
 
     /**
-     * 题目描述
+     * 题目备注
      */
-    @NotBlank(message = "题目描述不能为空", groups = {AddGroup.class, EditGroup.class})
-    private String description;
+    @NotBlank(message = "题目备注不能为空", groups = {AddGroup.class, EditGroup.class})
+    private String remark;
 
 
 }

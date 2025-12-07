@@ -51,7 +51,7 @@ function createDefaultModel(): Model {
     id: null,
     category: '',
     name: '',
-    description: '',
+    remark: '',
     latestVersionId: null,
   };
 }
@@ -61,7 +61,7 @@ type RuleKey = Extract<
   | 'id'
   | 'category'
   | 'name'
-  | 'description'
+    | 'remark'
   | 'createTime'
   | 'updateTime'
 >;
@@ -70,7 +70,7 @@ const rules: Record<RuleKey, App.Global.FormRule> = {
   id: createRequiredRule('主键不能为空'),
   category: createRequiredRule('题目类型不能为空'),
   name: createRequiredRule('题目名称不能为空'),
-  description: createRequiredRule('题目描述不能为空'),
+  remark: createRequiredRule('题目备注不能为空'),
   createTime: createRequiredRule('创建时间不能为空'),
   updateTime: createRequiredRule('更新时间不能为空'),
 };
@@ -90,16 +90,16 @@ function closeDrawer() {
 async function handleSubmit() {
   await validate();
 
-  const {id, category, name, description} = model.value;
+  const {id, category, name, remark} = model.value;
 
   // request
   if (props.operateType === 'add') {
-    const {error} = await fetchCreateChallenge({category, name, description});
+    const {error} = await fetchCreateChallenge({category, name, remark});
     if (error) return;
   }
 
   if (props.operateType === 'edit') {
-    const {error} = await fetchUpdateChallenge({id, category, name, description});
+    const {error} = await fetchUpdateChallenge({id, category, name, remark});
     if (error) return;
   }
 
@@ -132,11 +132,11 @@ watch(visible, () => {
         <NFormItem label="题目名称" path="name">
           <NInput v-model:value="model.name" placeholder="请输入题目名称"/>
         </NFormItem>
-        <NFormItem label="题目描述" path="description">
+        <NFormItem label="题目备注" path="remark">
           <NInput
-            v-model:value="model.description"
+              v-model:value="model.remark"
             :rows="3"
-            placeholder="请输入题目描述"
+              placeholder="请输入题目备注"
             type="textarea"
           />
         </NFormItem>
