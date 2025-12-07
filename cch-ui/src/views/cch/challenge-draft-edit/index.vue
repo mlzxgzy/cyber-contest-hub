@@ -6,6 +6,8 @@ import {fetchChallengeDraftByChallengeId, fetchGetChallengeById} from '@/service
 import {fetchUpdateChallengeDraft} from '@/service/api/cch/challenge-draft';
 import {useDict} from "@/hooks/business/dict";
 import {useFormRules} from "@/hooks/common/form";
+import FileUpload from "@/components/custom/file-upload.vue";
+import {AcceptType} from "@/enum/business";
 
 defineOptions({
   name: 'ChallengeDraftEdit'
@@ -43,6 +45,9 @@ const challengeRules: Record<challengeRuleKey, App.Global.FormRule> = {
   updateTime: createRequiredRule('更新时间不能为空'),
 };
 const draftRules: Record<string, App.Global.FormRule> = {};
+const draftAttachmentRules: Record<string, App.Global.FormRule> = {};
+
+const draftAttachmentList = ref([])
 
 onMounted(async () => {
   // 从查询参数中获取 challengeId
@@ -167,6 +172,19 @@ console.log(draftData)
                     </NFormItem>
                     <NFormItem label="知识点" path="knowledge">
                       <n-select v-model:value="draftData.config.knowledge" filterable multiple tag/>
+                    </NFormItem>
+                  </NForm>
+                </n-card>
+              </n-gi>
+              <n-gi>
+                <n-card :segmented="{content: true}" title="附件管理">
+                  <NForm ref="draftAttachmentFormRef" :model="draftData.config" :rules="draftAttachmentRules">
+                    <NFormItem>
+                      <FileUpload v-model:file-list="draftAttachmentList" upload-type="file" :show-file-list="false"
+                                  :accept="AcceptType.ChallengeAttachment" :data="{challengeId: challengeId}"
+                                  action="/cch/challengeFile/upload"/>
+                    </NFormItem>
+                    <NFormItem label="难度" path="difficulty">
                     </NFormItem>
                   </NForm>
                 </n-card>

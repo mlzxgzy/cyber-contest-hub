@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { computed, useAttrs } from 'vue';
-import type { UploadFileInfo, UploadProps } from 'naive-ui';
-import { fetchBatchDeleteOss } from '@/service/api/system/oss';
-import { getToken } from '@/store/modules/auth/shared';
-import { getServiceBaseURL } from '@/utils/service';
-import { AcceptType } from '@/enum/business';
+import {computed, useAttrs} from 'vue';
+import type {UploadFileInfo, UploadProps} from 'naive-ui';
+import {fetchBatchDeleteOss} from '@/service/api/system/oss';
+import {getToken} from '@/store/modules/auth/shared';
+import {getServiceBaseURL} from '@/utils/service';
+import {AcceptType} from '@/enum/business';
 
 defineOptions({
   name: 'FileUpload'
@@ -19,6 +19,7 @@ interface Props {
   accept?: string;
   fileSize?: number;
   uploadType?: 'file' | 'image';
+  showFileList?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -29,7 +30,8 @@ const props = withDefaults(defineProps<Props>(), {
   max: 5,
   accept: undefined,
   fileSize: 5,
-  uploadType: 'file'
+  uploadType: 'file',
+  showFileList: true
 });
 
 const accept = computed(() => {
@@ -47,7 +49,7 @@ const fileList = defineModel<UploadFileInfo[]>('fileList', {
 });
 
 const isHttpProxy = import.meta.env.DEV && import.meta.env.VITE_HTTP_PROXY === 'Y';
-const { baseURL } = getServiceBaseURL(import.meta.env, isHttpProxy);
+const {baseURL} = getServiceBaseURL(import.meta.env, isHttpProxy);
 
 const headers: Record<string, string> = {
   Authorization: `Bearer ${getToken()}`,
@@ -56,7 +58,7 @@ const headers: Record<string, string> = {
 
 function beforeUpload(options: { file: UploadFileInfo; fileList: UploadFileInfo[] }) {
   fileNum += 1;
-  const { file } = options;
+  const {file} = options;
 
   // 校检文件类型
   if (accept.value) {
@@ -92,7 +94,7 @@ function isErrorState(xhr: XMLHttpRequest) {
 
 function handleFinish(options: { file: UploadFileInfo; event?: ProgressEvent }) {
   fileNum -= 1;
-  const { file, event } = options;
+  const {file, event} = options;
   // @ts-expect-error Ignore type errors
   const responseText = event?.target?.responseText;
   const response = JSON.parse(responseText);
@@ -108,7 +110,7 @@ function handleFinish(options: { file: UploadFileInfo; event?: ProgressEvent }) 
 }
 
 function handleError(options: { file: UploadFileInfo; event?: ProgressEvent }) {
-  const { event } = options;
+  const {event} = options;
   // @ts-expect-error Ignore type errors
   const responseText = event?.target?.responseText;
   const msg = JSON.parse(responseText).msg;
@@ -119,7 +121,7 @@ async function handleRemove(file: UploadFileInfo) {
   if (file.status !== 'finished') {
     return false;
   }
-  const { error } = await fetchBatchDeleteOss([file.id]);
+  const {error} = await fetchBatchDeleteOss([file.id]);
   if (error) return false;
   window.$message?.success('删除成功');
   return true;
@@ -129,26 +131,27 @@ async function handleRemove(file: UploadFileInfo) {
 <template>
   <div class="w-full flex-col">
     <NUpload
-      v-bind="attrs"
-      v-model:file-list="fileList"
-      :action="`${baseURL}${action}`"
-      :data="data"
-      :headers="headers"
-      :max="max"
-      :accept="accept"
-      :multiple="max > 1"
-      directory-dnd
-      :default-upload="defaultUpload"
-      :list-type="uploadType === 'image' ? 'image-card' : 'text'"
-      :is-error-state="isErrorState"
-      @finish="handleFinish"
-      @error="handleError"
-      @before-upload="beforeUpload"
-      @remove="({ file }) => handleRemove(file)"
+        v-bind="attrs"
+        v-model:file-list="fileList"
+        :show-file-list="showFileList"
+        :action="`${baseURL}${action}`"
+        :data="data"
+        :headers="headers"
+        :max="max"
+        :accept="accept"
+        :multiple="max > 1"
+        directory-dnd
+        :default-upload="defaultUpload"
+        :list-type="uploadType === 'image' ? 'image-card' : 'text'"
+        :is-error-state="isErrorState"
+        @finish="handleFinish"
+        @error="handleError"
+        @before-upload="beforeUpload"
+        @remove="({ file }) => handleRemove(file)"
     >
       <NUploadDragger v-if="uploadType === 'file'">
         <div class="mb-12px flex-center">
-          <SvgIcon icon="material-symbols:unarchive-outline" class="text-58px color-#d8d8db dark:color-#a1a1a2" />
+          <SvgIcon icon="material-symbols:unarchive-outline" class="text-58px color-#d8d8db dark:color-#a1a1a2"/>
         </div>
         <NText class="text-16px">点击或者拖动文件到该区域来上传</NText>
         <NP v-if="showTip" depth="3" class="mt-8px text-center">
