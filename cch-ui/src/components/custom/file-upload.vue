@@ -20,6 +20,7 @@ interface Props {
   fileSize?: number;
   uploadType?: 'file' | 'image';
   showFileList?: boolean;
+  onSuccess?: (data: Api.Cch.ChallengeFile) => void;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -31,7 +32,8 @@ const props = withDefaults(defineProps<Props>(), {
   accept: undefined,
   fileSize: 5,
   uploadType: 'file',
-  showFileList: true
+  showFileList: true,
+  onSuccess: undefined
 });
 
 const accept = computed(() => {
@@ -98,11 +100,17 @@ function handleFinish(options: { file: UploadFileInfo; event?: ProgressEvent }) 
   // @ts-expect-error Ignore type errors
   const responseText = event?.target?.responseText;
   const response = JSON.parse(responseText);
-  const oss: Api.System.Oss = response.data;
-  fileList.value.find(item => item.id === file.id)!.id = String(oss.ossId);
-  file.id = String(oss.ossId);
+  const oss: Api.Cch.ChallengeFile = response.data;
+  fileList.value.find(item => item.id === file.id)!.id = String(oss.id);
+  file.id = String(oss.id);
   file.url = oss.url;
   file.name = oss.fileName;
+
+  // 添加上传成功的回调
+  if (props.onSuccess) {
+    props.onSuccess(oss);
+  }
+
   if (fileNum === 0) {
     window.$message?.success('上传成功');
   }

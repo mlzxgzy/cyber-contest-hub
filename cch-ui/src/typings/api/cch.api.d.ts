@@ -52,8 +52,16 @@ declare namespace Api {
         type ChallengeList = Api.Common.PaginatingQueryRecord<Challenge>;
 
         type ChallengeDraftConfig = {
-            description: string;
-            level: string;
+            stem: string;
+            difficulty: string;
+            attachments: ChallengeDraftConfigAttachment[];
+        }
+
+        type ChallengeDraftConfigAttachment = {
+            fileId: CommonType.IdType;
+            fileName: string;
+            fileUrl: string;
+            remark: string | null;
         }
 
         /** challenge draft */

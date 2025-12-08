@@ -49,6 +49,21 @@ const draftAttachmentRules: Record<string, App.Global.FormRule> = {};
 
 const draftAttachmentList = ref([])
 
+// 新增上传成功回调函数
+function handleUploadSuccess(data: Api.Cch.ChallengeFile) {
+  console.log('文件上传成功:', data);
+  const file: Api.Cch.ChallengeDraftConfigAttachment = {
+    fileId: data.id,
+    fileName: data.originalName,
+    fileUrl: data.url,
+    remark: null
+  }
+  if (!draftData.value?.config.attachments) {
+    draftData.value.config.attachments = [];
+  }
+  draftData.value?.config.attachments.push(file);
+}
+
 onMounted(async () => {
   // 从查询参数中获取 challengeId
   const id = route.query.challengeId;
@@ -180,11 +195,14 @@ console.log(draftData)
                 <n-card :segmented="{content: true}" title="附件管理">
                   <NForm ref="draftAttachmentFormRef" :model="draftData.config" :rules="draftAttachmentRules">
                     <NFormItem>
-                      <FileUpload v-model:file-list="draftAttachmentList" upload-type="file" :show-file-list="false"
+                      <FileUpload v-model:file-list="draftAttachmentList" upload-type="file" :show-file-list="true"
                                   :accept="AcceptType.ChallengeAttachment" :data="{challengeId: challengeId}"
-                                  action="/cch/challengeFile/upload"/>
+                                  action="/cch/challengeFile/upload" :on-success="handleUploadSuccess"/>
                     </NFormItem>
-                    <NFormItem label="难度" path="difficulty">
+                    <NFormItem v-for="x of draftData.config.attachments" :key="x.fileId">
+                      <n-card>
+                        {{ draftAttachmentList }}
+                      </n-card>
                     </NFormItem>
                   </NForm>
                 </n-card>
