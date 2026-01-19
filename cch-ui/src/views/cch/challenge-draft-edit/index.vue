@@ -21,6 +21,7 @@ const challengeData = ref<Api.Cch.Challenge | null>(null);
 const draftData = ref<Api.Cch.ChallengeDraft | null>(null);
 const loading = ref(true);
 const saving = ref(false);
+const split = ref(0.8);
 
 const {createRequiredRule} = useFormRules();
 
@@ -28,15 +29,13 @@ const {options: cchQuestionCategroyOptions} = useDict('cch_question_categroy');
 const {options: cchQuestionDifficultyOptions} = useDict('cch_question_difficulty');
 
 type challengeModel = Api.Cch.ChallengeOperateParams;
-type challengeRuleKey = Extract<
-    keyof challengeModel,
-    | 'id'
-    | 'category'
-    | 'name'
-    | 'description'
-    | 'createTime'
-    | 'updateTime'
->;
+type challengeRuleKey = Extract<keyof challengeModel,
+  | 'id'
+  | 'category'
+  | 'name'
+  | 'description'
+  | 'createTime'
+  | 'updateTime'>;
 const challengeRules: Record<challengeRuleKey, App.Global.FormRule> = {
   id: createRequiredRule('主键不能为空'),
   category: createRequiredRule('题目类型不能为空'),
@@ -114,32 +113,34 @@ function goBack() {
   router.back();
 }
 
-console.log(draftData)
+
 </script>
 
 <template>
-  <div class="p-20px">
-    <n-card title="题目草稿编辑">
-      <template #header-extra>
-        <NSpace>
-          <NButton :loading="saving" type="primary" @click="saveDraft">保存</NButton>
-          <NButton @click="goBack">返回</NButton>
-        </NSpace>
-      </template>
-      <div v-if="loading">加载中...</div>
+  <n-split class="p-20px" v-model:size="split" direction="horizontal" pane1-class="pr-10px" pane2-class="pl-10px">
+    <template #1>
+      <n-card title="题目草稿编辑">
+        <template #header-extra>
+          <NSpace>
+            <NButton :loading="saving" type="primary" @click="saveDraft">保存</NButton>
+            <NButton @click="goBack">返回</NButton>
+          </NSpace>
+        </template>
+      </n-card>
+      <n-skeleton v-if="loading" text :repeat="6"/>
       <div v-else-if="draftData">
         <n-tabs animated default-value="info" type="segment">
           <n-tab-pane name="info" tab="题目信息">
-            <n-grid cols="1 600:2 1200:3" x-gap="12">
+            <n-grid cols="1 600:2 1200:3" x-gap="12" y-gap="12">
               <n-gi>
                 <n-card :segmented="{content: true}" title="基本信息">
                   <NForm ref="challengeFormRef" :model="challengeData" :rules="challengeRules">
                     <NFormItem label="题目类型" path="category">
                       <NSelect
-                          v-model:value="challengeData.category"
-                          :options="cchQuestionCategroyOptions"
-                          clearable
-                          placeholder="请选择题目类型"
+                        v-model:value="challengeData.category"
+                        :options="cchQuestionCategroyOptions"
+                        clearable
+                        placeholder="请选择题目类型"
                       />
                     </NFormItem>
                     <NFormItem label="题目名称" path="name">
@@ -147,10 +148,10 @@ console.log(draftData)
                     </NFormItem>
                     <NFormItem label="题目备注" path="remark">
                       <NInput
-                          v-model:value="challengeData.remark"
-                          :rows="3"
-                          placeholder="请输入题目备注"
-                          type="textarea"
+                        v-model:value="challengeData.remark"
+                        :rows="3"
+                        placeholder="请输入题目备注"
+                        type="textarea"
                       />
                     </NFormItem>
                   </NForm>
@@ -161,14 +162,15 @@ console.log(draftData)
                   <NForm ref="draftFormRef" :model="draftData.config" :rules="draftRules">
                     <NFormItem label="难度" path="difficulty">
                       <NSelect
-                          v-model:value="draftData.config.difficulty"
-                          :options="cchQuestionDifficultyOptions"
-                          clearable
-                          placeholder="请选择题目难度"
+                        v-model:value="draftData.config.difficulty"
+                        :options="cchQuestionDifficultyOptions"
+                        clearable
+                        placeholder="请选择题目难度"
                       />
                     </NFormItem>
                     <NFormItem label="题干" path="stem">
-                      <NInput v-model:value="draftData.config.stem" :rows="3" placeholder="请输入题干" type="textarea"/>
+                      <NInput v-model:value="draftData.config.stem" :rows="3" placeholder="请输入题干"
+                              type="textarea"/>
                     </NFormItem>
                     <NFormItem label="知识点" path="knowledge">
                       <n-select v-model:value="draftData.config.knowledge" filterable multiple tag/>
@@ -203,8 +205,17 @@ console.log(draftData)
       <div v-else>
         未能加载草稿数据
       </div>
-    </n-card>
-  </div>
+    </template>
+    <template #2>
+      <n-card>
+        <n-tabs type="line" placement="right">
+          <n-tab-pane name="oasis" tab="Oasis">
+            Wonderwall
+          </n-tab-pane>
+        </n-tabs>
+      </n-card>
+    </template>
+  </n-split>
 </template>
 
 <style scoped>
