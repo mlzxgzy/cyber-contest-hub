@@ -45,8 +45,10 @@ const challengeRules: Record<challengeRuleKey, App.Global.FormRule> = {
 };
 const draftRules: Record<string, App.Global.FormRule> = {};
 const draftAttachmentRules: Record<string, App.Global.FormRule> = {};
+const draftWriteupRules: Record<string, App.Global.FormRule> = {};
 
 const draftAttachmentList = ref([])
+const draftWriteupList = ref([])
 
 // 新增上传成功回调函数
 function handleUploadSuccess(data: Api.Cch.ChallengeFile) {
@@ -141,88 +143,104 @@ function goBack() {
             <NButton @click="goBack">返回</NButton>
           </NSpace>
         </template>
+        <n-skeleton v-if="loading" text :repeat="6"/>
+        <div v-else-if="draftData" class="scrollbar">
+          <n-tabs animated default-value="info" type="segment">
+            <n-tab-pane name="info" tab="题目信息">
+              <n-grid cols="1 600:2 1200:3" x-gap="12" y-gap="12">
+                <n-gi>
+                  <n-card :segmented="{content: true}" title="基本信息">
+                    <NForm ref="challengeFormRef" :model="challengeData" :rules="challengeRules">
+                      <NFormItem label="题目类型" path="category">
+                        <NSelect
+                          v-model:value="challengeData.category"
+                          :options="cchQuestionCategroyOptions"
+                          clearable
+                          placeholder="请选择题目类型"
+                        />
+                      </NFormItem>
+                      <NFormItem label="题目名称" path="name">
+                        <NInput v-model:value="challengeData.name" placeholder="请输入题目名称"/>
+                      </NFormItem>
+                      <NFormItem label="题目备注" path="remark">
+                        <NInput
+                          v-model:value="challengeData.remark"
+                          :rows="3"
+                          placeholder="请输入题目备注"
+                          type="textarea"
+                        />
+                      </NFormItem>
+                    </NForm>
+                  </n-card>
+                </n-gi>
+                <n-gi>
+                  <n-card :segmented="{content: true}" title="题目信息">
+                    <NForm ref="draftFormRef" :model="draftData.config" :rules="draftRules">
+                      <NFormItem label="难度" path="difficulty">
+                        <NSelect
+                          v-model:value="draftData.config.difficulty"
+                          :options="cchQuestionDifficultyOptions"
+                          clearable
+                          placeholder="请选择题目难度"
+                        />
+                      </NFormItem>
+                      <NFormItem label="题干" path="stem">
+                        <NInput v-model:value="draftData.config.stem" :rows="3" placeholder="请输入题干"
+                                type="textarea"/>
+                      </NFormItem>
+                      <NFormItem label="知识点" path="knowledge">
+                        <n-select v-model:value="draftData.config.knowledge" filterable multiple tag/>
+                      </NFormItem>
+                    </NForm>
+                  </n-card>
+                </n-gi>
+                <n-gi>
+                  <n-card :segmented="{content: true}" title="附件管理">
+                    <NForm ref="draftAttachmentFormRef" :model="draftData.config" :rules="draftAttachmentRules">
+                      <NFormItem>
+                        <FileUpload v-model:file-list="draftAttachmentList" upload-type="file" :show-file-list="true"
+                                    :accept="AcceptType.ChallengeAttachment" :data="{challengeId: challengeId}"
+                                    action="/cch/challengeFile/upload" :on-success="handleUploadSuccess"/>
+                      </NFormItem>
+                      <NFormItem v-for="x of draftData.config.attachments" :key="x.fileId">
+                        <n-card>
+                          {{ draftAttachmentList }}
+                        </n-card>
+                      </NFormItem>
+                    </NForm>
+                  </n-card>
+                </n-gi>
+                <n-gi>
+                  <n-card :segmented="{content: true}" title="Writeup管理">
+                    <NForm ref="draftWriteupFormRef" :model="draftData.config" :rules="draftWriteupRules">
+                      <NFormItem>
+                        <FileUpload v-model:file-list="draftWriteupList" upload-type="file" :show-file-list="true"
+                                    :accept="AcceptType.ChallengeWriteup" :data="{challengeId: challengeId}"
+                                    action="/cch/challengeFile/upload" :on-success="handleUploadSuccess"/>
+                      </NFormItem>
+                      <NFormItem v-for="x of draftData.config.attachments" :key="x.fileId">
+                        <n-card>
+                          {{ draftWriteupList }}
+                        </n-card>
+                      </NFormItem>
+                    </NForm>
+                  </n-card>
+                </n-gi>
+              </n-grid>
+            </n-tab-pane>
+            <n-tab-pane name="flag" tab="Flag管理">
+              “威尔！着火了！快来帮忙！”我听到女朋友大喊。现在一个难题在我面前——是恢复一个重要的
+              Amazon 服务，还是救公寓的火。<br><br>
+              我的脑海中忽然出现了 Amazon
+              著名的领导力准则”客户至上“，有很多的客户还依赖我们的服务，我不能让他们失望！所以着火也不管了，女朋友喊我也无所谓，我开始
+              debug 这个线上问题。
+            </n-tab-pane>
+          </n-tabs>
+        </div>
+        <div v-else>
+          未能加载草稿数据
+        </div>
       </n-card>
-      <n-skeleton v-if="loading" text :repeat="6"/>
-      <div v-else-if="draftData">
-        <n-tabs animated default-value="info" type="segment">
-          <n-tab-pane name="info" tab="题目信息">
-            <n-grid cols="1 600:2 1200:3" x-gap="12" y-gap="12">
-              <n-gi>
-                <n-card :segmented="{content: true}" title="基本信息">
-                  <NForm ref="challengeFormRef" :model="challengeData" :rules="challengeRules">
-                    <NFormItem label="题目类型" path="category">
-                      <NSelect
-                        v-model:value="challengeData.category"
-                        :options="cchQuestionCategroyOptions"
-                        clearable
-                        placeholder="请选择题目类型"
-                      />
-                    </NFormItem>
-                    <NFormItem label="题目名称" path="name">
-                      <NInput v-model:value="challengeData.name" placeholder="请输入题目名称"/>
-                    </NFormItem>
-                    <NFormItem label="题目备注" path="remark">
-                      <NInput
-                        v-model:value="challengeData.remark"
-                        :rows="3"
-                        placeholder="请输入题目备注"
-                        type="textarea"
-                      />
-                    </NFormItem>
-                  </NForm>
-                </n-card>
-              </n-gi>
-              <n-gi>
-                <n-card :segmented="{content: true}" title="题目信息">
-                  <NForm ref="draftFormRef" :model="draftData.config" :rules="draftRules">
-                    <NFormItem label="难度" path="difficulty">
-                      <NSelect
-                        v-model:value="draftData.config.difficulty"
-                        :options="cchQuestionDifficultyOptions"
-                        clearable
-                        placeholder="请选择题目难度"
-                      />
-                    </NFormItem>
-                    <NFormItem label="题干" path="stem">
-                      <NInput v-model:value="draftData.config.stem" :rows="3" placeholder="请输入题干"
-                              type="textarea"/>
-                    </NFormItem>
-                    <NFormItem label="知识点" path="knowledge">
-                      <n-select v-model:value="draftData.config.knowledge" filterable multiple tag/>
-                    </NFormItem>
-                  </NForm>
-                </n-card>
-              </n-gi>
-              <n-gi>
-                <n-card :segmented="{content: true}" title="附件管理">
-                  <NForm ref="draftAttachmentFormRef" :model="draftData.config" :rules="draftAttachmentRules">
-                    <NFormItem>
-                      <FileUpload v-model:file-list="draftAttachmentList" upload-type="file" :show-file-list="true"
-                                  :accept="AcceptType.ChallengeAttachment" :data="{challengeId: challengeId}"
-                                  action="/cch/challengeFile/upload" :on-success="handleUploadSuccess"/>
-                    </NFormItem>
-                    <NFormItem v-for="x of draftData.config.attachments" :key="x.fileId">
-                      <n-card>
-                        {{ draftAttachmentList }}
-                      </n-card>
-                    </NFormItem>
-                  </NForm>
-                </n-card>
-              </n-gi>
-            </n-grid>
-          </n-tab-pane>
-          <n-tab-pane name="flag" tab="Flag管理">
-            “威尔！着火了！快来帮忙！”我听到女朋友大喊。现在一个难题在我面前——是恢复一个重要的
-            Amazon 服务，还是救公寓的火。<br><br>
-            我的脑海中忽然出现了 Amazon
-            著名的领导力准则”客户至上“，有很多的客户还依赖我们的服务，我不能让他们失望！所以着火也不管了，女朋友喊我也无所谓，我开始
-            debug 这个线上问题。
-          </n-tab-pane>
-        </n-tabs>
-      </div>
-      <div v-else>
-        未能加载草稿数据
-      </div>
     </template>
     <template #2>
       <n-card>
@@ -236,9 +254,15 @@ function goBack() {
   </n-split>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 /* 可以在这里添加样式 */
 label {
   font-weight: bold;
+}
+
+.scrollbar {
+  overflow-y: auto;
+  padding-right: 15px;
+  max-height: calc(100vh - 295px);
 }
 </style>
