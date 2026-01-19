@@ -1,4 +1,4 @@
-create or replace table cch2.t_challenge
+create or replace table t_challenge
 (
     id                bigint                               not null comment '主键'
         primary key,
@@ -15,7 +15,7 @@ create or replace table cch2.t_challenge
 )
     comment '题目表';
 
-create or replace table cch2.t_challenge_draft
+create or replace table t_challenge_draft
 (
     id                    bigint                                                   not null comment '主键'
         primary key,
@@ -31,11 +31,11 @@ create or replace table cch2.t_challenge_draft
     update_by             bigint                                                   null comment '更新人',
     del_flag              int                          default 0                   null comment '删除标志',
     constraint t_challenge_draft_t_challenge_id_fk
-        foreign key (challenge_id) references cch2.t_challenge (id)
+        foreign key (challenge_id) references t_challenge (id)
 )
     comment '题目草稿表';
 
-create or replace table cch2.t_challenge_version
+create or replace table t_challenge_version
 (
     id                  bigint                               not null comment '主键'
         primary key,
@@ -51,54 +51,54 @@ create or replace table cch2.t_challenge_version
     update_by           bigint                               null comment '更新人',
     del_flag            int      default 0                   null comment '删除标志',
     constraint t_challenge_version_ibfk_1
-        foreign key (challenge_id) references cch2.t_challenge (id),
+        foreign key (challenge_id) references t_challenge (id),
     constraint t_challenge_version_t_challenge_draft_id_fk
-        foreign key (draft_id) references cch2.t_challenge_draft (id)
+        foreign key (draft_id) references t_challenge_draft (id)
 )
     comment '题目版本表';
 
 create or replace index idx_create_by
-    on cch2.t_challenge (create_by);
+    on t_challenge (create_by);
 
 create or replace index idx_create_dept
-    on cch2.t_challenge (create_dept);
+    on t_challenge (create_dept);
 
 create or replace index idx_name
-    on cch2.t_challenge (name);
+    on t_challenge (name);
 
 create or replace index t_challenge_category_index
-    on cch2.t_challenge (category);
+    on t_challenge (category);
 
 create or replace index t_challenge_del_flag_index
-    on cch2.t_challenge (del_flag);
+    on t_challenge (del_flag);
 
 create or replace index t_challenge_latest_version_id_index
-    on cch2.t_challenge (latest_version_id);
+    on t_challenge (latest_version_id);
 
 create or replace index idx_challenge_id
-    on cch2.t_challenge_draft (challenge_id);
+    on t_challenge_draft (challenge_id);
 
 create or replace index t_challenge_draft_create_by_index
-    on cch2.t_challenge_draft (create_by);
+    on t_challenge_draft (create_by);
 
 create or replace index t_challenge_draft_create_dept_index
-    on cch2.t_challenge_draft (create_dept);
+    on t_challenge_draft (create_dept);
 
 create or replace index t_challenge_draft_del_flag_index
-    on cch2.t_challenge_draft (del_flag);
+    on t_challenge_draft (del_flag);
 
 create or replace index challenge_id
-    on cch2.t_challenge_version (challenge_id);
+    on t_challenge_version (challenge_id);
 
 create or replace index t_challenge_version_create_by_index
-    on cch2.t_challenge_version (create_by);
+    on t_challenge_version (create_by);
 
 create or replace index t_challenge_version_create_dept_index
-    on cch2.t_challenge_version (create_dept);
+    on t_challenge_version (create_dept);
 
 create or replace index t_challenge_version_del_flag_index
-    on cch2.t_challenge_version (del_flag);
+    on t_challenge_version (del_flag);
 
 create or replace index t_challenge_version_version_tag_index
-    on cch2.t_challenge_version (version_tag);
+    on t_challenge_version (version_tag);
 

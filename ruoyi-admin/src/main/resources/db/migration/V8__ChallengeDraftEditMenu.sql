@@ -1,4 +1,4 @@
-INSERT IGNORE INTO cch2.sys_menu (menu_id, menu_name, parent_id, order_num, path, component, query_param, is_frame,
+INSERT IGNORE INTO sys_menu (menu_id, menu_name, parent_id, order_num, path, component, query_param, is_frame,
                                   is_cache,
                                   menu_type, visible, status, perms, icon, create_dept, create_by, create_time,
                                   update_by,
