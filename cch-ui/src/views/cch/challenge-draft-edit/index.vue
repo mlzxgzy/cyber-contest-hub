@@ -1,10 +1,12 @@
 <script lang="ts" setup>
-import {onMounted, ref} from 'vue';
+import {onMounted, ref, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
-import {NButton, NCard, NInput, NSpace} from 'naive-ui';
+import {NButton, NCard, NEmpty, NInput, NSpace, NTag} from 'naive-ui';
+import type {UploadFileInfo} from 'naive-ui';
 import {fetchChallengeDraftByChallengeId, fetchGetChallengeById} from '@/service/api/cch/challenge';
 import {fetchUpdateChallengeDraft} from '@/service/api/cch/challenge-draft';
 import {useDict} from "@/hooks/business/dict";
+import {useDownload} from "@/hooks/business/download";
 import {useFormRules} from "@/hooks/common/form";
 import FileUpload from "@/components/custom/file-upload.vue";
 import {AcceptType} from "@/enum/business";
@@ -15,9 +17,10 @@ defineOptions({
 
 const route = useRoute();
 const router = useRouter();
+const {downloadChallengeFile} = useDownload();
 
 const challengeId = ref<CommonType.IdType | null>(null);
-const challengeData = ref<Api.Cch.Challenge | null>(null);
+const challengeData = ref<Api.Cch.Challenge>({} as Api.Cch.Challenge);
 const draftData = ref<Api.Cch.ChallengeDraft | null>(null);
 const loading = ref(true);
 const saving = ref(false);
@@ -33,43 +36,87 @@ type challengeRuleKey = Extract<keyof challengeModel,
   | 'id'
   | 'category'
   | 'name'
-  | 'description'
-  | 'createTime'
-  | 'updateTime'>;
+  | 'remark'>;
 const challengeRules: Record<challengeRuleKey, App.Global.FormRule> = {
   id: createRequiredRule('主键不能为空'),
   category: createRequiredRule('题目类型不能为空'),
   name: createRequiredRule('题目名称不能为空'),
-  createTime: createRequiredRule('创建时间不能为空'),
-  updateTime: createRequiredRule('更新时间不能为空'),
+  remark: createRequiredRule('题目备注不能为空'),
 };
 const draftRules: Record<string, App.Global.FormRule> = {};
 const draftAttachmentRules: Record<string, App.Global.FormRule> = {};
 const draftWriteupRules: Record<string, App.Global.FormRule> = {};
 
-const draftAttachmentList = ref([])
-const draftWriteupList = ref([])
+const draftAttachmentList = ref<UploadFileInfo[]>([]);
+const draftWriteupList = ref<UploadFileInfo[]>([]);
 
-// 新增上传成功回调函数
-function handleUploadSuccess(data: Api.Cch.ChallengeFile) {
-  console.log('文件上传成功:', data);
-  const file: Api.Cch.ChallengeDraftConfigAttachment = {
+function mapToUploadList(items?: Api.Cch.ChallengeDraftConfigAttachment[]) {
+  return (items ?? []).map(item => ({
+    id: String(item.fileId),
+    name: item.fileName,
+    status: 'finished',
+    url: item.fileUrl
+  })) as UploadFileInfo[];
+}
+
+function syncConfigFromFileList(
+  fileList: UploadFileInfo[],
+  target: 'attachments' | 'writeups'
+) {
+  if (!draftData.value) return;
+  const currentConfigList = draftData.value.config[target] ?? [];
+  const remarkMap = new Map(
+    currentConfigList.map(item => [String(item.fileId), item.remark ?? null])
+  );
+  draftData.value.config[target] = fileList
+    .filter(file => file.status !== 'error')
+    .map(file => ({
+      fileId: file.id as CommonType.IdType,
+      fileName: file.name || '',
+      fileUrl: file.url || '',
+      remark: remarkMap.get(String(file.id)) ?? null
+    }));
+}
+
+function handleAttachmentUploadSuccess(data: Api.Cch.ChallengeFile) {
+  if (!draftData.value) return;
+  draftData.value.config.attachments ??= [];
+  draftAttachmentList.value = mapToUploadList(draftData.value.config.attachments.concat({
     fileId: data.id,
     fileName: data.originalName,
     fileUrl: data.url,
     remark: null
-  }
-  if (!draftData.value?.config.attachments) {
-    draftData.value.config.attachments = [];
-  }
-  draftData.value?.config.attachments.push(file);
+  }));
 }
+
+function handleWriteupUploadSuccess(data: Api.Cch.ChallengeFile) {
+  if (!draftData.value) return;
+  draftData.value.config.writeups ??= [];
+  draftWriteupList.value = mapToUploadList(draftData.value.config.writeups.concat({
+    fileId: data.id,
+    fileName: data.originalName,
+    fileUrl: data.url,
+    remark: null
+  }));
+}
+
+watch(draftAttachmentList, list => syncConfigFromFileList(list, 'attachments'), {
+  deep: true
+});
+
+watch(draftWriteupList, list => syncConfigFromFileList(list, 'writeups'), {
+  deep: true
+});
 
 onMounted(async () => {
   // 从查询参数中获取 challengeId
-  const id = route.query.challengeId;
-  if (id) {
-    challengeId.value = id;
+  const rawId = route.query.challengeId;
+  if (Array.isArray(rawId)) {
+    challengeId.value = rawId[0] as CommonType.IdType;
+  } else if (rawId) {
+    challengeId.value = rawId as CommonType.IdType;
+  }
+  if (challengeId.value) {
     // 获取草稿数据
     await loadChallengeData(challengeId.value);
     await loadDraftData(challengeId.value);
@@ -96,7 +143,12 @@ async function loadDraftData(id: CommonType.IdType) {
     return;
   }
   draftData.value = data;
+  draftData.value.config.attachments ??= [];
+  draftData.value.config.writeups ??= [];
+  draftData.value.config.knowledge ??= [];
   console.log('获取到的草稿数据:', data);
+  draftAttachmentList.value = mapToUploadList(draftData.value.config.attachments);
+  draftWriteupList.value = mapToUploadList(draftData.value.config.writeups);
   loading.value = false;
 }
 
@@ -130,6 +182,9 @@ function goBack() {
   router.back();
 }
 
+function downloadFile(fileId) {
+  downloadChallengeFile(fileId);
+}
 
 </script>
 
@@ -198,14 +253,36 @@ function goBack() {
                   <n-card :segmented="{content: true}" title="附件管理">
                     <NForm ref="draftAttachmentFormRef" :model="draftData.config" :rules="draftAttachmentRules">
                       <NFormItem>
-                        <FileUpload v-model:file-list="draftAttachmentList" upload-type="file" :show-file-list="true"
-                                    :accept="AcceptType.ChallengeAttachment" :data="{challengeId: challengeId}"
-                                    action="/cch/challengeFile/upload" :on-success="handleUploadSuccess"/>
+                        <FileUpload
+                          v-model:file-list="draftAttachmentList"
+                          upload-type="file"
+                          :show-file-list="true"
+                          :accept="AcceptType.ChallengeAttachment"
+                          :data="{challengeId: challengeId}"
+                          action="/cch/challengeFile/upload"
+                          :on-success="handleAttachmentUploadSuccess"
+                        />
                       </NFormItem>
-                      <NFormItem v-for="x of draftData.config.attachments" :key="x.fileId">
-                        <n-card>
-                          {{ draftAttachmentList }}
-                        </n-card>
+                      <NFormItem label="已上传附件">
+                        <NSpace vertical class="w-full">
+                          <template v-if="draftData.config.attachments?.length">
+                            <n-card v-for="x of draftData.config.attachments" :key="x.fileId" size="small">
+                              <div class="flex items-center justify-between gap-12px">
+                                <div class="flex-1">
+                                  <div class="mb-8px flex items-center gap-8px">
+                                    <NTag type="success" size="small">附件</NTag>
+                                    <span class="font-600">{{ x.fileName }}</span>
+                                  </div>
+                                  <NInput v-model:value="x.remark" placeholder="填写备注（可选）" size="small"/>
+                                </div>
+                                <div class="flex items-center">
+                                  <NButton text type="primary" @click="downloadFile(x.fileId)">查看/下载</NButton>
+                                </div>
+                              </div>
+                            </n-card>
+                          </template>
+                          <NEmpty v-else description="暂无附件"/>
+                        </NSpace>
                       </NFormItem>
                     </NForm>
                   </n-card>
@@ -214,14 +291,36 @@ function goBack() {
                   <n-card :segmented="{content: true}" title="Writeup管理">
                     <NForm ref="draftWriteupFormRef" :model="draftData.config" :rules="draftWriteupRules">
                       <NFormItem>
-                        <FileUpload v-model:file-list="draftWriteupList" upload-type="file" :show-file-list="true"
-                                    :accept="AcceptType.ChallengeWriteup" :data="{challengeId: challengeId}"
-                                    action="/cch/challengeFile/upload" :on-success="handleUploadSuccess"/>
+                        <FileUpload
+                          v-model:file-list="draftWriteupList"
+                          upload-type="file"
+                          :show-file-list="true"
+                          :accept="AcceptType.ChallengeWriteup"
+                          :data="{challengeId: challengeId}"
+                          action="/cch/challengeFile/upload"
+                          :on-success="handleWriteupUploadSuccess"
+                        />
                       </NFormItem>
-                      <NFormItem v-for="x of draftData.config.attachments" :key="x.fileId">
-                        <n-card>
-                          {{ draftWriteupList }}
-                        </n-card>
+                      <NFormItem label="已上传 Writeup">
+                        <NSpace vertical class="w-full">
+                          <template v-if="draftData.config.writeups?.length">
+                            <n-card v-for="x of draftData.config.writeups" :key="x.fileId" size="small">
+                              <div class="flex items-center justify-between gap-12px">
+                                <div class="flex-1">
+                                  <div class="mb-8px flex items-center gap-8px">
+                                    <NTag type="info" size="small">Writeup</NTag>
+                                    <span class="font-600">{{ x.fileName }}</span>
+                                  </div>
+                                  <NInput v-model:value="x.remark" placeholder="填写备注（可选）" size="small"/>
+                                </div>
+                                <div class="flex items-center">
+                                  <NButton text type="primary" @click="downloadFile(x.fileId)">查看/下载</NButton>
+                                </div>
+                              </div>
+                            </n-card>
+                          </template>
+                          <NEmpty v-else description="暂无 Writeup"/>
+                        </NSpace>
                       </NFormItem>
                     </NForm>
                   </n-card>

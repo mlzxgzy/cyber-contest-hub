@@ -1,8 +1,8 @@
 import StreamSaver from 'streamsaver';
-import { errorCodeRecord } from '@/constants/common';
-import { localStg } from '@/utils/storage';
-import { getServiceBaseURL } from '@/utils/service';
-import { transformToURLSearchParams } from '@/utils/common';
+import {errorCodeRecord} from '@/constants/common';
+import {localStg} from '@/utils/storage';
+import {getServiceBaseURL} from '@/utils/service';
+import {transformToURLSearchParams} from '@/utils/common';
 
 interface RequestConfig {
   method: 'GET' | 'POST';
@@ -14,7 +14,7 @@ interface RequestConfig {
 
 export function useDownload() {
   const isHttpProxy = import.meta.env.DEV && import.meta.env.VITE_HTTP_PROXY === 'Y';
-  const { baseURL } = getServiceBaseURL(import.meta.env, isHttpProxy);
+  const {baseURL} = getServiceBaseURL(import.meta.env, isHttpProxy);
 
   const isHttps = () => {
     const protocol = document.location.protocol;
@@ -31,11 +31,11 @@ export function useDownload() {
 
   /** 通用下载方法 */
   function downloadByData(data: BlobPart, filename: string, type = 'application/octet-stream') {
-    const blob = new Blob([data], { type });
+    const blob = new Blob([data], {type});
     const blobURL = window.URL.createObjectURL(blob);
 
     const tempLink = Object.assign(document.createElement('a'), {
-      style: { display: 'none' },
+      style: {display: 'none'},
       href: blobURL,
       download: filename
     });
@@ -58,7 +58,7 @@ export function useDownload() {
   ): Promise<void> {
     window.$loading?.endLoading();
     StreamSaver.mitm = '/streamsaver/mitm.html?version=2.0.0';
-    const fileStream = StreamSaver.createWriteStream(filename, { size: contentLength });
+    const fileStream = StreamSaver.createWriteStream(filename, {size: contentLength});
 
     if (window.WritableStream && readableStream?.pipeTo) {
       await readableStream.pipeTo(fileStream);
@@ -71,7 +71,7 @@ export function useDownload() {
     const reader = readableStream.getReader();
 
     const pump = async (): Promise<void> => {
-      const { done, value } = await reader.read();
+      const {done, value} = await reader.read();
       if (done) return writer.close();
       await writer.write(value);
       return pump();
@@ -91,7 +91,7 @@ export function useDownload() {
 
   /** 核心下载逻辑 */
   async function executeDownload(config: RequestConfig): Promise<void> {
-    const { method, url, params, filename, contentType } = config;
+    const {method, url, params, filename, contentType} = config;
     const timestamp = Date.now();
     const fullUrl = `${baseURL}${url}${url.includes('?') ? '&' : '?'}t=${timestamp}`;
 
@@ -140,7 +140,14 @@ export function useDownload() {
 
   /** 公共下载接口 */
   const download = (url: string, params: Record<string, any>, filename: string) =>
-    executeDownload({ method: 'POST', url, params, filename });
+    executeDownload({method: 'POST', url, params, filename});
+
+  /** OSS文件下载 */
+  const downloadChallengeFile = (fileId: CommonType.IdType) =>
+    executeDownload({
+      method: 'GET',
+      url: `/cch/challengeFile/download/${fileId}`
+    });
 
   /** OSS文件下载 */
   const oss = (ossId: CommonType.IdType) =>
@@ -161,6 +168,7 @@ export function useDownload() {
   return {
     oss,
     zip,
-    download
+    download,
+    downloadChallengeFile
   };
 }

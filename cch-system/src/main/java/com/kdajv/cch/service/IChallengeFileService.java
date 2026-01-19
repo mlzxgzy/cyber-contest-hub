@@ -2,11 +2,13 @@ package com.kdajv.cch.service;
 
 import com.kdajv.cch.domain.vo.ChallengeFileVo;
 import com.kdajv.cch.domain.bo.ChallengeFileBo;
+import jakarta.servlet.http.HttpServletResponse;
 import org.dromara.common.core.exception.ServiceException;
 import org.dromara.common.mybatis.core.page.TableDataInfo;
 import org.dromara.common.mybatis.core.page.PageQuery;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 
@@ -77,4 +79,12 @@ public interface IChallengeFileService {
      * @throws ServiceException 如果上传过程中发生异常，则抛出 ServiceException 异常
      */
     ChallengeFileVo upload(Long challengeId, MultipartFile file);
+
+    /**
+     * 文件下载方法，支持一次性下载完整文件
+     *
+     * @param ossId    文件Id
+     * @param response HttpServletResponse对象，用于设置响应头和向客户端发送文件内容
+     */
+    void download(Long ossId, HttpServletResponse response) throws IOException;
 }

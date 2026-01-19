@@ -1,9 +1,13 @@
 package com.kdajv.cch.service.impl;
 
+import cn.hutool.core.util.ObjectUtil;
 import com.kdajv.cch.domain.ChallengeFileExt;
+import jakarta.servlet.http.HttpServletResponse;
 import org.dromara.common.core.exception.ServiceException;
 import org.dromara.common.core.utils.MapstructUtils;
+import org.dromara.common.core.utils.SpringUtils;
 import org.dromara.common.core.utils.StringUtils;
+import org.dromara.common.core.utils.file.FileUtils;
 import org.dromara.common.json.utils.JsonUtils;
 import org.dromara.common.mybatis.core.page.TableDataInfo;
 import org.dromara.common.mybatis.core.page.PageQuery;
@@ -17,6 +21,7 @@ import org.dromara.common.oss.entity.UploadResult;
 import org.dromara.common.oss.enums.AccessPolicyType;
 import org.dromara.common.oss.factory.OssFactory;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import com.kdajv.cch.domain.bo.ChallengeFileBo;
 import com.kdajv.cch.domain.vo.ChallengeFileVo;
@@ -170,6 +175,24 @@ public class ChallengeFileServiceImpl implements IChallengeFileService {
         ext1.setContentType(file.getContentType());
         // 保存文件信息
         return buildResultEntity(challengeId, originalfileName, suffix, storage.getConfigKey(), uploadResult, ext1);
+    }
+
+    /**
+     * 文件下载方法，支持一次性下载完整文件
+     *
+     * @param ossId    文件Id
+     * @param response HttpServletResponse对象，用于设置响应头和向客户端发送文件内容
+     */
+    @Override
+    public void download(Long ossId, HttpServletResponse response) throws IOException {
+        ChallengeFileVo challengeFile = SpringUtils.getAopProxy(this).queryById(ossId);
+        if (ObjectUtil.isNull(challengeFile)) {
+            throw new ServiceException("文件数据不存在!");
+        }
+        FileUtils.setAttachmentResponseHeader(response, challengeFile.getOriginalName());
+        response.setContentType(MediaType.APPLICATION_OCTET_STREAM_VALUE + "; charset=UTF-8");
+        OssClient storage = OssFactory.instance(challengeFile.getService());
+        storage.download(challengeFile.getFileName(), response.getOutputStream(), response::setContentLengthLong);
     }
 
     @NotNull

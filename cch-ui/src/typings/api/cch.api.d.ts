@@ -54,7 +54,9 @@ declare namespace Api {
         type ChallengeDraftConfig = {
             stem: string;
             difficulty: string;
+            knowledge?: string[];
             attachments: ChallengeDraftConfigAttachment[];
+            writeups?: ChallengeDraftConfigAttachment[];
         }
 
         type ChallengeDraftConfigAttachment = {

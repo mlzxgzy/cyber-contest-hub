@@ -1,9 +1,9 @@
 package com.kdajv.cch.controller;
 
+import java.io.IOException;
 import java.util.List;
 
 import cn.hutool.core.util.ObjectUtil;
-import com.kdajv.cch.domain.vo.ChallengeVo;
 import com.kdajv.cch.service.IChallengeService;
 import lombok.RequiredArgsConstructor;
 import jakarta.servlet.http.HttpServletResponse;
@@ -113,7 +113,7 @@ public class ChallengeFileController extends BaseController {
      *
      * @param file 文件
      */
-    @SaCheckPermission("cch:challengeFile:add")
+    @SaCheckPermission("cch:challengeFile:upload")
     @Log(title = "题目文件", businessType = BusinessType.INSERT)
     @RepeatSubmit()
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -126,6 +126,17 @@ public class ChallengeFileController extends BaseController {
         }
         ChallengeFileVo vo = challengeFileService.upload(challengeId, file);
         return R.ok(vo);
+    }
+
+    /**
+     * 下载附件或Writeup
+     *
+     * @param fileId 文件Id
+     */
+    @SaCheckPermission("cch:challengeFile:download")
+    @GetMapping("/download/{fileId}")
+    public void download(@PathVariable Long fileId, HttpServletResponse response) throws IOException {
+        challengeFileService.download(fileId, response);
     }
 
 }
