@@ -4,6 +4,7 @@ import lombok.Data;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.util.List;
 
 /**
  * 题目配置对象
@@ -27,5 +28,31 @@ public class DraftConfig implements Serializable {
      */
     private String difficulty;
 
-    // 其他字段你可以自己添加
+    /**
+     * 题目附件
+     */
+    private List<Attachment> attachments;
+
+    /**
+     * 题目附件
+     */
+    @Data
+    public static class Attachment {
+        /**
+         * 文件ID
+         */
+        public String fileId;
+        /**
+         * 文件名
+         */
+        public String fileName;
+        /**
+         * 文件URL
+         */
+        public String fileUrl;
+        /**
+         * 文件描述
+         */
+        public String remark;
+    }
 }
