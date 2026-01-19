@@ -75,7 +75,7 @@ function reset() {
 
 // 取消按钮
 function cancel() {
-  router.back();
+  proxy.$tab.closePage();
 }
 
 /** 提交按钮 */
@@ -85,12 +85,12 @@ function submitForm() {
       if (form.value.id != null) {
         updateQuestion(form.value).then(response => {
           proxy.$modal.msgSuccess("修改成功");
-          router.back();
+          proxy.$tab.closePage();
         });
       } else {
         addQuestion(form.value).then(response => {
           proxy.$modal.msgSuccess("新增成功");
-          router.back();
+          proxy.$tab.closePage();
         });
       }
     }
