@@ -4,7 +4,10 @@ import {useRoute, useRouter} from 'vue-router';
 import {NButton, NCard, NEmpty, NInput, NSpace, NTag} from 'naive-ui';
 import type {UploadFileInfo} from 'naive-ui';
 import {fetchChallengeDraftByChallengeId, fetchGetChallengeById} from '@/service/api/cch/challenge';
-import {fetchUpdateChallengeDraft} from '@/service/api/cch/challenge-draft';
+import {
+  fetchGetChallengeDraftById,
+  fetchUpdateChallengeDraft
+} from '@/service/api/cch/challenge-draft';
 import {useDict} from "@/hooks/business/dict";
 import {useDownload} from "@/hooks/business/download";
 import {useFormRules} from "@/hooks/common/form";
@@ -21,9 +24,12 @@ const {downloadChallengeFile} = useDownload();
 
 const challengeId = ref<CommonType.IdType | null>(null);
 const challengeData = ref<Api.Cch.Challenge>({} as Api.Cch.Challenge);
+const draftId = ref<CommonType.IdType | null>(null);
 const draftData = ref<Api.Cch.ChallengeDraft | null>(null);
 const loading = ref(true);
 const saving = ref(false);
+const hasEdited = ref(false);
+const dataInitialized = ref(false);
 const split = ref(0.8);
 
 const {createRequiredRule} = useFormRules();
@@ -108,22 +114,47 @@ watch(draftWriteupList, list => syncConfigFromFileList(list, 'writeups'), {
   deep: true
 });
 
+watch(draftData, () => {
+  if (!dataInitialized.value) return;
+  hasEdited.value = true;
+}, {deep: true});
+
+function parseQueryId(raw: unknown) {
+  if (Array.isArray(raw)) return raw[0] as CommonType.IdType;
+  if (raw) return raw as CommonType.IdType;
+  return null;
+}
+
+function applyDraftData(data: Api.Cch.ChallengeDraft) {
+  dataInitialized.value = false;
+  draftData.value = data;
+  draftData.value.config.attachments ??= [];
+  draftData.value.config.writeups ??= [];
+  draftData.value.config.knowledge ??= [];
+  draftAttachmentList.value = mapToUploadList(draftData.value.config.attachments);
+  draftWriteupList.value = mapToUploadList(draftData.value.config.writeups);
+  hasEdited.value = false;
+  dataInitialized.value = true;
+}
+
 onMounted(async () => {
-  // 从查询参数中获取 challengeId
-  const rawId = route.query.challengeId;
-  if (Array.isArray(rawId)) {
-    challengeId.value = rawId[0] as CommonType.IdType;
-  } else if (rawId) {
-    challengeId.value = rawId as CommonType.IdType;
-  }
-  if (challengeId.value) {
-    // 获取草稿数据
+  challengeId.value = parseQueryId(route.query.challengeId);
+  draftId.value = parseQueryId(route.query.draftId);
+
+  if (draftId.value) {
+    await loadDraftDataById(draftId.value);
+    if (draftData.value?.challengeId) {
+      challengeId.value = draftData.value.challengeId;
+      await loadChallengeData(draftData.value.challengeId);
+    }
+  } else if (challengeId.value) {
     await loadChallengeData(challengeId.value);
-    await loadDraftData(challengeId.value);
+    await loadDraftDataByChallengeId(challengeId.value);
   } else {
     window.$message?.error('缺少必要的参数');
     router.back();
   }
+  loading.value = false;
 });
 
 async function loadChallengeData(id: CommonType.IdType) {
@@ -136,20 +167,26 @@ async function loadChallengeData(id: CommonType.IdType) {
   console.log('获取到的题目数据:', data);
 }
 
-async function loadDraftData(id: CommonType.IdType) {
+async function loadDraftDataByChallengeId(id: CommonType.IdType) {
   const {data, error} = await fetchChallengeDraftByChallengeId(id);
   if (error) {
     window.$message?.error('获取草稿数据失败: ' + error);
     return;
   }
-  draftData.value = data;
-  draftData.value.config.attachments ??= [];
-  draftData.value.config.writeups ??= [];
-  draftData.value.config.knowledge ??= [];
+  applyDraftData(data);
+  draftId.value = data.id;
   console.log('获取到的草稿数据:', data);
-  draftAttachmentList.value = mapToUploadList(draftData.value.config.attachments);
-  draftWriteupList.value = mapToUploadList(draftData.value.config.writeups);
-  loading.value = false;
+}
+
+async function loadDraftDataById(id: CommonType.IdType) {
+  const {data, error} = await fetchGetChallengeDraftById(id);
+  if (error) {
+    window.$message?.error('获取草稿数据失败: ' + error);
+    return;
+  }
+  applyDraftData(data);
+  draftId.value = data.id;
+  console.log('获取到的草稿数据:', data);
 }
 
 async function saveDraft() {
@@ -157,7 +194,7 @@ async function saveDraft() {
 
   saving.value = true;
   try {
-    const {error} = await fetchUpdateChallengeDraft({
+    const {data, error} = await fetchUpdateChallengeDraft({
       id: draftData.value.id,
       challengeId: draftData.value.challengeId,
       challengeName: draftData.value.challengeName,
@@ -168,6 +205,20 @@ async function saveDraft() {
     if (error) {
       window.$message?.error('保存失败: ' + error);
       return;
+    }
+
+    if (data) {
+      applyDraftData(data);
+      draftId.value = data.id;
+      challengeId.value = data.challengeId;
+      router.replace({
+        path: route.path,
+        query: {
+          ...route.query,
+          challengeId: data.challengeId,
+          draftId: data.id
+        }
+      });
     }
 
     window.$message?.success('保存成功');
@@ -182,7 +233,7 @@ function goBack() {
   router.back();
 }
 
-function downloadFile(fileId) {
+function downloadFile(fileId: CommonType.IdType) {
   downloadChallengeFile(fileId);
 }
 
@@ -194,7 +245,7 @@ function downloadFile(fileId) {
       <n-card title="题目草稿编辑">
         <template #header-extra>
           <NSpace>
-            <NButton :loading="saving" type="primary" @click="saveDraft">保存</NButton>
+            <NButton :loading="saving" :disabled="!hasEdited || saving" type="primary" @click="saveDraft">保存</NButton>
             <NButton @click="goBack">返回</NButton>
           </NSpace>
         </template>

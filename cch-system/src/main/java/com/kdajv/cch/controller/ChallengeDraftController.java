@@ -87,8 +87,8 @@ public class ChallengeDraftController extends BaseController {
     @Log(title = "题目草稿", businessType = BusinessType.UPDATE)
     @RepeatSubmit()
     @PutMapping()
-    public R<Void> edit(@Validated(EditGroup.class) @RequestBody ChallengeDraftBo bo) {
-        return toAjax(challengeDraftService.updateByBo(bo));
+    public R<ChallengeDraftVo> edit(@Validated(EditGroup.class) @RequestBody ChallengeDraftBo bo) {
+        return R.ok(challengeDraftService.updateByBo(bo));
     }
 
     /**

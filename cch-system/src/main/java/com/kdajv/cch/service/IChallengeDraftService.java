@@ -61,9 +61,9 @@ public interface IChallengeDraftService {
      * 修改题目草稿
      *
      * @param bo 题目草稿
-     * @return 是否修改成功
+     * @return 新增后的草稿数据（每次保存生成新记录）
      */
-    Boolean updateByBo(ChallengeDraftBo bo);
+    ChallengeDraftVo updateByBo(ChallengeDraftBo bo);
 
     /**
      * 校验并批量删除题目草稿信息

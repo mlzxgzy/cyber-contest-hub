@@ -120,10 +120,14 @@ public class ChallengeDraftServiceImpl implements IChallengeDraftService {
      * @return 是否修改成功
      */
     @Override
-    public Boolean updateByBo(ChallengeDraftBo bo) {
+    public ChallengeDraftVo updateByBo(ChallengeDraftBo bo) {
+        // 每次保存都新增一条草稿记录，保留历史
         ChallengeDraft update = MapstructUtils.convert(bo, ChallengeDraft.class);
+        // 确保由数据库生成新主键
+        update.setId(null);
         validEntityBeforeSave(update);
-        return baseMapper.updateById(update) > 0;
+        baseMapper.insert(update);
+        return baseMapper.selectVoById(update.getId());
     }
 
     /**
