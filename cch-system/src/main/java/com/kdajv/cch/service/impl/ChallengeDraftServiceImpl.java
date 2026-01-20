@@ -134,6 +134,8 @@ public class ChallengeDraftServiceImpl implements IChallengeDraftService {
 
         // 每次保存都新增一条草稿记录，保留历史
         ChallengeDraft update = MapstructUtils.convert(bo, ChallengeDraft.class);
+        // 设置派生父草稿ID为当前草稿的ID，形成树状结构
+        update.setParentId(bo.getId());
         // 确保由数据库生成新主键
         update.setId(null);
         validEntityBeforeSave(update);

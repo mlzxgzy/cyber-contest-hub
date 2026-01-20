@@ -32,6 +32,11 @@ public class ChallengeDraft extends BaseEntity {
     private Long id;
 
     /**
+     * 派生父草稿ID
+     */
+    private Long parentId;
+
+    /**
      * 题目ID
      */
     private Long challengeId;

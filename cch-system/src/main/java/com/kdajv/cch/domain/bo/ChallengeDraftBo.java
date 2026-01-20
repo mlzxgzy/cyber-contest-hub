@@ -29,6 +29,11 @@ public class ChallengeDraftBo extends BaseEntity {
     private Long id;
 
     /**
+     * 派生父草稿ID
+     */
+    private Long parentId;
+
+    /**
      * 题目ID
      */
     @NotNull(message = "题目ID不能为空", groups = {AddGroup.class, EditGroup.class})

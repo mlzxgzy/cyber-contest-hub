@@ -32,6 +32,12 @@ public class ChallengeDraftVo implements Serializable {
     private Long id;
 
     /**
+     * 派生父草稿ID
+     */
+    @ExcelProperty(value = "派生父草稿ID")
+    private Long parentId;
+
+    /**
      * 题目ID
      */
     @ExcelProperty(value = "题目ID")

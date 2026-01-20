@@ -97,6 +97,8 @@ declare namespace Api {
         type ChallengeDraft = Common.CommonRecord<{
             /** 主键 */
             id: CommonType.IdType;
+            /** 派生父草稿ID */
+            parentId?: CommonType.IdType;
             /** 题目ID */
             challengeId: CommonType.IdType;
             /** 题目名称 */
