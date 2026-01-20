@@ -2,6 +2,7 @@ package com.kdajv.cch.domain.bo;
 
 import com.kdajv.cch.domain.ChallengeDraft;
 import com.kdajv.cch.domain.DraftConfig;
+import com.kdajv.cch.domain.vo.ChallengeDraftVo;
 import io.github.linpeilie.annotations.AutoMapper;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -19,7 +20,7 @@ import org.dromara.common.mybatis.core.domain.BaseEntity;
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-@AutoMapper(target = ChallengeDraft.class, reverseConvertGenerate = false)
+@AutoMapper(target = ChallengeDraftVo.class)
 public class ChallengeDraftBo extends BaseEntity {
 
     /**

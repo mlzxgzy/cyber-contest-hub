@@ -1,20 +1,21 @@
 <script lang="ts" setup>
 import {onMounted, ref, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
-import {NButton, NCard, NEmpty, NInput, NSpace, NTag, NSelect, NInputNumber, NFormItem} from 'naive-ui';
+import {NButton, NCard, NEmpty, NFormItem, NInput, NInputNumber, NSelect, NSpace, NTag} from 'naive-ui';
 import type {UploadFileInfo} from 'naive-ui';
 import {fetchChallengeDraftByChallengeId, fetchGetChallengeById} from '@/service/api/cch/challenge';
 import {
   fetchGetChallengeDraftById,
   fetchUpdateChallengeDraft
 } from '@/service/api/cch/challenge-draft';
-import {useDict} from "@/hooks/business/dict";
-import {useDownload} from "@/hooks/business/download";
-import {useFormRules} from "@/hooks/common/form";
-import FileUpload from "@/components/custom/file-upload.vue";
-import {AcceptType} from "@/enum/business";
-import {useTabStore} from "@/store/modules/tab";
-import {getRoutePath} from "@/router/elegant/transform";
+import {useTabStore} from '@/store/modules/tab';
+import {useDict} from '@/hooks/business/dict';
+import {useDownload} from '@/hooks/business/download';
+import {useFormRules} from '@/hooks/common/form';
+import FileUpload from '@/components/custom/file-upload.vue';
+import {AcceptType} from '@/enum/business';
+import {getRoutePath} from '@/router/elegant/transform';
+import ChallengeDraftHistory from '@/views/cch/challenge-draft/modules/challenge-draft-history.vue';
 
 defineOptions({
   name: 'ChallengeDraftEdit'
@@ -42,16 +43,12 @@ const {options: cchQuestionCategroyOptions} = useDict('cch_question_categroy');
 const {options: cchQuestionDifficultyOptions} = useDict('cch_question_difficulty');
 
 type challengeModel = Api.Cch.ChallengeOperateParams;
-type challengeRuleKey = Extract<keyof challengeModel,
-  | 'id'
-  | 'category'
-  | 'name'
-  | 'remark'>;
+type challengeRuleKey = Extract<keyof challengeModel, 'id' | 'category' | 'name' | 'remark'>;
 const challengeRules: Record<challengeRuleKey, App.Global.FormRule> = {
   id: createRequiredRule('主键不能为空'),
   category: createRequiredRule('题目类型不能为空'),
   name: createRequiredRule('题目名称不能为空'),
-  remark: createRequiredRule('题目备注不能为空'),
+  remark: createRequiredRule('题目备注不能为空')
 };
 const draftRules: Record<string, App.Global.FormRule> = {};
 const draftAttachmentRules: Record<string, App.Global.FormRule> = {};
@@ -59,6 +56,9 @@ const draftWriteupRules: Record<string, App.Global.FormRule> = {};
 
 const draftAttachmentList = ref<UploadFileInfo[]>([]);
 const draftWriteupList = ref<UploadFileInfo[]>([]);
+
+// 历史组件引用
+const historyRef = ref<InstanceType<typeof ChallengeDraftHistory> | null>(null);
 
 function handleAttachmentUploadSuccess(data: Api.Cch.ChallengeFile) {
   if (!draftData.value) return;
@@ -68,7 +68,7 @@ function handleAttachmentUploadSuccess(data: Api.Cch.ChallengeFile) {
     fileName: data.originalName,
     fileUrl: data.url,
     remark: null
-  })
+  });
 }
 
 function handleWriteupUploadSuccess(data: Api.Cch.ChallengeFile) {
@@ -79,26 +79,37 @@ function handleWriteupUploadSuccess(data: Api.Cch.ChallengeFile) {
     fileName: data.originalName,
     fileUrl: data.url,
     remark: null
-  })
+  });
 }
 
-watch(draftData, () => {
-  if (!dataInitialized.value) return;
-  hasEdited.value = true;
-}, {deep: true});
+watch(
+  draftData,
+  () => {
+    if (!dataInitialized.value) return;
+    hasEdited.value = true;
+  },
+  {deep: true}
+);
 
-watch(challengeData, () => {
-  if (!challengeInitialized.value) return;
-  hasEdited.value = true;
-}, {deep: true});
+watch(
+  challengeData,
+  () => {
+    if (!challengeInitialized.value) return;
+    hasEdited.value = true;
+  },
+  {deep: true}
+);
 
 // 监听refresh参数变化，用于在tab已存在时刷新数据
-watch(() => route.query.refresh, async (newVal, oldVal) => {
-  // 只在refresh从非'true'变为'true'时触发，避免首次加载时重复刷新
-  if (newVal === 'true' && oldVal !== 'true') {
-    await handleRefresh();
+watch(
+  () => route.query.refresh,
+  async (newVal, oldVal) => {
+    // 只在refresh从非'true'变为'true'时触发，避免首次加载时重复刷新
+    if (newVal === 'true' && oldVal !== 'true') {
+      await handleRefresh();
+    }
   }
-});
+);
 
 function parseQueryId(raw: unknown) {
   if (Array.isArray(raw)) return raw[0] as CommonType.IdType;
@@ -168,6 +179,12 @@ async function loadData(queryParams = route.query) {
     router.back();
     return;
   }
+
+  // 加载版本历史
+  if (challengeId.value) {
+    historyRef.value?.refresh();
+  }
+
   loading.value = false;
 }
 
@@ -199,7 +216,7 @@ onMounted(async () => {
 async function loadChallengeData(id: CommonType.IdType) {
   const {data, error} = await fetchGetChallengeById(id);
   if (error) {
-    window.$message?.error('获取题目数据失败: ' + error);
+    window.$message?.error(`获取题目数据失败: ${error}`);
     return;
   }
   challengeInitialized.value = false;
@@ -211,7 +228,7 @@ async function loadChallengeData(id: CommonType.IdType) {
 async function loadDraftDataByChallengeId(id: CommonType.IdType) {
   const {data, error} = await fetchChallengeDraftByChallengeId(id);
   if (error) {
-    window.$message?.error('获取草稿数据失败: ' + error);
+    window.$message?.error(`获取草稿数据失败: ${error}`);
     return;
   }
   applyDraftData(data);
@@ -222,7 +239,7 @@ async function loadDraftDataByChallengeId(id: CommonType.IdType) {
 async function loadDraftDataById(id: CommonType.IdType) {
   const {data, error} = await fetchGetChallengeDraftById(id);
   if (error) {
-    window.$message?.error('获取草稿数据失败: ' + error);
+    window.$message?.error(`获取草稿数据失败: ${error}`);
     return;
   }
   applyDraftData(data);
@@ -247,7 +264,7 @@ async function saveDraft() {
     });
 
     if (error) {
-      window.$message?.error('保存失败: ' + error);
+      window.$message?.error(`保存失败: ${error}`);
       return;
     }
 
@@ -263,11 +280,14 @@ async function saveDraft() {
           draftId: data.id
         }
       });
+
+      // 重新加载版本历史
+      await historyRef.value?.refresh();
     }
 
     window.$message?.success('保存成功');
   } catch (err) {
-    window.$message?.error('保存异常: ' + err);
+    window.$message?.error(`保存异常: ${err}`);
   } finally {
     saving.value = false;
   }
@@ -281,26 +301,25 @@ function goBack() {
 function downloadFile(fileId: CommonType.IdType) {
   downloadChallengeFile(fileId);
 }
-
 </script>
 
 <template>
-  <n-split class="p-20px" v-model:size="split" direction="horizontal" pane1-class="pr-10px" pane2-class="pl-10px">
+  <NSplit v-model:size="split" class="p-20px" direction="horizontal" pane1-class="pr-10px" pane2-class="pl-10px">
     <template #1>
-      <n-card title="题目草稿编辑">
+      <NCard title="题目草稿编辑">
         <template #header-extra>
           <NSpace>
             <NButton :loading="saving" :disabled="!hasEdited || saving" type="primary" @click="saveDraft">保存</NButton>
             <NButton @click="goBack">返回</NButton>
           </NSpace>
         </template>
-        <n-skeleton v-if="loading" text :repeat="6"/>
+        <NSkeleton v-if="loading" text :repeat="6"/>
         <div v-else-if="draftData" class="scrollbar">
-          <n-tabs animated default-value="info" type="segment">
-            <n-tab-pane name="info" tab="题目信息">
-              <n-grid cols="1 600:2 1200:3" x-gap="12" y-gap="12">
-                <n-gi>
-                  <n-card :segmented="{content: true}" title="基本信息">
+          <NTabs animated default-value="info" type="segment">
+            <NTabPane name="info" tab="题目信息">
+              <NGrid cols="1 600:2 1200:3" x-gap="12" y-gap="12">
+                <NGi>
+                  <NCard :segmented="{ content: true }" title="基本信息">
                     <NForm ref="challengeFormRef" :model="challengeData" :rules="challengeRules">
                       <NFormItem label="题目类型" path="category">
                         <NSelect
@@ -322,10 +341,10 @@ function downloadFile(fileId: CommonType.IdType) {
                         />
                       </NFormItem>
                     </NForm>
-                  </n-card>
-                </n-gi>
-                <n-gi>
-                  <n-card :segmented="{content: true}" title="题目信息">
+                  </NCard>
+                </NGi>
+                <NGi>
+                  <NCard :segmented="{ content: true }" title="题目信息">
                     <NForm ref="draftFormRef" :model="draftData.config" :rules="draftRules">
                       <NFormItem label="难度" path="difficulty">
                         <NSelect
@@ -336,17 +355,21 @@ function downloadFile(fileId: CommonType.IdType) {
                         />
                       </NFormItem>
                       <NFormItem label="题干" path="stem">
-                        <NInput v-model:value="draftData.config.stem" :rows="3" placeholder="请输入题干"
-                                type="textarea"/>
+                        <NInput
+                          v-model:value="draftData.config.stem"
+                          :rows="3"
+                          placeholder="请输入题干"
+                          type="textarea"
+                        />
                       </NFormItem>
                       <NFormItem label="知识点" path="knowledge">
-                        <n-select v-model:value="draftData.config.knowledge" filterable multiple tag/>
+                        <NSelect v-model:value="draftData.config.knowledge" filterable multiple tag/>
                       </NFormItem>
                     </NForm>
-                  </n-card>
-                </n-gi>
-                <n-gi>
-                  <n-card :segmented="{content: true}" title="附件管理">
+                  </NCard>
+                </NGi>
+                <NGi>
+                  <NCard :segmented="{ content: true }" title="附件管理">
                     <NForm ref="draftAttachmentFormRef" :model="draftData.config" :rules="draftAttachmentRules">
                       <NFormItem>
                         <FileUpload
@@ -354,7 +377,7 @@ function downloadFile(fileId: CommonType.IdType) {
                           upload-type="file"
                           :show-file-list="false"
                           :accept="AcceptType.ChallengeAttachment"
-                          :data="{challengeId: challengeId}"
+                          :data="{ challengeId: challengeId }"
                           action="/cch/challengeFile/upload"
                           :on-success="handleAttachmentUploadSuccess"
                         />
@@ -362,7 +385,7 @@ function downloadFile(fileId: CommonType.IdType) {
                       <NFormItem label="已上传附件">
                         <NSpace vertical class="w-full">
                           <template v-if="draftData.config.attachments?.length">
-                            <n-card v-for="x of draftData.config.attachments" :key="x.fileId" size="small">
+                            <NCard v-for="x of draftData.config.attachments" :key="x.fileId" size="small">
                               <div class="flex items-center justify-between gap-12px">
                                 <div class="flex-1">
                                   <div class="mb-8px flex items-center gap-8px">
@@ -375,16 +398,16 @@ function downloadFile(fileId: CommonType.IdType) {
                                   <NButton text type="primary" @click="downloadFile(x.fileId)">查看/下载</NButton>
                                 </div>
                               </div>
-                            </n-card>
+                            </NCard>
                           </template>
                           <NEmpty v-else description="暂无附件"/>
                         </NSpace>
                       </NFormItem>
                     </NForm>
-                  </n-card>
-                </n-gi>
-                <n-gi>
-                  <n-card :segmented="{content: true}" title="Writeup管理">
+                  </NCard>
+                </NGi>
+                <NGi>
+                  <NCard :segmented="{ content: true }" title="Writeup管理">
                     <NForm ref="draftWriteupFormRef" :model="draftData.config" :rules="draftWriteupRules">
                       <NFormItem>
                         <FileUpload
@@ -392,7 +415,7 @@ function downloadFile(fileId: CommonType.IdType) {
                           upload-type="file"
                           :show-file-list="false"
                           :accept="AcceptType.ChallengeWriteup"
-                          :data="{challengeId: challengeId}"
+                          :data="{ challengeId: challengeId }"
                           action="/cch/challengeFile/upload"
                           :on-success="handleWriteupUploadSuccess"
                         />
@@ -400,7 +423,7 @@ function downloadFile(fileId: CommonType.IdType) {
                       <NFormItem label="已上传 Writeup">
                         <NSpace vertical class="w-full">
                           <template v-if="draftData.config.writeups?.length">
-                            <n-card v-for="x of draftData.config.writeups" :key="x.fileId" size="small">
+                            <NCard v-for="x of draftData.config.writeups" :key="x.fileId" size="small">
                               <div class="flex items-center justify-between gap-12px">
                                 <div class="flex-1">
                                   <div class="mb-8px flex items-center gap-8px">
@@ -413,25 +436,25 @@ function downloadFile(fileId: CommonType.IdType) {
                                   <NButton text type="primary" @click="downloadFile(x.fileId)">查看/下载</NButton>
                                 </div>
                               </div>
-                            </n-card>
+                            </NCard>
                           </template>
                           <NEmpty v-else description="暂无 Writeup"/>
                         </NSpace>
                       </NFormItem>
                     </NForm>
-                  </n-card>
-                </n-gi>
-              </n-grid>
-            </n-tab-pane>
-            <n-tab-pane name="flag" tab="Flag管理">
-              <n-card :segmented="{content: true}" title="Flag列表">
+                  </NCard>
+                </NGi>
+              </NGrid>
+            </NTabPane>
+            <NTabPane name="flag" tab="Flag管理">
+              <NCard :segmented="{ content: true }" title="Flag列表">
                 <NSpace vertical class="w-full">
                   <NSpace>
                     <NButton type="primary" @click="addFlag('static')">添加静态Flag</NButton>
                     <NButton @click="addFlag('dynamic')">添加动态Flag</NButton>
                   </NSpace>
                   <template v-if="draftData.config.flags?.length">
-                    <n-card v-for="(flag, index) of draftData.config.flags" :key="index" size="small">
+                    <NCard v-for="(flag, index) of draftData.config.flags" :key="index" size="small">
                       <template #header>
                         <div class="flex items-center justify-between">
                           <div class="flex items-center gap-8px">
@@ -444,8 +467,8 @@ function downloadFile(fileId: CommonType.IdType) {
                         </div>
                       </template>
                       <NSpace vertical class="w-full">
-                        <n-grid cols="1 800:2" x-gap="12" y-gap="12">
-                          <n-gi>
+                        <NGrid cols="1 800:2" x-gap="12" y-gap="12">
+                          <NGi>
                             <NFormItem label="Flag类型">
                               <NSelect
                                 :value="flag.type"
@@ -456,8 +479,8 @@ function downloadFile(fileId: CommonType.IdType) {
                                 disabled
                               />
                             </NFormItem>
-                          </n-gi>
-                          <n-gi>
+                          </NGi>
+                          <NGi>
                             <NFormItem label="分值（推荐）">
                               <NInputNumber
                                 v-model:value="flag.score"
@@ -467,8 +490,8 @@ function downloadFile(fileId: CommonType.IdType) {
                                 class="w-full"
                               />
                             </NFormItem>
-                          </n-gi>
-                          <n-gi v-if="flag.type === 'static'">
+                          </NGi>
+                          <NGi v-if="flag.type === 'static'">
                             <NFormItem label="Flag内容">
                               <NInput
                                 v-model:value="(flag as Api.Cch.ChallengeDraftConfigStaticFlag).content"
@@ -477,8 +500,8 @@ function downloadFile(fileId: CommonType.IdType) {
                                 :rows="2"
                               />
                             </NFormItem>
-                          </n-gi>
-                          <n-gi v-if="flag.type === 'dynamic'">
+                          </NGi>
+                          <NGi v-if="flag.type === 'dynamic'">
                             <NFormItem label="生成规则配置">
                               <NInput
                                 v-model:value="(flag as Api.Cch.ChallengeDraftConfigDynamicFlag).generatorConfig"
@@ -488,8 +511,8 @@ function downloadFile(fileId: CommonType.IdType) {
                                 disabled
                               />
                             </NFormItem>
-                          </n-gi>
-                          <n-gi>
+                          </NGi>
+                          <NGi>
                             <NFormItem label="Flag描述（给选手查看）">
                               <NInput
                                 v-model:value="flag.description"
@@ -498,8 +521,8 @@ function downloadFile(fileId: CommonType.IdType) {
                                 :rows="2"
                               />
                             </NFormItem>
-                          </n-gi>
-                          <n-gi>
+                          </NGi>
+                          <NGi>
                             <NFormItem label="Flag备注（仅后台可见）">
                               <NInput
                                 v-model:value="flag.remark"
@@ -508,32 +531,31 @@ function downloadFile(fileId: CommonType.IdType) {
                                 :rows="2"
                               />
                             </NFormItem>
-                          </n-gi>
-                        </n-grid>
+                          </NGi>
+                        </NGrid>
                       </NSpace>
-                    </n-card>
+                    </NCard>
                   </template>
                   <NEmpty v-else description="暂无Flag，点击上方按钮添加"/>
                 </NSpace>
-              </n-card>
-            </n-tab-pane>
-          </n-tabs>
+              </NCard>
+            </NTabPane>
+          </NTabs>
         </div>
-        <div v-else>
-          未能加载草稿数据
-        </div>
-      </n-card>
+        <div v-else>未能加载草稿数据</div>
+      </NCard>
     </template>
     <template #2>
-      <n-card>
-        <n-tabs type="line" placement="right">
-          <n-tab-pane name="oasis" tab="Oasis">
-            Wonderwall
-          </n-tab-pane>
-        </n-tabs>
-      </n-card>
+      <NCard>
+        <NTabs type="line" placement="right">
+          <NTabPane name="history" tab="修改历史">
+            <ChallengeDraftHistory ref="historyRef" :challenge-id="challengeId" :current-draft-id="draftId"/>
+          </NTabPane>
+          <NTabPane name="oasis" tab="Oasis">Wonderwall</NTabPane>
+        </NTabs>
+      </NCard>
     </template>
-  </n-split>
+  </NSplit>
 </template>
 
 <style scoped lang="scss">

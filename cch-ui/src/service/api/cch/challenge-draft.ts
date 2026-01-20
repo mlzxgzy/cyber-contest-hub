@@ -42,3 +42,19 @@ export function fetchGetChallengeDraftById(id: CommonType.IdType) {
     method: 'get'
   });
 }
+
+/** 获取题目草稿版本历史列表 */
+export function fetchGetChallengeDraftHistory(challengeId: CommonType.IdType) {
+  return request<Api.Cch.ChallengeDraft[]>({
+    url: `/cch/challengeDraft/history/${challengeId}`,
+    method: 'get'
+  });
+}
+
+/** 从指定版本派生新版本 */
+export function fetchForkChallengeDraft(parentDraftId: CommonType.IdType) {
+  return request<Api.Cch.ChallengeDraft>({
+    url: `/cch/challengeDraft/fork/${parentDraftId}`,
+    method: 'post'
+  });
+}

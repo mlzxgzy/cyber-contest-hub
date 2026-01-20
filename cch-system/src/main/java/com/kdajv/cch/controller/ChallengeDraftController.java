@@ -103,4 +103,30 @@ public class ChallengeDraftController extends BaseController {
                           @PathVariable Long[] ids) {
         return toAjax(challengeDraftService.deleteWithValidByIds(List.of(ids), true));
     }
+
+    /**
+     * 查询题目草稿的版本历史列表
+     *
+     * @param challengeId 题目ID
+     */
+    @SaCheckPermission("cch:challengeDraft:query")
+    @GetMapping("/history/{challengeId}")
+    public R<List<ChallengeDraftVo>> getHistoryList(@NotNull(message = "题目ID不能为空")
+                                                     @PathVariable Long challengeId) {
+        return R.ok(challengeDraftService.queryHistoryListByChallengeId(challengeId));
+    }
+
+    /**
+     * 从指定版本派生新版本
+     *
+     * @param parentDraftId 父版本草稿ID
+     */
+    @SaCheckPermission("cch:challengeDraft:add")
+    @Log(title = "题目草稿", businessType = BusinessType.INSERT)
+    @RepeatSubmit()
+    @PostMapping("/fork/{parentDraftId}")
+    public R<ChallengeDraftVo> forkFromDraft(@NotNull(message = "父版本草稿ID不能为空")
+                                             @PathVariable Long parentDraftId) {
+        return R.ok(challengeDraftService.forkFromDraftId(parentDraftId));
+    }
 }

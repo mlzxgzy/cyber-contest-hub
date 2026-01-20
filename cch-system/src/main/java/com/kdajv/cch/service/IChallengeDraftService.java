@@ -73,4 +73,20 @@ public interface IChallengeDraftService {
      * @return 是否删除成功
      */
     Boolean deleteWithValidByIds(Collection<Long> ids, Boolean isValid);
+
+    /**
+     * 查询题目草稿的版本历史列表（用于构建树状结构）
+     *
+     * @param challengeId 题目ID
+     * @return 题目草稿版本列表（按创建时间倒序）
+     */
+    List<ChallengeDraftVo> queryHistoryListByChallengeId(Long challengeId);
+
+    /**
+     * 从指定版本派生新版本
+     *
+     * @param parentDraftId 父版本草稿ID
+     * @return 派生后的新草稿数据
+     */
+    ChallengeDraftVo forkFromDraftId(Long parentDraftId);
 }

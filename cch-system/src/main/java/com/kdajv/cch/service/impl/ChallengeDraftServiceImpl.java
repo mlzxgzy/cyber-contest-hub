@@ -12,6 +12,7 @@ import com.kdajv.cch.mapper.ChallengeDraftMapper;
 import com.kdajv.cch.service.IChallengeDraftService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.dromara.common.core.exception.ServiceException;
 import org.dromara.common.core.utils.MapstructUtils;
 import org.dromara.common.core.utils.StringUtils;
 import org.dromara.common.mybatis.core.page.PageQuery;
@@ -163,5 +164,48 @@ public class ChallengeDraftServiceImpl implements IChallengeDraftService {
             //TODO 做一些业务上的校验,判断是否需要校验
         }
         return baseMapper.deleteByIds(ids) > 0;
+    }
+
+    /**
+     * 查询题目草稿的版本历史列表（用于构建树状结构）
+     *
+     * @param challengeId 题目ID
+     * @return 题目草稿版本列表（按创建时间倒序）
+     */
+    @Override
+    public List<ChallengeDraftVo> queryHistoryListByChallengeId(Long challengeId) {
+        LambdaQueryWrapper<ChallengeDraft> lqw = Wrappers.lambdaQuery();
+        lqw.eq(ChallengeDraft::getChallengeId, challengeId);
+        lqw.orderByDesc(ChallengeDraft::getCreateTime);
+        return baseMapper.selectVoList(lqw);
+    }
+
+    /**
+     * 从指定版本派生新版本
+     *
+     * @param parentDraftId 父版本草稿ID
+     * @return 派生后的新草稿数据
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ChallengeDraftVo forkFromDraftId(Long parentDraftId) {
+        // 查询父版本草稿
+        ChallengeDraftVo parentDraft = baseMapper.selectVoById(parentDraftId);
+        if (parentDraft == null) {
+            throw new ServiceException("父版本草稿不存在");
+        }
+
+        // 创建新的草稿，基于父版本
+        ChallengeDraftBo newDraftBo = MapstructUtils.convert(parentDraft, ChallengeDraftBo.class);
+        // 设置父ID
+        newDraftBo.setParentId(parentDraftId);
+        // 清空ID，让数据库生成新ID
+        newDraftBo.setId(null);
+
+        ChallengeDraft newDraft = MapstructUtils.convert(newDraftBo, ChallengeDraft.class);
+        validEntityBeforeSave(newDraft);
+        baseMapper.insert(newDraft);
+
+        return baseMapper.selectVoById(newDraft.getId());
     }
 }

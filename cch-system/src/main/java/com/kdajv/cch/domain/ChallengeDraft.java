@@ -5,6 +5,10 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
+import com.kdajv.cch.domain.bo.ChallengeDraftBo;
+import com.kdajv.cch.domain.vo.ChallengeDraftVo;
+import io.github.linpeilie.annotations.AutoMapper;
+import io.github.linpeilie.annotations.AutoMappers;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.dromara.common.mybatis.core.domain.BaseEntity;
@@ -20,6 +24,10 @@ import java.io.Serial;
 @Data
 @EqualsAndHashCode(callSuper = true)
 @TableName(value = "t_challenge_draft", autoResultMap = true)
+@AutoMappers({
+    @AutoMapper(target = ChallengeDraftVo.class),
+    @AutoMapper(target = ChallengeDraftBo.class),
+})
 public class ChallengeDraft extends BaseEntity {
 
     @Serial

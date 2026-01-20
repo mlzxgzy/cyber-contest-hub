@@ -4,6 +4,7 @@ import cn.idev.excel.annotation.ExcelIgnoreUnannotated;
 import cn.idev.excel.annotation.ExcelProperty;
 import com.kdajv.cch.domain.ChallengeDraft;
 import com.kdajv.cch.domain.DraftConfig;
+import com.kdajv.cch.domain.bo.ChallengeDraftBo;
 import io.github.linpeilie.annotations.AutoMapper;
 import lombok.Data;
 
@@ -19,7 +20,7 @@ import java.io.Serializable;
  */
 @Data
 @ExcelIgnoreUnannotated
-@AutoMapper(target = ChallengeDraft.class)
+@AutoMapper(target = ChallengeDraftBo.class)
 public class ChallengeDraftVo implements Serializable {
 
     @Serial
