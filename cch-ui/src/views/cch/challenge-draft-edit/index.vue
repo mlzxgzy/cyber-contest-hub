@@ -13,6 +13,8 @@ import {useDownload} from "@/hooks/business/download";
 import {useFormRules} from "@/hooks/common/form";
 import FileUpload from "@/components/custom/file-upload.vue";
 import {AcceptType} from "@/enum/business";
+import {useTabStore} from "@/store/modules/tab";
+import {getRoutePath} from "@/router/elegant/transform";
 
 defineOptions({
   name: 'ChallengeDraftEdit'
@@ -21,6 +23,7 @@ defineOptions({
 const route = useRoute();
 const router = useRouter();
 const {downloadChallengeFile} = useDownload();
+const {removeActiveTab} = useTabStore();
 
 const challengeId = ref<CommonType.IdType | null>(null);
 const challengeData = ref<Api.Cch.Challenge>({} as Api.Cch.Challenge);
@@ -192,7 +195,8 @@ async function saveDraft() {
 }
 
 function goBack() {
-  router.back();
+  removeActiveTab();
+  router.push(getRoutePath('cch_challenge'));
 }
 
 function downloadFile(fileId: CommonType.IdType) {
