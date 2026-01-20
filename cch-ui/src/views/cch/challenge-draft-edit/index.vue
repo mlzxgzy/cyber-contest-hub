@@ -56,63 +56,27 @@ const draftWriteupRules: Record<string, App.Global.FormRule> = {};
 const draftAttachmentList = ref<UploadFileInfo[]>([]);
 const draftWriteupList = ref<UploadFileInfo[]>([]);
 
-function mapToUploadList(items?: Api.Cch.ChallengeDraftConfigAttachment[]) {
-  return (items ?? []).map(item => ({
-    id: String(item.fileId),
-    name: item.fileName,
-    status: 'finished',
-    url: item.fileUrl
-  })) as UploadFileInfo[];
-}
-
-function syncConfigFromFileList(
-  fileList: UploadFileInfo[],
-  target: 'attachments' | 'writeups'
-) {
-  if (!draftData.value) return;
-  const currentConfigList = draftData.value.config[target] ?? [];
-  const remarkMap = new Map(
-    currentConfigList.map(item => [String(item.fileId), item.remark ?? null])
-  );
-  draftData.value.config[target] = fileList
-    .filter(file => file.status !== 'error')
-    .map(file => ({
-      fileId: file.id as CommonType.IdType,
-      fileName: file.name || '',
-      fileUrl: file.url || '',
-      remark: remarkMap.get(String(file.id)) ?? null
-    }));
-}
-
 function handleAttachmentUploadSuccess(data: Api.Cch.ChallengeFile) {
   if (!draftData.value) return;
   draftData.value.config.attachments ??= [];
-  draftAttachmentList.value = mapToUploadList(draftData.value.config.attachments.concat({
+  draftData.value.config.attachments = draftData.value.config.attachments.concat({
     fileId: data.id,
     fileName: data.originalName,
     fileUrl: data.url,
     remark: null
-  }));
+  })
 }
 
 function handleWriteupUploadSuccess(data: Api.Cch.ChallengeFile) {
   if (!draftData.value) return;
   draftData.value.config.writeups ??= [];
-  draftWriteupList.value = mapToUploadList(draftData.value.config.writeups.concat({
+  draftData.value.config.writeups = draftData.value.config.writeups.concat({
     fileId: data.id,
     fileName: data.originalName,
     fileUrl: data.url,
     remark: null
-  }));
+  })
 }
-
-watch(draftAttachmentList, list => syncConfigFromFileList(list, 'attachments'), {
-  deep: true
-});
-
-watch(draftWriteupList, list => syncConfigFromFileList(list, 'writeups'), {
-  deep: true
-});
 
 watch(draftData, () => {
   if (!dataInitialized.value) return;
@@ -131,8 +95,6 @@ function applyDraftData(data: Api.Cch.ChallengeDraft) {
   draftData.value.config.attachments ??= [];
   draftData.value.config.writeups ??= [];
   draftData.value.config.knowledge ??= [];
-  draftAttachmentList.value = mapToUploadList(draftData.value.config.attachments);
-  draftWriteupList.value = mapToUploadList(draftData.value.config.writeups);
   hasEdited.value = false;
   dataInitialized.value = true;
 }
@@ -307,7 +269,7 @@ function downloadFile(fileId: CommonType.IdType) {
                         <FileUpload
                           v-model:file-list="draftAttachmentList"
                           upload-type="file"
-                          :show-file-list="true"
+                          :show-file-list="false"
                           :accept="AcceptType.ChallengeAttachment"
                           :data="{challengeId: challengeId}"
                           action="/cch/challengeFile/upload"
@@ -345,7 +307,7 @@ function downloadFile(fileId: CommonType.IdType) {
                         <FileUpload
                           v-model:file-list="draftWriteupList"
                           upload-type="file"
-                          :show-file-list="true"
+                          :show-file-list="false"
                           :accept="AcceptType.ChallengeWriteup"
                           :data="{challengeId: challengeId}"
                           action="/cch/challengeFile/upload"

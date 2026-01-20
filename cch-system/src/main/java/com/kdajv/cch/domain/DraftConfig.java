@@ -34,6 +34,11 @@ public class DraftConfig implements Serializable {
     private List<Attachment> attachments;
 
     /**
+     * Writeup
+     */
+    private List<Attachment> writeups;
+
+    /**
      * 题目附件
      */
     @Data

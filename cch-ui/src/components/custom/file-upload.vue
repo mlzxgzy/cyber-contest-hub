@@ -20,7 +20,7 @@ interface Props {
   fileSize?: number;
   uploadType?: 'file' | 'image';
   showFileList?: boolean;
-  onSuccess?: (data: Api.Cch.ChallengeFile) => void;
+  onSuccess?: (data) => void;
 }
 
 const props = withDefaults(defineProps<Props>(), {
