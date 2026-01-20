@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import {onMounted, ref, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
-import {NButton, NCard, NEmpty, NInput, NSpace, NTag} from 'naive-ui';
+import {NButton, NCard, NEmpty, NInput, NSpace, NTag, NSelect, NInputNumber, NFormItem} from 'naive-ui';
 import type {UploadFileInfo} from 'naive-ui';
 import {fetchChallengeDraftByChallengeId, fetchGetChallengeById} from '@/service/api/cch/challenge';
 import {
@@ -112,8 +112,41 @@ function applyDraftData(data: Api.Cch.ChallengeDraft) {
   draftData.value.config.attachments ??= [];
   draftData.value.config.writeups ??= [];
   draftData.value.config.knowledge ??= [];
+  draftData.value.config.flags ??= [];
   hasEdited.value = false;
   dataInitialized.value = true;
+}
+
+// Flag管理相关函数
+function addFlag(type: 'static' | 'dynamic') {
+  if (!draftData.value) return;
+  draftData.value.config.flags ??= [];
+  if (type === 'static') {
+    draftData.value.config.flags.push({
+      type: 'static',
+      score: null,
+      content: null,
+      description: null,
+      remark: null
+    } as Api.Cch.ChallengeDraftConfigStaticFlag);
+  } else {
+    draftData.value.config.flags.push({
+      type: 'dynamic',
+      score: null,
+      generatorConfig: null,
+      description: null,
+      remark: null
+    } as Api.Cch.ChallengeDraftConfigDynamicFlag);
+  }
+}
+
+function removeFlag(index: number) {
+  if (!draftData.value || !draftData.value.config.flags) return;
+  draftData.value.config.flags.splice(index, 1);
+}
+
+function getFlagTypeLabel(type: 'static' | 'dynamic') {
+  return type === 'static' ? '静态' : '动态';
 }
 
 async function loadData(queryParams = route.query) {
@@ -391,11 +424,98 @@ function downloadFile(fileId: CommonType.IdType) {
               </n-grid>
             </n-tab-pane>
             <n-tab-pane name="flag" tab="Flag管理">
-              “威尔！着火了！快来帮忙！”我听到女朋友大喊。现在一个难题在我面前——是恢复一个重要的
-              Amazon 服务，还是救公寓的火。<br><br>
-              我的脑海中忽然出现了 Amazon
-              著名的领导力准则”客户至上“，有很多的客户还依赖我们的服务，我不能让他们失望！所以着火也不管了，女朋友喊我也无所谓，我开始
-              debug 这个线上问题。
+              <n-card :segmented="{content: true}" title="Flag列表">
+                <NSpace vertical class="w-full">
+                  <NSpace>
+                    <NButton type="primary" @click="addFlag('static')">添加静态Flag</NButton>
+                    <NButton @click="addFlag('dynamic')">添加动态Flag</NButton>
+                  </NSpace>
+                  <template v-if="draftData.config.flags?.length">
+                    <n-card v-for="(flag, index) of draftData.config.flags" :key="index" size="small">
+                      <template #header>
+                        <div class="flex items-center justify-between">
+                          <div class="flex items-center gap-8px">
+                            <NTag :type="flag.type === 'static' ? 'success' : 'warning'" size="small">
+                              {{ getFlagTypeLabel(flag.type) }}
+                            </NTag>
+                            <span>Flag {{ index + 1 }}</span>
+                          </div>
+                          <NButton text type="error" size="small" @click="removeFlag(index)">删除</NButton>
+                        </div>
+                      </template>
+                      <NSpace vertical class="w-full">
+                        <n-grid cols="1 800:2" x-gap="12" y-gap="12">
+                          <n-gi>
+                            <NFormItem label="Flag类型">
+                              <NSelect
+                                :value="flag.type"
+                                :options="[
+                                  { label: '静态', value: 'static' },
+                                  { label: '动态', value: 'dynamic' }
+                                ]"
+                                disabled
+                              />
+                            </NFormItem>
+                          </n-gi>
+                          <n-gi>
+                            <NFormItem label="分值（推荐）">
+                              <NInputNumber
+                                v-model:value="flag.score"
+                                :min="0"
+                                :precision="0"
+                                placeholder="请输入分值"
+                                class="w-full"
+                              />
+                            </NFormItem>
+                          </n-gi>
+                          <n-gi v-if="flag.type === 'static'">
+                            <NFormItem label="Flag内容">
+                              <NInput
+                                v-model:value="(flag as Api.Cch.ChallengeDraftConfigStaticFlag).content"
+                                placeholder="请输入Flag内容"
+                                type="textarea"
+                                :rows="2"
+                              />
+                            </NFormItem>
+                          </n-gi>
+                          <n-gi v-if="flag.type === 'dynamic'">
+                            <NFormItem label="生成规则配置">
+                              <NInput
+                                v-model:value="(flag as Api.Cch.ChallengeDraftConfigDynamicFlag).generatorConfig"
+                                placeholder="动态Flag生成规则（待实现）"
+                                type="textarea"
+                                :rows="2"
+                                disabled
+                              />
+                            </NFormItem>
+                          </n-gi>
+                          <n-gi>
+                            <NFormItem label="Flag描述（给选手查看）">
+                              <NInput
+                                v-model:value="flag.description"
+                                placeholder="请输入Flag描述，此内容会展示给选手"
+                                type="textarea"
+                                :rows="2"
+                              />
+                            </NFormItem>
+                          </n-gi>
+                          <n-gi>
+                            <NFormItem label="Flag备注（仅后台可见）">
+                              <NInput
+                                v-model:value="flag.remark"
+                                placeholder="请输入Flag备注，仅后台管理员可见"
+                                type="textarea"
+                                :rows="2"
+                              />
+                            </NFormItem>
+                          </n-gi>
+                        </n-grid>
+                      </NSpace>
+                    </n-card>
+                  </template>
+                  <NEmpty v-else description="暂无Flag，点击上方按钮添加"/>
+                </NSpace>
+              </n-card>
             </n-tab-pane>
           </n-tabs>
         </div>

@@ -57,6 +57,7 @@ declare namespace Api {
             knowledge?: string[];
             attachments: ChallengeDraftConfigAttachment[];
             writeups?: ChallengeDraftConfigAttachment[];
+            flags?: ChallengeDraftConfigFlag[];
         }
 
         type ChallengeDraftConfigAttachment = {
@@ -64,6 +65,32 @@ declare namespace Api {
             fileName: string;
             fileUrl: string;
             remark: string | null;
+        }
+
+        /** Flag基类型 */
+        type ChallengeDraftConfigFlag = {
+            /** Flag类型：static(静态) 或 dynamic(动态) */
+            type: 'static' | 'dynamic';
+            /** 分值（用于分值推荐） */
+            score?: number | null;
+            /** Flag描述（给选手查看的） */
+            description?: string | null;
+            /** Flag备注（仅后台可见） */
+            remark?: string | null;
+        }
+
+        /** 静态Flag */
+        type ChallengeDraftConfigStaticFlag = ChallengeDraftConfigFlag & {
+            type: 'static';
+            /** Flag内容 */
+            content?: string | null;
+        }
+
+        /** 动态Flag */
+        type ChallengeDraftConfigDynamicFlag = ChallengeDraftConfigFlag & {
+            type: 'dynamic';
+            /** 动态Flag生成规则/配置 */
+            generatorConfig?: string | null;
         }
 
         /** challenge draft */
