@@ -133,15 +133,25 @@ public class ChallengeDraftServiceImpl implements IChallengeDraftService {
         challengeUpdate.setRemark(bo.getChallengeRemark());
         challengeMapper.updateById(challengeUpdate);
 
-        // 每次保存都新增一条草稿记录，保留历史
-        ChallengeDraft update = MapstructUtils.convert(bo, ChallengeDraft.class);
-        // 设置派生父草稿ID为当前草稿的ID，形成树状结构
-        update.setParentId(bo.getId());
-        // 确保由数据库生成新主键
-        update.setId(null);
-        validEntityBeforeSave(update);
-        baseMapper.insert(update);
-        return baseMapper.selectVoById(update.getId());
+        // 根据操作类型决定是直接更新还是新增版本
+        String operateType = bo.getOperateType();
+        if ("edit".equals(operateType)) {
+            // 编辑模式：直接更新现有版本，不新增
+            ChallengeDraft update = MapstructUtils.convert(bo, ChallengeDraft.class);
+            validEntityBeforeSave(update);
+            baseMapper.updateById(update);
+            return baseMapper.selectVoById(bo.getId());
+        } else {
+            // 保存/派生模式：每次保存都新增一条草稿记录，保留历史
+            ChallengeDraft update = MapstructUtils.convert(bo, ChallengeDraft.class);
+            // 设置派生父草稿ID为当前草稿的ID，形成树状结构
+            update.setParentId(bo.getId());
+            // 确保由数据库生成新主键
+            update.setId(null);
+            validEntityBeforeSave(update);
+            baseMapper.insert(update);
+            return baseMapper.selectVoById(update.getId());
+        }
     }
 
     /**

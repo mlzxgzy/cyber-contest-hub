@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {onMounted, ref, watch} from 'vue';
+import {computed, nextTick, onMounted, ref, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import {NButton, NCard, NEmpty, NFormItem, NInput, NInputNumber, NSelect, NSpace, NTag} from 'naive-ui';
 import type {UploadFileInfo} from 'naive-ui';
@@ -36,6 +36,12 @@ const hasEdited = ref(false);
 const dataInitialized = ref(false);
 const challengeInitialized = ref(false);
 const split = ref(0.8);
+
+// 是否为派生模式（从历史版本派生，保存时新增版本）
+const isForkMode = computed(() => !!route.query.forkFrom);
+
+// 派生的父草稿ID
+const forkFromDraftId = computed(() => parseQueryId(route.query.forkFrom));
 
 const {createRequiredRule} = useFormRules();
 
@@ -163,12 +169,18 @@ function getFlagTypeLabel(type: 'static' | 'dynamic') {
 async function loadData(queryParams = route.query) {
   const currentChallengeId = parseQueryId(queryParams.challengeId);
   const currentDraftId = parseQueryId(queryParams.draftId);
+  const forkFrom = queryParams.forkFrom;
+
+  console.log('[loadData] 开始加载', { currentChallengeId, currentDraftId, forkFrom, isForkMode: isForkMode.value });
 
   if (currentDraftId) {
     await loadDraftDataById(currentDraftId);
-    if (draftData.value?.challengeId) {
-      challengeId.value = draftData.value.challengeId;
-      await loadChallengeData(draftData.value.challengeId);
+    console.log('[loadData] 加载草稿后', { draftData: draftData.value?.id, challengeId: draftData.value?.challengeId, currentChallengeId });
+    // 如果草稿中有 challengeId，优先使用；否则使用 URL 中的 challengeId
+    const effectiveChallengeId = draftData.value?.challengeId || currentChallengeId;
+    if (effectiveChallengeId) {
+      challengeId.value = effectiveChallengeId;
+      await loadChallengeData(effectiveChallengeId);
     }
   } else if (currentChallengeId) {
     challengeId.value = currentChallengeId;
@@ -182,6 +194,7 @@ async function loadData(queryParams = route.query) {
 
   // 加载版本历史
   if (challengeId.value) {
+    console.log('[loadData] 刷新历史列表', { challengeId: challengeId.value, draftId: draftId.value });
     historyRef.value?.refresh();
   }
 
@@ -252,7 +265,7 @@ async function saveDraft() {
 
   saving.value = true;
   try {
-    const {data, error} = await fetchUpdateChallengeDraft({
+    const requestData: Api.Cch.ChallengeDraftOperateParams = {
       id: draftData.value.id,
       challengeId: draftData.value.challengeId,
       challengeName: challengeData.value.name,
@@ -261,7 +274,14 @@ async function saveDraft() {
       challengeCategory: challengeData.value.category,
       challengeDescription: draftData.value.challengeDescription,
       config: draftData.value.config
-    });
+    };
+
+    // 派生模式下保存，需要新增版本（设置 operateType 为非 edit）
+    if (isForkMode.value) {
+      requestData.operateType = 'save';
+    }
+
+    const {data, error} = await fetchUpdateChallengeDraft(requestData);
 
     if (error) {
       window.$message?.error(`保存失败: ${error}`);
@@ -281,8 +301,14 @@ async function saveDraft() {
         }
       });
 
-      // 重新加载版本历史
-      await historyRef.value?.refresh();
+      // 使用 nextTick 确保 draftId 和 challengeId 都更新后再刷新历史
+      await nextTick();
+      console.log('[saveDraft] 刷新历史', { draftId: draftId.value, challengeId: challengeId.value });
+
+      // 重新加载版本历史，并确保显示当前版本
+      if (historyRef.value) {
+        await historyRef.value.refresh();
+      }
     }
 
     window.$message?.success('保存成功');
@@ -549,7 +575,12 @@ function downloadFile(fileId: CommonType.IdType) {
       <NCard>
         <NTabs type="line" placement="right">
           <NTabPane name="history" tab="修改历史">
-            <ChallengeDraftHistory ref="historyRef" :challenge-id="challengeId" :current-draft-id="draftId"/>
+            <ChallengeDraftHistory
+              ref="historyRef"
+              :challenge-id="challengeId"
+              :current-draft-id="draftId"
+              :fork-from="forkFromDraftId"
+            />
           </NTabPane>
           <NTabPane name="oasis" tab="Oasis">Wonderwall</NTabPane>
         </NTabs>

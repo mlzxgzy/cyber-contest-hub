@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import {computed, ref, watch} from 'vue';
 import {jsonClone} from '@sa/utils';
-import {fetchCreateChallengeDraft, fetchUpdateChallengeDraft} from '@/service/api/cch/challenge-draft';
+import {fetchCreateChallengeDraft, fetchUpdateChallengeDraft, fetchEditChallengeDraft} from '@/service/api/cch/challenge-draft';
 import {useFormRules, useNaiveForm} from '@/hooks/common/form';
 import {$t} from '@/locales';
 
@@ -97,7 +97,8 @@ async function handleSubmit() {
   }
 
   if (props.operateType === 'edit') {
-    const {error} = await fetchUpdateChallengeDraft({id, challengeId, challengeName, challengeDescription, config});
+    // 编辑模式：直接更新现有草稿，不新增版本
+    const {error} = await fetchEditChallengeDraft({id, challengeId, challengeName, challengeDescription, config});
     if (error) return;
   }
 

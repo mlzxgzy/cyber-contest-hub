@@ -68,5 +68,11 @@ public class ChallengeDraftBo extends BaseEntity {
      */
     private DraftConfig config;
 
+    /**
+     * 操作类型：edit-直接更新（不新增版本），save-保存时新增版本
+     * 默认为 save
+     */
+    private String operateType;
+
 
 }

@@ -27,6 +27,15 @@ export function fetchUpdateChallengeDraft(data: Api.Cch.ChallengeDraftOperatePar
   });
 }
 
+/** 直接更新草稿（不新增版本，用于编辑模式） */
+export function fetchEditChallengeDraft(data: Api.Cch.ChallengeDraftOperateParams) {
+  return request<Api.Cch.ChallengeDraft>({
+    url: '/cch/challengeDraft',
+    method: 'put',
+    data: { ...data, operateType: 'edit' }
+  });
+}
+
 /** 批量删除题目草稿 */
 export function fetchBatchDeleteChallengeDraft(ids: CommonType.IdType[]) {
   return request<boolean>({

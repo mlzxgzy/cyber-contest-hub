@@ -3,7 +3,7 @@ import {computed, h, ref} from 'vue';
 import {useRouter} from 'vue-router';
 import {NButton, NEmpty, NSpin, NTag, NTree} from 'naive-ui';
 import type {TreeOption} from 'naive-ui';
-import {fetchForkChallengeDraft, fetchGetChallengeDraftHistory} from '@/service/api/cch/challenge-draft';
+import {fetchGetChallengeDraftHistory} from '@/service/api/cch/challenge-draft';
 
 defineOptions({
   name: 'ChallengeDraftHistory'
@@ -12,6 +12,8 @@ defineOptions({
 interface Props {
   challengeId: CommonType.IdType | null;
   currentDraftId?: CommonType.IdType | null;
+  /** 派生的父草稿ID（用于高亮派生的源版本） */
+  forkFrom?: CommonType.IdType | null;
 }
 
 const props = defineProps<Props>();
@@ -83,33 +85,17 @@ async function loadHistoryList() {
   }
 }
 
-// 从指定版本派生新版本
-async function forkFromVersion(parentDraftId: CommonType.IdType) {
-  try {
-    const {data, error} = await fetchForkChallengeDraft(parentDraftId);
-    if (error) {
-      window.$message?.error(`派生新版本失败: ${error}`);
-      return;
+// 从指定版本派生新版本（跳转到编辑页面，保存时才创建新版本）
+function forkFromVersion(draft: Api.Cch.ChallengeDraft) {
+  router.push({
+    name: 'cch_challenge-draft-edit',
+    query: {
+      draftId: draft.id,
+      challengeId: draft.challengeId,
+      forkFrom: String(draft.id), // 标记这是派生模式
+      refresh: true,
     }
-
-    window.$message?.success('派生新版本成功');
-
-    // 重新加载历史列表
-    await loadHistoryList();
-
-    // 切换到新创建的草稿
-    if (data) {
-      router.push({
-        path: '/cch/challenge/edit',
-        query: {
-          draftId: data.id,
-          challengeId: data.challengeId
-        }
-      });
-    }
-  } catch (err) {
-    window.$message?.error(`派生新版本异常: ${err}`);
-  }
+  });
 }
 
 // 渲染历史树节点标签
@@ -117,8 +103,14 @@ function renderHistoryLabel({option}: { option: TreeOption }) {
   const draft = (option as any).draft as Api.Cch.ChallengeDraft;
   if (!draft) return null;
 
+  // 高亮当前版本或派生的父版本
   const isCurrent = draft.id === props.currentDraftId;
+  const isForkSource = draft.id === props.forkFrom;
   const createTime = draft.createTime ? new Date(draft.createTime).toLocaleString('zh-CN') : '';
+
+  // 标签：如果是被派生的源，显示"源版本"；如果是当前版本，显示"当前版本"
+  const showCurrentTag = isCurrent && !isForkSource;
+  const showForkSourceTag = isForkSource && !isCurrent;
 
   return h(
     'div',
@@ -134,12 +126,13 @@ function renderHistoryLabel({option}: { option: TreeOption }) {
           h(
             'span',
             {
-              class: isCurrent ? 'font-bold text-primary' : '',
-              style: {fontSize: '14px'}
+              class: isCurrent || isForkSource ? 'font-bold' : '',
+              style: {fontSize: '14px', color: isCurrent ? 'var(--primary-color)' : isForkSource ? 'var(--warning-color)' : ''}
             },
             `版本 ${draft.id}`
           ),
-          isCurrent ? h(NTag, {type: 'success', size: 'small'}, {default: () => '当前版本'}) : null
+          isCurrent ? h(NTag, {type: 'success', size: 'small'}, {default: () => '当前'}) : null,
+          isForkSource ? h(NTag, {type: 'warning', size: 'small'}, {default: () => '源版本'}) : null
         ]),
         h(
           'div',
@@ -158,7 +151,7 @@ function renderHistoryLabel({option}: { option: TreeOption }) {
           size: 'small',
           onClick: (e: Event) => {
             e.stopPropagation();
-            forkFromVersion(draft.id);
+            forkFromVersion(draft);
           }
         },
         {default: () => '派生'}
