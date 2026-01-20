@@ -195,11 +195,12 @@ function edit(id: CommonType.IdType) {
 }
 
 async function handleEditContent(id: CommonType.IdType) {
-  // 跳转到草稿编辑页面
+  // 跳转到草稿编辑页面，添加refresh参数强制刷新
   await router.push({
     path: '/cch/challenge/edit',
     query: {
-      challengeId: id
+      challengeId: id,
+      refresh: 'true'
     }
   });
 }

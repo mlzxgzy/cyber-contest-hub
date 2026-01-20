@@ -33,6 +33,7 @@ const loading = ref(true);
 const saving = ref(false);
 const hasEdited = ref(false);
 const dataInitialized = ref(false);
+const challengeInitialized = ref(false);
 const split = ref(0.8);
 
 const {createRequiredRule} = useFormRules();
@@ -86,6 +87,19 @@ watch(draftData, () => {
   hasEdited.value = true;
 }, {deep: true});
 
+watch(challengeData, () => {
+  if (!challengeInitialized.value) return;
+  hasEdited.value = true;
+}, {deep: true});
+
+// 监听refresh参数变化，用于在tab已存在时刷新数据
+watch(() => route.query.refresh, async (newVal, oldVal) => {
+  // 只在refresh从非'true'变为'true'时触发，避免首次加载时重复刷新
+  if (newVal === 'true' && oldVal !== 'true') {
+    await handleRefresh();
+  }
+});
+
 function parseQueryId(raw: unknown) {
   if (Array.isArray(raw)) return raw[0] as CommonType.IdType;
   if (raw) return raw as CommonType.IdType;
@@ -102,24 +116,51 @@ function applyDraftData(data: Api.Cch.ChallengeDraft) {
   dataInitialized.value = true;
 }
 
-onMounted(async () => {
-  challengeId.value = parseQueryId(route.query.challengeId);
-  draftId.value = parseQueryId(route.query.draftId);
+async function loadData(queryParams = route.query) {
+  const currentChallengeId = parseQueryId(queryParams.challengeId);
+  const currentDraftId = parseQueryId(queryParams.draftId);
 
-  if (draftId.value) {
-    await loadDraftDataById(draftId.value);
+  if (currentDraftId) {
+    await loadDraftDataById(currentDraftId);
     if (draftData.value?.challengeId) {
       challengeId.value = draftData.value.challengeId;
       await loadChallengeData(draftData.value.challengeId);
     }
-  } else if (challengeId.value) {
-    await loadChallengeData(challengeId.value);
-    await loadDraftDataByChallengeId(challengeId.value);
+  } else if (currentChallengeId) {
+    challengeId.value = currentChallengeId;
+    await loadChallengeData(currentChallengeId);
+    await loadDraftDataByChallengeId(currentChallengeId);
   } else {
     window.$message?.error('缺少必要的参数');
     router.back();
+    return;
   }
   loading.value = false;
+}
+
+// 处理refresh参数的函数
+async function handleRefresh() {
+  if (route.query.refresh === 'true') {
+    loading.value = true;
+    await loadData(route.query);
+    // 移除refresh参数
+    const query = {...route.query};
+    delete query.refresh;
+    router.replace({
+      path: route.path,
+      query
+    });
+  }
+}
+
+onMounted(async () => {
+  // 如果存在refresh参数，直接处理刷新（内部会加载数据）
+  // 否则正常加载数据
+  if (route.query.refresh === 'true') {
+    await handleRefresh();
+  } else {
+    await loadData();
+  }
 });
 
 async function loadChallengeData(id: CommonType.IdType) {
@@ -128,7 +169,9 @@ async function loadChallengeData(id: CommonType.IdType) {
     window.$message?.error('获取题目数据失败: ' + error);
     return;
   }
+  challengeInitialized.value = false;
   challengeData.value = data;
+  challengeInitialized.value = true;
   console.log('获取到的题目数据:', data);
 }
 
@@ -162,7 +205,10 @@ async function saveDraft() {
     const {data, error} = await fetchUpdateChallengeDraft({
       id: draftData.value.id,
       challengeId: draftData.value.challengeId,
-      challengeName: draftData.value.challengeName,
+      challengeName: challengeData.value.name,
+      // 由后端负责同步更新 Challenge.remark；这里单独传递，避免前端调用额外接口
+      challengeRemark: challengeData.value.remark,
+      challengeCategory: challengeData.value.category,
       challengeDescription: draftData.value.challengeDescription,
       config: draftData.value.config
     });

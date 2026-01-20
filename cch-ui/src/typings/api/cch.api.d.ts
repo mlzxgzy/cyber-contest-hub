@@ -74,6 +74,10 @@ declare namespace Api {
             challengeId: CommonType.IdType;
             /** 题目名称 */
             challengeName: string;
+            /** 题目类型（基本信息，后端用于同步更新 Challenge） */
+            challengeCategory?: string;
+            /** 题目备注（基本信息，后端用于同步更新 Challenge） */
+            challengeRemark?: string;
             /** 草稿描述 */
             challengeDescription: string;
             /** 配置 */
@@ -100,6 +104,8 @@ declare namespace Api {
                 | 'id'
                 | 'challengeId'
                 | 'challengeName'
+                | 'challengeCategory'
+                | 'challengeRemark'
                 | 'challengeDescription'
                 | 'config'
             >

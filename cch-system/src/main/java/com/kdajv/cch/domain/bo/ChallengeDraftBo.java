@@ -41,6 +41,18 @@ public class ChallengeDraftBo extends BaseEntity {
     private String challengeName;
 
     /**
+     * 题目类型（基本信息，同步到 Challenge）
+     */
+    @NotBlank(message = "题目类型不能为空", groups = {AddGroup.class, EditGroup.class})
+    private String challengeCategory;
+
+    /**
+     * 题目备注（基本信息，同步到 Challenge）
+     */
+    @NotBlank(message = "题目备注不能为空", groups = {AddGroup.class, EditGroup.class})
+    private String challengeRemark;
+
+    /**
      * 草稿描述
      */
     private String challengeDescription;

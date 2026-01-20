@@ -3,9 +3,11 @@ package com.kdajv.cch.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.kdajv.cch.domain.Challenge;
 import com.kdajv.cch.domain.ChallengeDraft;
 import com.kdajv.cch.domain.bo.ChallengeDraftBo;
 import com.kdajv.cch.domain.vo.ChallengeDraftVo;
+import com.kdajv.cch.mapper.ChallengeMapper;
 import com.kdajv.cch.mapper.ChallengeDraftMapper;
 import com.kdajv.cch.service.IChallengeDraftService;
 import lombok.RequiredArgsConstructor;
@@ -15,10 +17,10 @@ import org.dromara.common.core.utils.StringUtils;
 import org.dromara.common.mybatis.core.page.PageQuery;
 import org.dromara.common.mybatis.core.page.TableDataInfo;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 题目草稿Service业务层处理
@@ -32,6 +34,7 @@ import java.util.Map;
 public class ChallengeDraftServiceImpl implements IChallengeDraftService {
 
     private final ChallengeDraftMapper baseMapper;
+    private final ChallengeMapper challengeMapper;
 
     /**
      * 查询题目草稿
@@ -87,7 +90,6 @@ public class ChallengeDraftServiceImpl implements IChallengeDraftService {
     }
 
     private LambdaQueryWrapper<ChallengeDraft> buildQueryWrapper(ChallengeDraftBo bo) {
-        Map<String, Object> params = bo.getParams();
         LambdaQueryWrapper<ChallengeDraft> lqw = Wrappers.lambdaQuery();
         lqw.orderByAsc(ChallengeDraft::getId);
         lqw.eq(bo.getChallengeId() != null, ChallengeDraft::getChallengeId, bo.getChallengeId());
@@ -120,7 +122,16 @@ public class ChallengeDraftServiceImpl implements IChallengeDraftService {
      * @return 是否修改成功
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public ChallengeDraftVo updateByBo(ChallengeDraftBo bo) {
+        // 同步更新题目基本信息（交由后端统一维护一致性）
+        Challenge challengeUpdate = new Challenge();
+        challengeUpdate.setId(bo.getChallengeId());
+        challengeUpdate.setCategory(bo.getChallengeCategory());
+        challengeUpdate.setName(bo.getChallengeName());
+        challengeUpdate.setRemark(bo.getChallengeRemark());
+        challengeMapper.updateById(challengeUpdate);
+
         // 每次保存都新增一条草稿记录，保留历史
         ChallengeDraft update = MapstructUtils.convert(bo, ChallengeDraft.class);
         // 确保由数据库生成新主键
