@@ -15,7 +15,7 @@ import {useFormRules} from '@/hooks/common/form';
 import FileUpload from '@/components/custom/file-upload.vue';
 import {AcceptType} from '@/enum/business';
 import {getRoutePath} from '@/router/elegant/transform';
-import ChallengeDraftHistory from '@/views/cch/challenge-draft/modules/challenge-draft-history.vue';
+import ChallengeDraftHistory from './modules/challenge-draft-edit-history.vue';
 
 defineOptions({
   name: 'ChallengeDraftEdit'
@@ -171,11 +171,15 @@ async function loadData(queryParams = route.query) {
   const currentDraftId = parseQueryId(queryParams.draftId);
   const forkFrom = queryParams.forkFrom;
 
-  console.log('[loadData] 开始加载', { currentChallengeId, currentDraftId, forkFrom, isForkMode: isForkMode.value });
+  console.log('[loadData] 开始加载', {currentChallengeId, currentDraftId, forkFrom, isForkMode: isForkMode.value});
 
   if (currentDraftId) {
     await loadDraftDataById(currentDraftId);
-    console.log('[loadData] 加载草稿后', { draftData: draftData.value?.id, challengeId: draftData.value?.challengeId, currentChallengeId });
+    console.log('[loadData] 加载草稿后', {
+      draftData: draftData.value?.id,
+      challengeId: draftData.value?.challengeId,
+      currentChallengeId
+    });
     // 如果草稿中有 challengeId，优先使用；否则使用 URL 中的 challengeId
     const effectiveChallengeId = draftData.value?.challengeId || currentChallengeId;
     if (effectiveChallengeId) {
@@ -194,7 +198,7 @@ async function loadData(queryParams = route.query) {
 
   // 加载版本历史
   if (challengeId.value) {
-    console.log('[loadData] 刷新历史列表', { challengeId: challengeId.value, draftId: draftId.value });
+    console.log('[loadData] 刷新历史列表', {challengeId: challengeId.value, draftId: draftId.value});
     historyRef.value?.refresh();
   }
 
@@ -303,7 +307,7 @@ async function saveDraft() {
 
       // 使用 nextTick 确保 draftId 和 challengeId 都更新后再刷新历史
       await nextTick();
-      console.log('[saveDraft] 刷新历史', { draftId: draftId.value, challengeId: challengeId.value });
+      console.log('[saveDraft] 刷新历史', {draftId: draftId.value, challengeId: challengeId.value});
 
       // 重新加载版本历史，并确保显示当前版本
       if (historyRef.value) {
