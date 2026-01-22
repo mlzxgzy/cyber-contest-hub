@@ -75,6 +75,7 @@ function handleAttachmentUploadSuccess(data: Api.Cch.ChallengeFile) {
     fileUrl: data.url,
     remark: null
   });
+  draftAttachmentList.value.length = 0;
 }
 
 function handleWriteupUploadSuccess(data: Api.Cch.ChallengeFile) {
@@ -86,6 +87,7 @@ function handleWriteupUploadSuccess(data: Api.Cch.ChallengeFile) {
     fileUrl: data.url,
     remark: null
   });
+  draftWriteupList.value.length = 0
 }
 
 watch(
@@ -405,7 +407,7 @@ function downloadFile(fileId: CommonType.IdType) {
                         <FileUpload
                           v-model:file-list="draftAttachmentList"
                           upload-type="file"
-                          :show-file-list="false"
+                          :show-file-list="true"
                           :accept="AcceptType.ChallengeAttachment"
                           :data="{ challengeId: challengeId }"
                           action="/cch/challengeFile/upload"
@@ -443,7 +445,7 @@ function downloadFile(fileId: CommonType.IdType) {
                         <FileUpload
                           v-model:file-list="draftWriteupList"
                           upload-type="file"
-                          :show-file-list="false"
+                          :show-file-list="true"
                           :accept="AcceptType.ChallengeWriteup"
                           :data="{ challengeId: challengeId }"
                           action="/cch/challengeFile/upload"
@@ -577,7 +579,7 @@ function downloadFile(fileId: CommonType.IdType) {
     </template>
     <template #2>
       <NCard>
-        <NTabs type="line" placement="right">
+        <NTabs type="line">
           <NTabPane name="history" tab="修改历史">
             <ChallengeDraftHistory
               ref="historyRef"
