@@ -8,6 +8,7 @@ import {
   fetchGetChallengeDraftById,
   fetchUpdateChallengeDraft
 } from '@/service/api/cch/challenge-draft';
+import {NRadioButton, NRadioGroup} from 'naive-ui';
 import {useTabStore} from '@/store/modules/tab';
 import {useDict} from '@/hooks/business/dict';
 import {useDownload} from '@/hooks/business/download';
@@ -388,12 +389,15 @@ function downloadFile(fileId: CommonType.IdType) {
                         />
                       </NFormItem>
                       <NFormItem label="难度" path="difficulty">
-                        <NSelect
-                          v-model:value="draftData.config.difficulty"
-                          :options="cchQuestionDifficultyOptions"
-                          clearable
-                          placeholder="请选择题目难度"
-                        />
+                        <NRadioGroup v-model:value="draftData.config.difficulty" size="large">
+                          <NRadioButton
+                            v-for="option in cchQuestionDifficultyOptions"
+                            :key="option.value"
+                            :value="option.value"
+                          >
+                            {{ option.label }}
+                          </NRadioButton>
+                        </NRadioGroup>
                       </NFormItem>
                       <NFormItem label="题干" path="stem">
                         <NInput
