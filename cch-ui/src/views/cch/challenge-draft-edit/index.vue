@@ -1,7 +1,19 @@
 <script lang="ts" setup>
 import {computed, nextTick, onMounted, ref, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
-import {NButton, NCard, NEmpty, NFormItem, NInput, NInputNumber, NSelect, NSpace, NTag} from 'naive-ui';
+import {
+  NButton,
+  NCard,
+  NEmpty,
+  NFormItem,
+  NInput,
+  NInputNumber,
+  NRadioButton,
+  NRadioGroup,
+  NSelect,
+  NSpace,
+  NTag
+} from 'naive-ui';
 import type {UploadFileInfo} from 'naive-ui';
 import {fetchChallengeDraftByChallengeId, fetchGetChallengeById} from '@/service/api/cch/challenge';
 import {
@@ -380,20 +392,24 @@ function downloadFile(fileId: CommonType.IdType) {
                   <NCard :segmented="{ content: true }" title="题目信息">
                     <NForm ref="draftFormRef" :model="draftData.config" :rules="draftRules">
                       <NFormItem label="运行类型" path="runType">
-                        <NSelect
-                          v-model:value="draftData.config.runType"
-                          :options="cchQuestionRunTypeOptions"
-                          clearable
-                          placeholder="请选择运行类型"
-                        />
+                        <NRadioGroup v-model:value="draftData.config.runType">
+                          <NRadioButton
+                            v-for="option in cchQuestionRunTypeOptions"
+                            :key="option.value"
+                            :value="option.value"
+                            :label="option.label"
+                          />
+                        </NRadioGroup>
                       </NFormItem>
                       <NFormItem label="难度" path="difficulty">
-                        <NSelect
-                          v-model:value="draftData.config.difficulty"
-                          :options="cchQuestionDifficultyOptions"
-                          clearable
-                          placeholder="请选择题目难度"
-                        />
+                        <NRadioGroup v-model:value="draftData.config.difficulty">
+                          <NRadioButton
+                            v-for="option in cchQuestionDifficultyOptions"
+                            :key="option.value"
+                            :value="option.value"
+                            :label="option.label"
+                          />
+                        </NRadioGroup>
                       </NFormItem>
                       <NFormItem label="题干" path="stem">
                         <NInput
