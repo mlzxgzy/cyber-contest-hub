@@ -92,6 +92,15 @@ export const generatedRoutes: GeneratedRoute[] = [
           title: 'cch_challenge-version',
           i18nKey: 'route.cch_challenge-version'
         }
+      },
+      {
+        name: 'cch_container-config',
+        path: '/cch/container-config',
+        component: 'view.cch_container-config',
+        meta: {
+          title: 'cch_container-config',
+          i18nKey: 'route.cch_container-config'
+        }
       }
     ]
   },

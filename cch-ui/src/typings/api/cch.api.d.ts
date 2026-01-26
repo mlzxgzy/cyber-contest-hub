@@ -241,5 +241,62 @@ declare namespace Api {
 
         /** challenge file list */
         type ChallengeFileList = Api.Common.PaginatingQueryRecord<ChallengeFile>;
+
+        /** container config */
+        type ContainerConfig = Common.CommonRecord<{
+            /** 主键 */
+            id: CommonType.IdType;
+            /** 配置名称 */
+            configName: string;
+            /** 后端类型（docker/kubernetes） */
+            backendType: 'docker' | 'kubernetes';
+            /** Docker URL */
+            dockerUrl?: string;
+            /** Docker API版本 */
+            dockerApiVersion?: string;
+            /** Docker证书路径 */
+            dockerCertPath?: string;
+            /** Docker TLS验证（0否 1是） */
+            dockerTlsVerify?: string;
+            /** Kubernetes配置（JSON格式） */
+            kubernetesConfig?: string;
+            /** Kubernetes命名空间 */
+            kubernetesNamespace?: string;
+            /** 状态（0正常 1停用） */
+            status: Common.EnableStatus;
+            /** 备注 */
+            remark?: string;
+        }>;
+
+        /** container config search params */
+        type ContainerConfigSearchParams = CommonType.RecordNullable<
+            Pick<
+                Api.Cch.ContainerConfig,
+                | 'configName'
+                | 'backendType'
+            > &
+            Api.Common.CommonSearchParams
+        >;
+
+        /** container config operate params */
+        type ContainerConfigOperateParams = CommonType.RecordNullable<
+            Pick<
+                Api.Cch.ContainerConfig,
+                | 'id'
+                | 'configName'
+                | 'backendType'
+                | 'dockerUrl'
+                | 'dockerApiVersion'
+                | 'dockerCertPath'
+                | 'dockerTlsVerify'
+                | 'kubernetesConfig'
+                | 'kubernetesNamespace'
+                | 'status'
+                | 'remark'
+            >
+        >;
+
+        /** container config list */
+        type ContainerConfigList = Api.Common.PaginatingQueryRecord<ContainerConfig>;
     }
 }
