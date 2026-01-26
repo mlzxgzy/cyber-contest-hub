@@ -30,6 +30,11 @@ public class DraftConfig implements Serializable {
     private String difficulty;
 
     /**
+     * 运行类型：static(静态题目)、container(容器题目)、vm(虚拟机题目)
+     */
+    private String runType;
+
+    /**
      * 知识点
      */
     private List<String> knowledge;

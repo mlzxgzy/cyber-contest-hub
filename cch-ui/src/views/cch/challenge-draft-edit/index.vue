@@ -47,6 +47,7 @@ const {createRequiredRule} = useFormRules();
 
 const {options: cchQuestionCategroyOptions} = useDict('cch_question_categroy');
 const {options: cchQuestionDifficultyOptions} = useDict('cch_question_difficulty');
+const {options: cchQuestionRunTypeOptions} = useDict('cch_question_run_type');
 
 type challengeModel = Api.Cch.ChallengeOperateParams;
 type challengeRuleKey = Extract<keyof challengeModel, 'id' | 'category' | 'name' | 'remark'>;
@@ -378,6 +379,14 @@ function downloadFile(fileId: CommonType.IdType) {
                 <NGi>
                   <NCard :segmented="{ content: true }" title="题目信息">
                     <NForm ref="draftFormRef" :model="draftData.config" :rules="draftRules">
+                      <NFormItem label="运行类型" path="runType">
+                        <NSelect
+                          v-model:value="draftData.config.runType"
+                          :options="cchQuestionRunTypeOptions"
+                          clearable
+                          placeholder="请选择运行类型"
+                        />
+                      </NFormItem>
                       <NFormItem label="难度" path="difficulty">
                         <NSelect
                           v-model:value="draftData.config.difficulty"
