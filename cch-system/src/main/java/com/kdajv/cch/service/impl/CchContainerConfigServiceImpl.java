@@ -4,6 +4,10 @@ import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.github.dockerjava.api.DockerClient;
+import com.github.dockerjava.core.DefaultDockerClientConfig;
+import com.github.dockerjava.core.DockerClientBuilder;
+import com.github.dockerjava.httpclient5.ApacheDockerHttpClient;
 import com.kdajv.cch.domain.vo.CchContainerConfigVo;
 import com.kdajv.cch.service.ICchContainerConfigService;
 import lombok.RequiredArgsConstructor;
@@ -243,7 +247,12 @@ public class CchContainerConfigServiceImpl implements ICchContainerConfigService
         try {
             if (activeClient != null) {
                 try {
-                    // TODO: 关闭DockerClient连接
+                    // 关闭DockerClient连接
+                    if (activeClient instanceof DockerClient) {
+                        DockerClient dockerClient = (DockerClient) activeClient;
+                        dockerClient.close();
+                        log.info("已关闭DockerClient连接: {}", activeInstanceId);
+                    }
                     log.info("已断开活跃实例连接: {}", activeInstanceId);
                 } catch (Exception e) {
                     log.error("断开连接时出错", e);
@@ -269,24 +278,36 @@ public class CchContainerConfigServiceImpl implements ICchContainerConfigService
 
             log.info("正在连接Docker: {}", config.getDockerUrl());
 
-            // TODO: 使用docker-java实现实际连接
-            // DefaultDockerClientConfig.Builder configBuilder = DefaultDockerClientConfig.createDefaultConfigBuilder()
-            //         .withDockerHost(config.getDockerUrl());
-            // if (StringUtils.isNotBlank(config.getDockerApiVersion())) {
-            //     configBuilder.withApiVersion(config.getDockerApiVersion());
-            // }
-            // if ("1".equals(config.getDockerTlsVerify()) && StringUtils.isNotBlank(config.getDockerCertPath())) {
-            //     configBuilder.withDockerTlsVerify(true);
-            //     configBuilder.withDockerCertPath(config.getDockerCertPath());
-            // }
-            // DefaultDockerClientConfig dockerConfig = configBuilder.build();
-            // DockerClient dockerClient = DockerClientBuilder.getInstance(dockerConfig).build();
-            // dockerClient.pingCmd().exec();
-            // activeClient = dockerClient;
+            // 使用docker-java创建DockerClient
+            DefaultDockerClientConfig.Builder configBuilder = DefaultDockerClientConfig.createDefaultConfigBuilder().withDockerHost(config.getDockerUrl());
 
-            // 暂时模拟连接成功
-            activeClient = new Object(); // 占位符
+            if (StringUtils.isNotBlank(config.getDockerApiVersion())) {
+                configBuilder.withApiVersion(config.getDockerApiVersion());
+            }
+
+            // 处理TLS认证
+            if ("1".equals(config.getDockerTlsVerify()) && StringUtils.isNotBlank(config.getDockerCertPath())) {
+                configBuilder.withDockerTlsVerify(true);
+                configBuilder.withDockerCertPath(config.getDockerCertPath());
+            }
+
+            DefaultDockerClientConfig dockerConfig = configBuilder.build();
+
+            ApacheDockerHttpClient apacheDockerHttpClient = new ApacheDockerHttpClient.Builder().dockerHost(dockerConfig.getDockerHost()).sslConfig(dockerConfig.getSSLConfig()).build();
+
+            // 创建DockerClient
+            DockerClient dockerClient = DockerClientBuilder.getInstance(dockerConfig).withDockerHttpClient(apacheDockerHttpClient).build();
+
+            // 测试连接
+            dockerClient.pingCmd().exec();
+
+            // 保存连接
+            activeClient = dockerClient;
+
+            log.info("Docker连接成功: {}", config.getDockerUrl());
             return true;
+        } catch (ServiceException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Docker连接失败: {}", config.getDockerUrl(), e);
             throw new ServiceException("Docker连接失败: " + e.getMessage());
@@ -310,11 +331,11 @@ public class CchContainerConfigServiceImpl implements ICchContainerConfigService
             }
 
             if ("docker".equals(config.getBackendType())) {
-                // TODO: 使用docker-java ping
-                // if (activeClient instanceof DockerClient) {
-                //     ((DockerClient) activeClient).pingCmd().exec();
-                //     return true;
-                // }
+                // 使用docker-java ping检查连接状态
+                if (activeClient instanceof DockerClient) {
+                    ((DockerClient) activeClient).pingCmd().exec();
+                    return true;
+                }
                 return true; // 暂时返回true
             } else if ("kubernetes".equals(config.getBackendType())) {
                 // TODO: Kubernetes ping

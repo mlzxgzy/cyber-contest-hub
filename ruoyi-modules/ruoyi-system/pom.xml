@@ -99,18 +99,6 @@
             <groupId>org.dromara</groupId>
             <artifactId>ruoyi-common-sse</artifactId>
         </dependency>
-
-        <!-- Docker Java API -->
-        <dependency>
-            <groupId>com.github.docker-java</groupId>
-            <artifactId>docker-java-core</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>com.github.docker-java</groupId>
-            <artifactId>docker-java-transport-httpclient5</artifactId>
-        </dependency>
-
     </dependencies>
 
 </project>

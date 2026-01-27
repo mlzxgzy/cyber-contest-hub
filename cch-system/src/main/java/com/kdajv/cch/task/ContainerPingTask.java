@@ -1,8 +1,8 @@
 package com.kdajv.cch.task;
 
+import com.kdajv.cch.service.impl.CchContainerConfigServiceImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.dromara.system.service.impl.CchContainerConfigServiceImpl;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
