@@ -12,7 +12,11 @@ import lombok.RequiredArgsConstructor;
 import org.dromara.common.core.utils.StringUtils;
 import org.dromara.common.mybatis.core.page.PageQuery;
 import org.dromara.common.mybatis.core.page.TableDataInfo;
+import org.dromara.common.oss.core.OssClient;
+import org.dromara.common.oss.factory.OssFactory;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.List;
@@ -28,6 +32,8 @@ import java.util.List;
 public class ChallengeContainerImageServiceImpl implements IChallengeContainerImageService {
 
     private final ChallengeContainerImageMapper baseMapper;
+
+    private static final Logger log = LoggerFactory.getLogger(ChallengeContainerImageServiceImpl.class);
 
     /**
      * 查询挑战容器镜像
@@ -115,7 +121,26 @@ public class ChallengeContainerImageServiceImpl implements IChallengeContainerIm
      */
     @Override
     public Boolean deleteWithValidByIds(Collection<Long> ids, Boolean isValid) {
-        return baseMapper.deleteBatchIds(ids) > 0;
+        if (isValid) {
+            // 获取要删除的记录信息
+            List<ChallengeContainerImageVo> imagesToDelete = baseMapper.selectVoList(new LambdaQueryWrapper<ChallengeContainerImage>().in(ChallengeContainerImage::getId, ids));
+
+            // 尝试删除OSS中的文件
+            for (ChallengeContainerImageVo image : imagesToDelete) {
+                try {
+                    if (StringUtils.isNotBlank(image.getFilePath())) {
+                        OssClient ossClient = OssFactory.instance();
+                        ossClient.delete(image.getFilePath());
+                        log.info("已删除OSS中的镜像文件: {}", image.getFilePath());
+                    }
+                } catch (Exception e) {
+                    log.error("删除OSS文件失败: {}", image.getFilePath(), e);
+                    // 继续删除其他文件，不中断删除流程
+                }
+            }
+        }
+
+        return baseMapper.deleteByIds(ids) > 0;
     }
 
     /**

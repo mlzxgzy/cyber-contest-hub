@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import {computed, onMounted, onUnmounted, ref, watch} from 'vue';
+import {onMounted, onUnmounted, ref, watch} from 'vue';
 import {
   NButton,
   NCard,
   NEmpty,
-  NInput,
   NProgress,
   NTag,
   NText,
@@ -16,8 +15,8 @@ import type {UploadFileInfo} from 'naive-ui';
 import {
   fetchGetChallengeContainerImageByChallengeId,
   fetchUploadChallengeContainerImage,
-  fetchGetUploadProgress,
-  fetchManualLoadImage
+  fetchManualLoadImage,
+  fetchBatchDeleteChallengeContainerImage
 } from '@/service/api/cch/challenge-container-image';
 
 interface Props {
@@ -162,13 +161,13 @@ function formatFileSize(size?: number) {
 // 手动Load镜像到Docker
 async function handleManualLoadImage(imageId: CommonType.IdType) {
   try {
-    const { data, error } = await fetchManualLoadImage(imageId);
-    
+    const {data, error} = await fetchManualLoadImage(imageId);
+
     if (error) {
       window.$message?.error(`Load镜像失败: ${error}`);
       return;
     }
-    
+
     if (data) {
       window.$message?.success('Load镜像成功');
       // 触发更新事件
@@ -180,6 +179,26 @@ async function handleManualLoadImage(imageId: CommonType.IdType) {
     }
   } catch (err) {
     window.$message?.error(`Load镜像异常: ${err}`);
+  }
+}
+
+// 删除镜像
+async function handleDeleteImage(imageId: CommonType.IdType) {
+  try {
+    const {error} = await fetchBatchDeleteChallengeContainerImage([imageId]);
+
+    if (error) {
+      window.$message?.error(`删除镜像失败: ${error}`);
+      return;
+    }
+
+    window.$message?.success('删除镜像成功');
+    // 触发更新事件
+    emit('update');
+    // 重新加载列表
+    await loadImageList();
+  } catch (err) {
+    window.$message?.error(`删除镜像异常: ${err}`);
   }
 }
 
@@ -235,10 +254,10 @@ onUnmounted(() => {
     <!-- 镜像上传区域 -->
     <NCard title="上传镜像" class="mb-4">
       <NUpload
-        :max="1"
-        accept=".tar,.tar.gz,.zip"
-        :custom-request="handleImageUpload"
-        :show-download-button="false"
+          :max="1"
+          accept=".tar,.tar.gz,.zip"
+          :custom-request="handleImageUpload"
+          :show-download-button="false"
       >
         <NUploadDragger>
           <div class="mb-3">
@@ -257,10 +276,10 @@ onUnmounted(() => {
       <NSpace vertical class="w-full">
         <template v-if="containerImages.length > 0">
           <NCard
-            v-for="image of containerImages"
-            :key="image.id"
-            size="small"
-            :class="image.status === 'error' ? 'bg-red-50' : ''"
+              v-for="image of containerImages"
+              :key="image.id"
+              size="small"
+              :class="image.status === 'error' ? 'bg-red-50' : ''"
           >
             <div class="flex items-center justify-between gap-12px">
               <div class="flex-1">
@@ -275,10 +294,10 @@ onUnmounted(() => {
                 <!-- 进度条 -->
                 <div v-if="['uploading', 'validating'].includes(image.status)" class="mb-2">
                   <NProgress
-                    type="line"
-                    :percentage="image.progress || 0"
-                    :status="image.status === 'error' ? 'error' : 'processing'"
-                    indicator-text-color="#000"
+                      type="line"
+                      :percentage="image.progress || 0"
+                      :status="image.status === 'error' ? 'error' : 'processing'"
+                      indicator-text-color="#000"
                   />
                   <div class="text-xs text-gray-500 mt-1">
                     {{ image.status === 'uploading' ? '上传中...' : '验证中...' }}
@@ -289,29 +308,23 @@ onUnmounted(() => {
                 <div v-if="image.status === 'error'" class="text-red-500 text-sm mb-2">
                   错误: {{ image.errorMessage }}
                 </div>
-
-                <NInput
-                  v-model:value="image.remark"
-                  placeholder="填写镜像备注（可选）"
-                  size="small"
-                />
               </div>
               <div class="flex flex-col items-end gap-2">
                 <!-- Load按钮 - 仅在状态为uploaded时显示 -->
                 <NButton
-                  v-if="image.status === 'uploaded'"
-                  type="primary"
-                  size="small"
-                  @click="handleManualLoadImage(image.id)"
+                    v-if="image.status === 'uploaded'"
+                    type="primary"
+                    size="small"
+                    @click="handleManualLoadImage(image.id)"
                 >
                   Load到Docker
                 </NButton>
                 <NButton
-                  text
-                  type="primary"
-                  @click="downloadImageFile(image.id)"
+                    text
+                    type="error"
+                    @click="handleDeleteImage(image.id)"
                 >
-                  查看/下载
+                  删除
                 </NButton>
               </div>
             </div>
