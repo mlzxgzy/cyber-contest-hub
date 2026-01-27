@@ -597,6 +597,18 @@ function downloadFile(fileId: CommonType.IdType) {
                 </NSpace>
               </NCard>
             </NTabPane>
+            <NTabPane v-if="draftData?.config?.runType === 'container'" name="container" tab="容器管理">
+              <div class="p-4">
+                <h3>容器管理</h3>
+                <p>TODO: 容器配置管理功能</p>
+              </div>
+            </NTabPane>
+            <NTabPane v-if="draftData?.config?.runType === 'vm'" name="vm" tab="虚拟机管理">
+              <div class="p-4">
+                <h3>虚拟机管理</h3>
+                <p>TODO: 虚拟机配置管理功能</p>
+              </div>
+            </NTabPane>
           </NTabs>
         </div>
         <div v-else>未能加载草稿数据</div>
