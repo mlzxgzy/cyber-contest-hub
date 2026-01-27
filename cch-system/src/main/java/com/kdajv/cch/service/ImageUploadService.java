@@ -1,6 +1,5 @@
 package com.kdajv.cch.service;
 
-import cn.hutool.core.stream.StreamUtil;
 import cn.hutool.core.util.IdUtil;
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.LoadImageCmd;
@@ -8,19 +7,13 @@ import com.kdajv.cch.domain.ChallengeContainerImage;
 import com.kdajv.cch.domain.vo.ChallengeContainerImageVo;
 import com.kdajv.cch.domain.bo.ChallengeContainerImageBo;
 import com.kdajv.cch.mapper.ChallengeContainerImageMapper;
-import io.github.linpeilie.AutoMapperConfig__210;
-import io.github.linpeilie.Converter;
 import lombok.extern.slf4j.Slf4j;
-import org.dromara.common.core.service.OssService;
 import org.dromara.common.core.utils.MapstructUtils;
-import org.dromara.common.core.utils.SpringUtils;
 import org.dromara.common.oss.core.OssClient;
 import org.dromara.common.oss.entity.UploadResult;
 import org.dromara.common.oss.factory.OssFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StreamUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -160,14 +153,15 @@ public class ImageUploadService {
             // 上传成功后更新数据库记录
             ChallengeContainerImageBo updateBo = new ChallengeContainerImageBo();
             updateBo.setId(imageId);
-            updateBo.setFilePath(uploadResult.getUrl()); // 设置OSS返回的URL
+            updateBo.setFilePath(uploadResult.getFilename()); // 设置OSS返回的URL
             updateBo.setStatus("uploaded"); // 设置为已上传状态
             updateBo.setProgress(BigDecimal.valueOf(100.0)); // 设置进度为100%
+            updateBo.setErrorMessage(null);
 
             log.info("镜像文件上传到OSS成功: {} -> {}", file.getOriginalFilename(), uploadResult.getUrl());
 
             // 上传完成，状态保持为uploaded，等待手动Load
-            updateStatus(imageId, "uploaded", 100.0, null);
+            updateByBo(updateBo);
 
         } catch (IOException e) {
             log.error("镜像上传到OSS失败: ", e);
@@ -186,8 +180,7 @@ public class ImageUploadService {
     /**
      * 开始Load处理阶段
      */
-    @Async
-    void startLoadProcess(Long imageId, String ossUrl) {
+    void startLoadProcess(Long imageId, String ossKey) {
         try {
             log.info("开始Load处理镜像: ID={}", imageId);
 
@@ -202,7 +195,7 @@ public class ImageUploadService {
                 return;
             }
 
-            InputStream inputStream = downloadImageFromOSSStream(ossUrl);
+            InputStream inputStream = downloadImageFromOSSKey(ossKey);
             if (inputStream == null) {
                 log.error("无法获取镜像文件流: ID={}", imageId);
                 updateStatus(imageId, "error", 100.0, "无法获取镜像文件流");
@@ -225,14 +218,37 @@ public class ImageUploadService {
     /**
      * 从OSS获取镜像文件流
      */
-    private InputStream downloadImageFromOSSStream(String ossUrl) {
+    private InputStream downloadImageFromOSSKey(String key) {
         try {
             // 使用OSS服务下载文件流
             OssClient ossClient = OssFactory.instance();
-            //TODO 获取镜像
-            return ossClient.getObjectContent(ossUrl);
+
+            // 创建管道输入输出流，实现流式传输
+            java.io.PipedInputStream pipedInputStream = new java.io.PipedInputStream();
+            java.io.PipedOutputStream pipedOutputStream = new java.io.PipedOutputStream(pipedInputStream);
+
+            // 在单独线程中执行下载，将数据写入PipedOutputStream
+            Thread downloadThread = new Thread(() -> {
+                try {
+                    ossClient.download(key, pipedOutputStream, length -> {
+                    });
+                } catch (Exception e) {
+                    log.error("从OSS下载文件失败: {}", key, e);
+                } finally {
+                    try {
+                        pipedOutputStream.close();
+                    } catch (IOException ioException) {
+                        log.error("关闭输出流失败: ", ioException);
+                    }
+                }
+            });
+
+            // 启动下载线程
+            downloadThread.start();
+
+            return pipedInputStream;
         } catch (Exception e) {
-            log.error("获取OSS文件流失败: {}", ossUrl, e);
+            log.error("获取OSS文件流失败: {}", key, e);
             return null;
         }
     }
@@ -280,7 +296,7 @@ public class ImageUploadService {
         }
 
         // 开始Load处理
-        SpringUtils.getBean(this.getClass()).startLoadProcess(imageId, image.getFilePath());
+        startLoadProcess(imageId, image.getFilePath());
         return true;
     }
 }
