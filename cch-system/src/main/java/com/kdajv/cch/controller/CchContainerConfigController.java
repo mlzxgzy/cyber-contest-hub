@@ -2,6 +2,8 @@ package com.kdajv.cch.controller;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
 import com.kdajv.cch.domain.vo.CchContainerConfigVo;
+import com.kdajv.cch.domain.vo.DockerContainerVo;
+import com.kdajv.cch.domain.vo.DockerImageVo;
 import com.kdajv.cch.service.ICchContainerConfigService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -128,6 +130,24 @@ public class CchContainerConfigController extends BaseController {
     public R<Void> disconnect() {
         containerConfigService.disconnectActiveInstance();
         return R.ok();
+    }
+
+    /**
+     * 获取Docker容器列表
+     */
+    @SaCheckPermission("container:config:list")
+    @GetMapping("/containers")
+    public R<List<DockerContainerVo>> getContainers() {
+        return R.ok(containerConfigService.getDockerContainers());
+    }
+
+    /**
+     * 获取Docker镜像列表
+     */
+    @SaCheckPermission("container:config:list")
+    @GetMapping("/images")
+    public R<List<DockerImageVo>> getImages() {
+        return R.ok(containerConfigService.getDockerImages());
     }
 
 }

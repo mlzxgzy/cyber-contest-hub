@@ -1,16 +1,17 @@
 <script setup lang="tsx">
-import { ref, computed, onMounted } from 'vue';
+import {ref, computed, onMounted, watch} from 'vue';
 import {
   fetchTestConnection,
   fetchGetContainerConfigList,
   fetchCreateContainerConfig,
   fetchUpdateContainerConfig,
   fetchGetActiveInstance,
-  fetchDisconnect
+  fetchDisconnect,
+  fetchGetContainerList,
+  fetchGetImageList
 } from '@/service/api/cch/container-config';
-import { useAuth } from '@/hooks/business/auth';
-import { useLoading } from '@sa/hooks';
-import { $t } from '@/locales';
+import {useAuth} from '@/hooks/business/auth';
+import {useLoading} from '@sa/hooks';
 import SvgIcon from '@/components/custom/svg-icon.vue';
 
 defineOptions({
@@ -20,8 +21,8 @@ defineOptions({
 // 视图状态: 'select' | 'docker-form' | 'loading' | 'connected' | 'error' | 'checking'
 type ViewState = 'select' | 'docker-form' | 'loading' | 'connected' | 'error' | 'checking';
 
-const { hasAuth } = useAuth();
-const { loading, startLoading, endLoading } = useLoading();
+const {hasAuth} = useAuth();
+const {loading, startLoading, endLoading} = useLoading();
 
 // 当前视图状态
 const currentView = ref<ViewState>('checking');
@@ -44,10 +45,16 @@ const currentConfig = ref<Api.Cch.ContainerConfig | null>(null);
 // 是否已连接
 const isConnected = computed(() => currentView.value === 'connected');
 
+// 容器和镜像数据
+const containers = ref<Api.Cch.DockerContainer[]>([]);
+const images = ref<Api.Cch.DockerImage[]>([]);
+const containersLoading = ref(false);
+const imagesLoading = ref(false);
+
 // 页面加载时检查活跃实例
 onMounted(async () => {
   try {
-    const { data, error } = await fetchGetActiveInstance();
+    const {data, error} = await fetchGetActiveInstance();
     if (!error && data) {
       currentConfig.value = data;
       currentView.value = 'connected';
@@ -92,7 +99,7 @@ async function connectDocker() {
 
   try {
     // 先查询是否已存在同名配置
-    const listRes = await fetchGetContainerConfigList({ pageNum: 1, pageSize: 100 });
+    const listRes = await fetchGetContainerConfigList({pageNum: 1, pageSize: 100});
     const configs = listRes.data?.rows || [];
     const existingConfig = configs.find(
       (c: Api.Cch.ContainerConfig) => c.configName === configName
@@ -102,7 +109,7 @@ async function connectDocker() {
 
     if (existingConfig) {
       // 配置名称已存在，更新配置
-      const { error: updateError } = await fetchUpdateContainerConfig({
+      const {error: updateError} = await fetchUpdateContainerConfig({
         id: existingConfig.id,
         configName,
         backendType: 'docker',
@@ -116,11 +123,11 @@ async function connectDocker() {
       if (updateError) {
         throw new Error('更新配置失败');
       }
-      targetConfig = { ...existingConfig, dockerUrl: dockerForm.value.dockerUrl };
+      targetConfig = {...existingConfig, dockerUrl: dockerForm.value.dockerUrl};
       window.$message?.success('配置已更新');
     } else {
       // 配置名称不存在，创建新配置
-      const { error: createError } = await fetchCreateContainerConfig({
+      const {error: createError} = await fetchCreateContainerConfig({
         configName,
         backendType: 'docker',
         dockerUrl: dockerForm.value.dockerUrl,
@@ -135,7 +142,7 @@ async function connectDocker() {
       }
 
       // 获取刚创建的配置
-      const newListRes = await fetchGetContainerConfigList({ pageNum: 1, pageSize: 100 });
+      const newListRes = await fetchGetContainerConfigList({pageNum: 1, pageSize: 100});
       const newConfigs = newListRes.data?.rows || [];
       targetConfig = newConfigs.find(
         (c: Api.Cch.ContainerConfig) => c.configName === configName
@@ -147,7 +154,7 @@ async function connectDocker() {
     }
 
     // 测试连接并激活实例
-    const { error: testError } = await fetchTestConnection(targetConfig.id!);
+    const {error: testError} = await fetchTestConnection(targetConfig.id!);
     if (testError) {
       throw new Error('连接测试失败');
     }
@@ -171,7 +178,7 @@ function retryConnect() {
 
 // 断开连接
 async function disconnect() {
-  const { error } = await fetchDisconnect();
+  const {error} = await fetchDisconnect();
   if (error) {
     window.$message?.error('断开连接失败');
     return;
@@ -180,6 +187,47 @@ async function disconnect() {
   currentView.value = 'select';
   window.$message?.success('已断开连接');
 }
+
+// 加载容器和镜像列表
+async function loadContainerAndImageList() {
+  if (!isConnected.value) return;
+
+  containersLoading.value = true;
+  imagesLoading.value = true;
+
+  try {
+    // 并行加载容器和镜像列表
+    const [containerResponse, imageResponse] = await Promise.all([
+      fetchGetContainerList(),
+      fetchGetImageList()
+    ]);
+
+    if (!containerResponse.error) {
+      containers.value = containerResponse.data || [];
+    } else {
+      window.$message?.error('获取容器列表失败');
+    }
+
+    if (!imageResponse.error) {
+      images.value = imageResponse.data || [];
+    } else {
+      window.$message?.error('获取镜像列表失败');
+    }
+  } catch (err) {
+    console.error('加载容器和镜像列表失败:', err);
+    window.$message?.error('加载容器和镜像列表失败');
+  } finally {
+    containersLoading.value = false;
+    imagesLoading.value = false;
+  }
+}
+
+// 在连接成功后自动加载容器和镜像列表
+watch(isConnected, (connected) => {
+  if (connected) {
+    loadContainerAndImageList();
+  }
+});
 </script>
 
 <template>
@@ -188,7 +236,7 @@ async function disconnect() {
       <!-- 检查连接状态 -->
       <template v-if="currentView === 'checking'">
         <div class="flex flex-col items-center justify-center gap-16px py-60px">
-          <NSpin size="large" />
+          <NSpin size="large"/>
           <span class="text-16px text-gray-500">正在检查连接状态...</span>
         </div>
       </template>
@@ -206,7 +254,7 @@ async function disconnect() {
               @click="selectDocker"
             >
               <template #icon>
-                <SvgIcon icon="mdi:docker" class="text-40px" />
+                <SvgIcon icon="mdi:docker" class="text-40px"/>
               </template>
               <span class="mt-8px text-16px">Docker</span>
             </NButton>
@@ -218,7 +266,7 @@ async function disconnect() {
               disabled
             >
               <template #icon>
-                <SvgIcon icon="mdi:kubernetes" class="text-40px" />
+                <SvgIcon icon="mdi:kubernetes" class="text-40px"/>
               </template>
               <span class="mt-8px text-16px">Kubernetes</span>
               <span class="text-12px text-gray-400 mt-4px">(暂未开放)</span>
@@ -232,7 +280,7 @@ async function disconnect() {
         <div class="flex items-center gap-8px mb-16px">
           <NButton quaternary circle size="small" @click="goBack">
             <template #icon>
-              <icon-ic-round-arrow-back class="text-icon" />
+              <icon-ic-round-arrow-back class="text-icon"/>
             </template>
           </NButton>
           <span class="font-medium">Docker连接配置</span>
@@ -240,7 +288,7 @@ async function disconnect() {
 
         <NForm label-placement="left" label-width="120px" :model="dockerForm">
           <NFormItem label="配置名称" path="configName">
-            <NInput v-model:value="dockerForm.configName" placeholder="给这个配置起个名字（可选）" />
+            <NInput v-model:value="dockerForm.configName" placeholder="给这个配置起个名字（可选）"/>
           </NFormItem>
 
           <NFormItem label="Docker URL" path="dockerUrl" required>
@@ -251,11 +299,11 @@ async function disconnect() {
           </NFormItem>
 
           <NFormItem label="API版本" path="dockerApiVersion">
-            <NInput v-model:value="dockerForm.dockerApiVersion" placeholder="例如: 1.41" />
+            <NInput v-model:value="dockerForm.dockerApiVersion" placeholder="例如: 1.41"/>
           </NFormItem>
 
           <NFormItem label="TLS证书路径" path="dockerCertPath">
-            <NInput v-model:value="dockerForm.dockerCertPath" placeholder="TLS证书路径（可选）" />
+            <NInput v-model:value="dockerForm.dockerCertPath" placeholder="TLS证书路径（可选）"/>
           </NFormItem>
 
           <NFormItem label="TLS验证" path="dockerTlsVerify">
@@ -275,7 +323,7 @@ async function disconnect() {
       <!-- Loading页面 -->
       <template v-else-if="currentView === 'loading'">
         <div class="flex flex-col items-center justify-center gap-16px py-60px">
-          <NSpin size="large" />
+          <NSpin size="large"/>
           <span class="text-16px text-gray-500">正在连接Docker服务器...</span>
           <span class="text-14px text-gray-400">{{ dockerForm.dockerUrl }}</span>
         </div>
@@ -284,7 +332,7 @@ async function disconnect() {
       <!-- 错误页面 -->
       <template v-else-if="currentView === 'error'">
         <div class="flex flex-col items-center justify-center gap-16px py-40px">
-          <SvgIcon icon="mdi:alert-circle-outline" class="text-60px text-error" />
+          <SvgIcon icon="mdi:alert-circle-outline" class="text-60px text-error"/>
           <span class="text-18px text-error">连接失败</span>
           <span class="text-14px text-gray-500">{{ errorMessage }}</span>
           <NSpace class="mt-16px">
@@ -296,33 +344,92 @@ async function disconnect() {
 
       <!-- 已连接页面 -->
       <template v-else-if="currentView === 'connected'">
-        <div class="flex flex-col items-center justify-center gap-16px py-40px">
-          <SvgIcon icon="mdi:check-circle-outline" class="text-60px text-success" />
-          <span class="text-18px text-success">Docker连接成功</span>
+        <div class="flex flex-col gap-16px py-16px w-full">
+          <div class="flex items-center gap-8px">
+            <SvgIcon icon="mdi:check-circle-outline" class="text-24px text-success"/>
+            <span class="text-18px text-success">Docker连接成功</span>
+          </div>
 
-          <NCard class="w-full max-w-400px mt-16px" :bordered="false" size="small">
-            <NDescriptions :column="1" label-placement="left">
-              <NDescriptionsItem label="配置名称">
-                {{ currentConfig?.configName || '-' }}
-              </NDescriptionsItem>
-              <NDescriptionsItem label="Docker URL">
-                {{ currentConfig?.dockerUrl || '-' }}
-              </NDescriptionsItem>
-              <NDescriptionsItem label="API版本">
-                {{ currentConfig?.dockerApiVersion || '-' }}
-              </NDescriptionsItem>
-              <NDescriptionsItem label="状态">
-                <NTag type="success" size="small">已连接</NTag>
-              </NDescriptionsItem>
-            </NDescriptions>
-          </NCard>
+          <div class="grid grid-cols-2 gap-16px">
+            <!-- 左侧：当前连接信息 -->
+            <div class="col-span-1">
+              <NCard title="连接信息" :bordered="false" size="small" class="card-wrapper">
+                <NDescriptions :column="1" label-placement="left">
+                  <NDescriptionsItem label="配置名称">
+                    {{ currentConfig?.configName || '-' }}
+                  </NDescriptionsItem>
+                  <NDescriptionsItem label="Docker URL">
+                    {{ currentConfig?.dockerUrl || '-' }}
+                  </NDescriptionsItem>
+                  <NDescriptionsItem label="API版本">
+                    {{ currentConfig?.dockerApiVersion || '-' }}
+                  </NDescriptionsItem>
+                  <NDescriptionsItem label="状态">
+                    <NTag type="success" size="small">已连接</NTag>
+                  </NDescriptionsItem>
+                </NDescriptions>
+                <div class="mt-16px flex justify-center">
+                  <NButton type="error" @click="disconnect">
+                    <template #icon>
+                      <icon-ic-round-link-off class="text-icon"/>
+                    </template>
+                    断开连接
+                  </NButton>
+                </div>
+              </NCard>
+            </div>
 
-          <NButton type="error" class="mt-24px" @click="disconnect">
-            <template #icon>
-              <icon-ic-round-link-off class="text-icon" />
-            </template>
-            断开连接
-          </NButton>
+            <!-- 右侧：容器和镜像信息 -->
+            <div class="col-span-1">
+              <!-- 容器列表 -->
+              <NCard title="现有容器" :bordered="false" size="small" class="card-wrapper mb-16px">
+                <NScrollbar style="max-height: 300px;">
+                  <div v-if="containersLoading" class="py-20px text-center">
+                    <NSpin size="small"/>
+                  </div>
+                  <div v-else-if="containers.length === 0" class="py-20px text-center text-gray-500">
+                    暂无容器
+                  </div>
+                  <NList v-else>
+                    <NListItem v-for="container in containers" :key="container.id">
+                      <div class="flex flex-col">
+                        <div class="font-bold">{{ container.names || container.id.substring(0, 12) }}</div>
+                        <div class="text-sm text-gray-500 truncate">镜像: {{ container.image }}</div>
+                        <div class="text-xs text-gray-400">端口: {{ container.ports || '未映射' }}</div>
+                        <div class="text-xs">
+                          <NTag :type="container.status.includes('Up') ? 'success' : 'warning'" size="tiny">
+                            {{ container.status }}
+                          </NTag>
+                        </div>
+                      </div>
+                    </NListItem>
+                  </NList>
+                </NScrollbar>
+              </NCard>
+
+              <!-- 镜像列表 -->
+              <NCard title="现有镜像" :bordered="false" size="small" class="card-wrapper">
+                <NScrollbar style="max-height: 300px;">
+                  <div v-if="imagesLoading" class="py-20px text-center">
+                    <NSpin size="small"/>
+                  </div>
+                  <div v-else-if="images.length === 0" class="py-20px text-center text-gray-500">
+                    暂无镜像
+                  </div>
+                  <NList v-else>
+                    <NListItem v-for="image in images" :key="image.id">
+                      <div class="flex flex-col">
+                        <div class="font-bold">{{ image.repoTags || image.shortId }}</div>
+                        <div class="text-sm text-gray-500 truncate">仓库: {{ image.repository }}</div>
+                        <div class="text-xs text-gray-400">大小: {{ image.sizeHuman }}</div>
+                        <div class="text-xs text-gray-400">标签: {{ image.tag }}</div>
+                      </div>
+                    </NListItem>
+                  </NList>
+                </NScrollbar>
+              </NCard>
+            </div>
+          </div>
         </div>
       </template>
     </NCard>

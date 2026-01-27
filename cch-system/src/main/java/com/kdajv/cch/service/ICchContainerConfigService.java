@@ -1,6 +1,8 @@
 package com.kdajv.cch.service;
 
 import com.kdajv.cch.domain.vo.CchContainerConfigVo;
+import com.kdajv.cch.domain.vo.DockerContainerVo;
+import com.kdajv.cch.domain.vo.DockerImageVo;
 import org.dromara.common.mybatis.core.page.PageQuery;
 import org.dromara.common.mybatis.core.page.TableDataInfo;
 
@@ -85,4 +87,17 @@ public interface ICchContainerConfigService {
      */
     void disconnectActiveInstance();
 
+    /**
+     * 获取Docker容器列表
+     *
+     * @return 容器列表
+     */
+    List<DockerContainerVo> getDockerContainers();
+
+    /**
+     * 获取Docker镜像列表
+     *
+     * @return 镜像列表
+     */
+    List<DockerImageVo> getDockerImages();
 }

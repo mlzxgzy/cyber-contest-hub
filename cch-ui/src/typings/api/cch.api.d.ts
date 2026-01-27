@@ -4,299 +4,379 @@
  * All backend api type
  */
 declare namespace Api {
-    /**
-     * namespace Cch
-     *
-     * backend api module: "Cch"
-     */
-    namespace Cch {
-        /** challenge */
-        type Challenge = Common.CommonRecord<{
-            /** 主键 */
-            id: CommonType.IdType;
-            /** 题目类型 */
-            category: string;
-            /** 题目名称 */
-            name: string;
-            /** 题目备注 */
-            remark: string;
-            /** 题目最新版ID */
-            latestVersionId: CommonType.IdType;
-            /** 删除标志 */
-            delFlag: number;
-        }>;
+  /**
+   * namespace Cch
+   *
+   * backend api module: "Cch"
+   */
+  namespace Cch {
+    /** challenge */
+    type Challenge = Common.CommonRecord<{
+      /** 主键 */
+      id: CommonType.IdType;
+      /** 题目类型 */
+      category: string;
+      /** 题目名称 */
+      name: string;
+      /** 题目备注 */
+      remark: string;
+      /** 题目最新版ID */
+      latestVersionId: CommonType.IdType;
+      /** 删除标志 */
+      delFlag: number;
+    }>;
 
-        /** challenge search params */
-        type ChallengeSearchParams = CommonType.RecordNullable<
-            Pick<
-                Api.Cch.Challenge,
-                | 'category'
-                | 'name'
-                | 'remark'
-            > &
-            Api.Common.CommonSearchParams
-        >;
+    /** challenge search params */
+    type ChallengeSearchParams = CommonType.RecordNullable<
+      Pick<
+        Api.Cch.Challenge,
+        | 'category'
+        | 'name'
+        | 'remark'
+      > &
+      Api.Common.CommonSearchParams
+    >;
 
-        /** challenge operate params */
-        type ChallengeOperateParams = CommonType.RecordNullable<
-            Pick<
-                Api.Cch.Challenge,
-                | 'id'
-                | 'category'
-                | 'name'
-                | 'remark'
-            >
-        >;
+    /** challenge operate params */
+    type ChallengeOperateParams = CommonType.RecordNullable<
+      Pick<
+        Api.Cch.Challenge,
+        | 'id'
+        | 'category'
+        | 'name'
+        | 'remark'
+      >
+    >;
 
-        /** challenge list */
-        type ChallengeList = Api.Common.PaginatingQueryRecord<Challenge>;
+    /** challenge list */
+    type ChallengeList = Api.Common.PaginatingQueryRecord<Challenge>;
 
-        type ChallengeDraftConfig = {
-            stem: string;
-            difficulty: string;
-            knowledge?: string[];
-            attachments: ChallengeDraftConfigAttachment[];
-            writeups?: ChallengeDraftConfigAttachment[];
-            flags?: ChallengeDraftConfigFlag[];
-        }
-
-        type ChallengeDraftConfigAttachment = {
-            fileId: CommonType.IdType;
-            fileName: string;
-            fileUrl: string;
-            remark: string | null;
-        }
-
-        /** Flag基类型 */
-        type ChallengeDraftConfigFlag = {
-            /** Flag类型：static(静态) 或 dynamic(动态) */
-            type: 'static' | 'dynamic';
-            /** 分值（用于分值推荐） */
-            score?: number | null;
-            /** Flag描述（给选手查看的） */
-            description?: string | null;
-            /** Flag备注（仅后台可见） */
-            remark?: string | null;
-        }
-
-        /** 静态Flag */
-        type ChallengeDraftConfigStaticFlag = ChallengeDraftConfigFlag & {
-            type: 'static';
-            /** Flag内容 */
-            content?: string | null;
-        }
-
-        /** 动态Flag */
-        type ChallengeDraftConfigDynamicFlag = ChallengeDraftConfigFlag & {
-            type: 'dynamic';
-            /** 动态Flag生成规则/配置 */
-            generatorConfig?: string | null;
-        }
-
-        /** challenge draft */
-        type ChallengeDraft = Common.CommonRecord<{
-            /** 主键 */
-            id: CommonType.IdType;
-            /** 派生父草稿ID */
-            parentId?: CommonType.IdType;
-            /** 题目ID */
-            challengeId: CommonType.IdType;
-            /** 题目名称 */
-            challengeName: string;
-            /** 题目类型（基本信息，后端用于同步更新 Challenge） */
-            challengeCategory?: string;
-            /** 题目备注（基本信息，后端用于同步更新 Challenge） */
-            challengeRemark?: string;
-            /** 草稿描述 */
-            challengeDescription: string;
-            /** 配置 */
-            config: ChallengeDraftConfig;
-            /** 删除标志 */
-            delFlag: number;
-        }>;
-
-        /** challenge draft search params */
-        type ChallengeDraftSearchParams = CommonType.RecordNullable<
-            Pick<
-                Api.Cch.ChallengeDraft,
-                | 'challengeId'
-                | 'challengeName'
-                | 'challengeDescription'
-            > &
-            Api.Common.CommonSearchParams
-        >;
-
-        /** challenge draft operate params */
-        type ChallengeDraftOperateParams = CommonType.RecordNullable<
-            Pick<
-                Api.Cch.ChallengeDraft,
-                | 'id'
-                | 'challengeId'
-                | 'challengeName'
-                | 'challengeCategory'
-                | 'challengeRemark'
-                | 'challengeDescription'
-                | 'config'
-            >
-        >;
-
-        /** challenge draft list */
-        type ChallengeDraftList = Api.Common.PaginatingQueryRecord<ChallengeDraft>;
-
-        /** challenge version */
-        type ChallengeVersion = Common.CommonRecord<{
-            /** 主键 */
-            id: CommonType.IdType;
-            /** 题目ID */
-            challengeId: CommonType.IdType;
-            /** 题目名称 */
-            challengeName: string;
-            /** 草稿ID */
-            draftId: CommonType.IdType;
-            /** 版本号 */
-            versionTag: string;
-            /** 版本描述 */
-            versionDescription: string;
-            /** 删除标志 */
-            delFlag: number;
-        }>;
-
-        /** challenge version search params */
-        type ChallengeVersionSearchParams = CommonType.RecordNullable<
-            Pick<
-                Api.Cch.ChallengeVersion,
-                | 'challengeId'
-                | 'challengeName'
-                | 'draftId'
-                | 'versionTag'
-                | 'versionDescription'
-            > &
-            Api.Common.CommonSearchParams
-        >;
-
-        /** challenge version operate params */
-        type ChallengeVersionOperateParams = CommonType.RecordNullable<
-            Pick<
-                Api.Cch.ChallengeVersion,
-                | 'id'
-                | 'challengeId'
-                | 'challengeName'
-                | 'draftId'
-                | 'versionTag'
-                | 'versionDescription'
-            >
-        >;
-
-        /** challenge version list */
-        type ChallengeVersionList = Api.Common.PaginatingQueryRecord<ChallengeVersion>;
-
-        /** challenge file */
-        type ChallengeFile = Common.CommonRecord<{
-            /** 主键 */
-            id: CommonType.IdType;
-            /** 题目id */
-            challengeId: CommonType.IdType;
-            /** 文件名 */
-            fileName: string;
-            /** 原名 */
-            originalName: string;
-            /** 文件后缀名 */
-            fileSuffix: string;
-            /** URL地址 */
-            url: string;
-            /** 扩展字段 */
-            ext1: string;
-            /** 服务商 */
-            service: string;
-        }>;
-
-        /** challenge file search params */
-        type ChallengeFileSearchParams = CommonType.RecordNullable<
-            Pick<
-                Api.Cch.ChallengeFile,
-                | 'challengeId'
-                | 'fileName'
-                | 'originalName'
-                | 'fileSuffix'
-                | 'url'
-                | 'service'
-            > &
-            Api.Common.CommonSearchParams
-        >;
-
-        /** challenge file operate params */
-        type ChallengeFileOperateParams = CommonType.RecordNullable<
-            Pick<
-                Api.Cch.ChallengeFile,
-                | 'id'
-                | 'challengeId'
-                | 'fileName'
-                | 'originalName'
-                | 'fileSuffix'
-                | 'url'
-                | 'ext1'
-                | 'service'
-            >
-        >;
-
-        /** challenge file list */
-        type ChallengeFileList = Api.Common.PaginatingQueryRecord<ChallengeFile>;
-
-        /** container config */
-        type ContainerConfig = Common.CommonRecord<{
-            /** 主键 */
-            id: CommonType.IdType;
-            /** 配置名称 */
-            configName: string;
-            /** 后端类型（docker/kubernetes） */
-            backendType: 'docker' | 'kubernetes';
-            /** Docker URL */
-            dockerUrl?: string;
-            /** Docker API版本 */
-            dockerApiVersion?: string;
-            /** Docker证书路径 */
-            dockerCertPath?: string;
-            /** Docker TLS验证（0否 1是） */
-            dockerTlsVerify?: string;
-            /** Kubernetes配置（JSON格式） */
-            kubernetesConfig?: string;
-            /** Kubernetes命名空间 */
-            kubernetesNamespace?: string;
-            /** 状态（0正常 1停用） */
-            status: Common.EnableStatus;
-            /** 备注 */
-            remark?: string;
-        }>;
-
-        /** container config search params */
-        type ContainerConfigSearchParams = CommonType.RecordNullable<
-            Pick<
-                Api.Cch.ContainerConfig,
-                | 'configName'
-                | 'backendType'
-            > &
-            Api.Common.CommonSearchParams
-        >;
-
-        /** container config operate params */
-        type ContainerConfigOperateParams = CommonType.RecordNullable<
-            Pick<
-                Api.Cch.ContainerConfig,
-                | 'id'
-                | 'configName'
-                | 'backendType'
-                | 'dockerUrl'
-                | 'dockerApiVersion'
-                | 'dockerCertPath'
-                | 'dockerTlsVerify'
-                | 'kubernetesConfig'
-                | 'kubernetesNamespace'
-                | 'status'
-                | 'remark'
-            >
-        >;
-
-        /** container config list */
-        type ContainerConfigList = Api.Common.PaginatingQueryRecord<ContainerConfig>;
+    type ChallengeDraftConfig = {
+      stem: string;
+      difficulty: string;
+      knowledge?: string[];
+      attachments: ChallengeDraftConfigAttachment[];
+      writeups?: ChallengeDraftConfigAttachment[];
+      flags?: ChallengeDraftConfigFlag[];
     }
+
+    type ChallengeDraftConfigAttachment = {
+      fileId: CommonType.IdType;
+      fileName: string;
+      fileUrl: string;
+      remark: string | null;
+    }
+
+    /** Flag基类型 */
+    type ChallengeDraftConfigFlag = {
+      /** Flag类型：static(静态) 或 dynamic(动态) */
+      type: 'static' | 'dynamic';
+      /** 分值（用于分值推荐） */
+      score?: number | null;
+      /** Flag描述（给选手查看的） */
+      description?: string | null;
+      /** Flag备注（仅后台可见） */
+      remark?: string | null;
+    }
+
+    /** 静态Flag */
+    type ChallengeDraftConfigStaticFlag = ChallengeDraftConfigFlag & {
+      type: 'static';
+      /** Flag内容 */
+      content?: string | null;
+    }
+
+    /** 动态Flag */
+    type ChallengeDraftConfigDynamicFlag = ChallengeDraftConfigFlag & {
+      type: 'dynamic';
+      /** 动态Flag生成规则/配置 */
+      generatorConfig?: string | null;
+    }
+
+    /** challenge draft */
+    type ChallengeDraft = Common.CommonRecord<{
+      /** 主键 */
+      id: CommonType.IdType;
+      /** 派生父草稿ID */
+      parentId?: CommonType.IdType;
+      /** 题目ID */
+      challengeId: CommonType.IdType;
+      /** 题目名称 */
+      challengeName: string;
+      /** 题目类型（基本信息，后端用于同步更新 Challenge） */
+      challengeCategory?: string;
+      /** 题目备注（基本信息，后端用于同步更新 Challenge） */
+      challengeRemark?: string;
+      /** 草稿描述 */
+      challengeDescription: string;
+      /** 配置 */
+      config: ChallengeDraftConfig;
+      /** 删除标志 */
+      delFlag: number;
+    }>;
+
+    /** challenge draft search params */
+    type ChallengeDraftSearchParams = CommonType.RecordNullable<
+      Pick<
+        Api.Cch.ChallengeDraft,
+        | 'challengeId'
+        | 'challengeName'
+        | 'challengeDescription'
+      > &
+      Api.Common.CommonSearchParams
+    >;
+
+    /** challenge draft operate params */
+    type ChallengeDraftOperateParams = CommonType.RecordNullable<
+      Pick<
+        Api.Cch.ChallengeDraft,
+        | 'id'
+        | 'challengeId'
+        | 'challengeName'
+        | 'challengeCategory'
+        | 'challengeRemark'
+        | 'challengeDescription'
+        | 'config'
+      >
+    >;
+
+    /** challenge draft list */
+    type ChallengeDraftList = Api.Common.PaginatingQueryRecord<ChallengeDraft>;
+
+    /** challenge version */
+    type ChallengeVersion = Common.CommonRecord<{
+      /** 主键 */
+      id: CommonType.IdType;
+      /** 题目ID */
+      challengeId: CommonType.IdType;
+      /** 题目名称 */
+      challengeName: string;
+      /** 草稿ID */
+      draftId: CommonType.IdType;
+      /** 版本号 */
+      versionTag: string;
+      /** 版本描述 */
+      versionDescription: string;
+      /** 删除标志 */
+      delFlag: number;
+    }>;
+
+    /** challenge version search params */
+    type ChallengeVersionSearchParams = CommonType.RecordNullable<
+      Pick<
+        Api.Cch.ChallengeVersion,
+        | 'challengeId'
+        | 'challengeName'
+        | 'draftId'
+        | 'versionTag'
+        | 'versionDescription'
+      > &
+      Api.Common.CommonSearchParams
+    >;
+
+    /** challenge version operate params */
+    type ChallengeVersionOperateParams = CommonType.RecordNullable<
+      Pick<
+        Api.Cch.ChallengeVersion,
+        | 'id'
+        | 'challengeId'
+        | 'challengeName'
+        | 'draftId'
+        | 'versionTag'
+        | 'versionDescription'
+      >
+    >;
+
+    /** challenge version list */
+    type ChallengeVersionList = Api.Common.PaginatingQueryRecord<ChallengeVersion>;
+
+    /** challenge file */
+    type ChallengeFile = Common.CommonRecord<{
+      /** 主键 */
+      id: CommonType.IdType;
+      /** 题目id */
+      challengeId: CommonType.IdType;
+      /** 文件名 */
+      fileName: string;
+      /** 原名 */
+      originalName: string;
+      /** 文件后缀名 */
+      fileSuffix: string;
+      /** URL地址 */
+      url: string;
+      /** 扩展字段 */
+      ext1: string;
+      /** 服务商 */
+      service: string;
+    }>;
+
+    /** challenge file search params */
+    type ChallengeFileSearchParams = CommonType.RecordNullable<
+      Pick<
+        Api.Cch.ChallengeFile,
+        | 'challengeId'
+        | 'fileName'
+        | 'originalName'
+        | 'fileSuffix'
+        | 'url'
+        | 'service'
+      > &
+      Api.Common.CommonSearchParams
+    >;
+
+    /** challenge file operate params */
+    type ChallengeFileOperateParams = CommonType.RecordNullable<
+      Pick<
+        Api.Cch.ChallengeFile,
+        | 'id'
+        | 'challengeId'
+        | 'fileName'
+        | 'originalName'
+        | 'fileSuffix'
+        | 'url'
+        | 'ext1'
+        | 'service'
+      >
+    >;
+
+    /** challenge file list */
+    type ChallengeFileList = Api.Common.PaginatingQueryRecord<ChallengeFile>;
+
+    /** container config */
+    type ContainerConfig = Common.CommonRecord<{
+      /** 主键 */
+      id: CommonType.IdType;
+      /** 配置名称 */
+      configName: string;
+      /** 后端类型（docker/kubernetes） */
+      backendType: 'docker' | 'kubernetes';
+      /** Docker URL */
+      dockerUrl?: string;
+      /** Docker API版本 */
+      dockerApiVersion?: string;
+      /** Docker证书路径 */
+      dockerCertPath?: string;
+      /** Docker TLS验证（0否 1是） */
+      dockerTlsVerify?: string;
+      /** Kubernetes配置（JSON格式） */
+      kubernetesConfig?: string;
+      /** Kubernetes命名空间 */
+      kubernetesNamespace?: string;
+      /** 状态（0正常 1停用） */
+      status: Common.EnableStatus;
+      /** 备注 */
+      remark?: string;
+    }>;
+
+    /** container config search params */
+    type ContainerConfigSearchParams = CommonType.RecordNullable<
+      Pick<
+        Api.Cch.ContainerConfig,
+        | 'configName'
+        | 'backendType'
+      > &
+      Api.Common.CommonSearchParams
+    >;
+
+    /** container config operate params */
+    type ContainerConfigOperateParams = CommonType.RecordNullable<
+      Pick<
+        Api.Cch.ContainerConfig,
+        | 'id'
+        | 'configName'
+        | 'backendType'
+        | 'dockerUrl'
+        | 'dockerApiVersion'
+        | 'dockerCertPath'
+        | 'dockerTlsVerify'
+        | 'kubernetesConfig'
+        | 'kubernetesNamespace'
+        | 'status'
+        | 'remark'
+      >
+    >;
+
+    /** container config list */
+    type ContainerConfigList = Api.Common.PaginatingQueryRecord<ContainerConfig>;
+
+    /** Docker 容器信息 */
+    type DockerContainer = {
+      /** 容器ID */
+      id: string;
+      /** 容器名称 */
+      names: string;
+      /** 镜像名称 */
+      image: string;
+      /** 镜像ID */
+      imageId: string;
+      /** 命令 */
+      command: string;
+      /** 创建时间 */
+      created: string;
+      /** 状态 */
+      status: string;
+      /** 端口映射信息 */
+      ports: string;
+      /** 网络信息 */
+      network: string;
+      /** 使用的内存（字节） */
+      memoryUsage?: number;
+      /** CPU使用率 */
+      cpuUsage?: number;
+    }
+
+    /** Docker 镜像信息 */
+    type DockerImage = {
+      /** 镜像ID */
+      id: string;
+      /** 镜像标签（仓库:标签格式） */
+      repoTags: string;
+      /** 仓库名称（不含标签） */
+      repository: string;
+      /** 标签 */
+      tag: string;
+      /** 镜像ID简写 */
+      shortId: string;
+      /** 大小（字节） */
+      size: number;
+      /** 大小（人类可读格式） */
+      sizeHuman: string;
+      /** 创建时间 */
+      created: string;
+      /** 镜像摘要 */
+      digest?: string;
+    }
+
+    /** Docker 系统信息 */
+    type DockerInfo = {
+      /** Docker 版本 */
+      serverVersion: number;
+      /** 操作系统类型 */
+      operatingSystem: string;
+      /** 操作系统类型（详细） */
+      operatingSystemType: string;
+      /** 架构 */
+      architecture: string;
+      /** CPU 数量 */
+      ncpu: number;
+      /** 内存总量（字节） */
+      memTotal: number;
+      /** Docker 根目录 */
+      dockerRootDir: string;
+      /** 服务器名称 */
+      name: string;
+      /** 标签信息 */
+      labels?: string[];
+      /** 镜像数量 */
+      images: number;
+      /** 容器数量 */
+      containers: number;
+      /** 运行中的容器数量 */
+      containersRunning: number;
+      /** 暂停的容器数量 */
+      containersPaused: number;
+      /** 停止的容器数量 */
+      containersStopped: number;
+    }
+  }
 }

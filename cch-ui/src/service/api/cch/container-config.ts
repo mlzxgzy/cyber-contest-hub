@@ -59,3 +59,19 @@ export function fetchDisconnect() {
   });
 }
 
+/** 获取Docker容器列表 */
+export function fetchGetContainerList() {
+  return request<Api.Cch.DockerContainer[]>({
+    url: '/cch/container/config/containers',
+    method: 'get'
+  });
+}
+
+/** 获取Docker镜像列表 */
+export function fetchGetImageList() {
+  return request<Api.Cch.DockerImage[]>({
+    url: '/cch/container/config/images',
+    method: 'get'
+  });
+}
+

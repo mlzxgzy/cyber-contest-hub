@@ -5,10 +5,13 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.github.dockerjava.api.DockerClient;
+import com.github.dockerjava.api.model.ContainerPort;
 import com.github.dockerjava.core.DefaultDockerClientConfig;
 import com.github.dockerjava.core.DockerClientBuilder;
 import com.github.dockerjava.httpclient5.ApacheDockerHttpClient;
 import com.kdajv.cch.domain.vo.CchContainerConfigVo;
+import com.kdajv.cch.domain.vo.DockerContainerVo;
+import com.kdajv.cch.domain.vo.DockerImageVo;
 import com.kdajv.cch.service.ICchContainerConfigService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +25,7 @@ import org.dromara.system.mapper.SysConfigMapper;
 import org.dromara.system.service.ISysConfigService;
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -489,6 +493,121 @@ public class CchContainerConfigServiceImpl implements ICchContainerConfigService
         configMap.put("kubernetesNamespace", vo.getKubernetesNamespace());
         configMap.put("status", StringUtils.isNotBlank(vo.getStatus()) ? vo.getStatus() : "0");
         return JSONUtil.toJsonStr(configMap);
+    }
+
+    @Override
+    public List<DockerContainerVo> getDockerContainers() {
+        if (activeClient == null || !(activeClient instanceof DockerClient)) {
+            throw new ServiceException("没有活跃的Docker连接");
+        }
+
+        try {
+            DockerClient dockerClient = (DockerClient) activeClient;
+
+            // 获取容器列表
+            List<com.github.dockerjava.api.model.Container> containers = dockerClient.listContainersCmd().withShowAll(true).exec();
+
+            // 转换为DockerContainerVo对象
+            return containers.stream().map(container -> {
+                DockerContainerVo vo = new DockerContainerVo();
+                vo.setId(container.getId());
+                vo.setNames(container.getNames() != null ? String.join(",", container.getNames()) : "");
+                vo.setImage(container.getImage());
+                vo.setImageId(container.getImageId());
+                vo.setCommand(container.getCommand());
+                vo.setCreated(String.valueOf(container.getCreated()));
+                vo.setStatus(container.getState());
+
+                ContainerPort[] ports = container.getPorts();
+                // 处理端口映射信息
+                if (ports != null) {
+                    String portsStr = Arrays.stream(ports).map(port -> port.getIp() + ":" + port.getPublicPort() + "->" + port.getPrivatePort() + "/" + port.getType()).collect(Collectors.joining(", "));
+                    vo.setPorts(portsStr);
+                } else {
+                    vo.setPorts("");
+                }
+
+                return vo;
+            }).collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("获取Docker容器列表失败", e);
+            throw new ServiceException("获取Docker容器列表失败: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public List<DockerImageVo> getDockerImages() {
+        if (activeClient == null || !(activeClient instanceof DockerClient)) {
+            throw new ServiceException("没有活跃的Docker连接");
+        }
+
+        try {
+            DockerClient dockerClient = (DockerClient) activeClient;
+
+            // 获取镜像列表
+            List<com.github.dockerjava.api.model.Image> images = dockerClient.listImagesCmd().exec();
+
+            // 转换为DockerImageVo对象
+            return images.stream().map(image -> {
+                DockerImageVo vo = new DockerImageVo();
+                vo.setId(image.getId());
+
+                if (image.getRepoTags() != null && image.getRepoTags().length > 0) {
+                    // 取第一个标签作为repoTags
+                    String fullTag = image.getRepoTags()[0];
+                    vo.setRepoTags(fullTag);
+
+                    // 分离仓库名和标签
+                    int lastColonIndex = fullTag.lastIndexOf(':');
+                    if (lastColonIndex > 0) {
+                        vo.setRepository(fullTag.substring(0, lastColonIndex));
+                        vo.setTag(fullTag.substring(lastColonIndex + 1));
+                    } else {
+                        vo.setRepository(fullTag);
+                        vo.setTag("latest");
+                    }
+                } else {
+                    vo.setRepoTags("<none>:<none>");
+                    vo.setRepository("<none>");
+                    vo.setTag("<none>");
+                }
+
+                // 设置ID简写
+                if (image.getId() != null && image.getId().length() >= 12) {
+                    vo.setShortId(image.getId().substring(0, 12));
+                } else {
+                    vo.setShortId(image.getId());
+                }
+
+                vo.setSize(image.getSize());
+
+                // 转换大小为人类可读格式
+                if (image.getSize() != null) {
+                    vo.setSizeHuman(humanReadableByteCount(image.getSize()));
+                }
+
+                // 设置创建时间
+                if (image.getCreated() != null) {
+                    vo.setCreated(new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date(image.getCreated() * 1000L)));
+                }
+
+                return vo;
+            }).collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("获取Docker镜像列表失败", e);
+            throw new ServiceException("获取Docker镜像列表失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 将字节数转换为人类可读的格式
+     */
+    private String humanReadableByteCount(long bytes) {
+        int unit = 1024;
+        if (bytes < unit) return bytes + " B";
+        int exp = (int) (Math.log(bytes) / Math.log(unit));
+        char pre = "KMGTPE".charAt(exp - 1);
+        return String.format("%.1f %sB", bytes / Math.pow(unit, exp), pre);
     }
 
 }
