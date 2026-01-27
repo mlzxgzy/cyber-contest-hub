@@ -1,9 +1,11 @@
-package org.dromara.system.service.impl;
+package com.kdajv.cch.service.impl;
 
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.kdajv.cch.domain.vo.CchContainerConfigVo;
+import com.kdajv.cch.service.ICchContainerConfigService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.dromara.common.core.exception.ServiceException;
@@ -12,9 +14,7 @@ import org.dromara.common.mybatis.core.page.PageQuery;
 import org.dromara.common.mybatis.core.page.TableDataInfo;
 import org.dromara.system.domain.SysConfig;
 import org.dromara.system.domain.bo.SysConfigBo;
-import org.dromara.system.domain.vo.CchContainerConfigVo;
 import org.dromara.system.mapper.SysConfigMapper;
-import org.dromara.system.service.ICchContainerConfigService;
 import org.dromara.system.service.ISysConfigService;
 import org.springframework.stereotype.Service;
 
@@ -37,7 +37,7 @@ public class CchContainerConfigServiceImpl implements ICchContainerConfigService
 
     private static final String CONFIG_KEY_PREFIX = "cch.container.config.";
     private static final String ACTIVE_INSTANCE_KEY = "cch.container.active.instance";
-    
+
     // 当前活跃的DockerClient实例（如果使用docker-java）
     private volatile Object activeClient = null;
     private volatile Long activeInstanceId = null;
@@ -69,10 +69,7 @@ public class CchContainerConfigServiceImpl implements ICchContainerConfigService
         lqw.orderByDesc(SysConfig::getCreateTime);
 
         Page<SysConfig> page = sysConfigMapper.selectPage(pageQuery.build(), lqw);
-        List<CchContainerConfigVo> voList = page.getRecords().stream()
-                .map(this::convertToVo)
-                .filter(vo -> StringUtils.isBlank(backendType) || backendType.equals(vo.getBackendType()))
-                .collect(Collectors.toList());
+        List<CchContainerConfigVo> voList = page.getRecords().stream().map(this::convertToVo).filter(vo -> StringUtils.isBlank(backendType) || backendType.equals(vo.getBackendType())).collect(Collectors.toList());
 
         Page<CchContainerConfigVo> voPage = new Page<>(page.getCurrent(), page.getSize(), page.getTotal());
         voPage.setRecords(voList);
@@ -89,10 +86,7 @@ public class CchContainerConfigServiceImpl implements ICchContainerConfigService
         lqw.like(SysConfig::getConfigKey, CONFIG_KEY_PREFIX + "%");
         lqw.orderByDesc(SysConfig::getCreateTime);
 
-        return sysConfigMapper.selectList(lqw).stream()
-                .map(this::convertToVo)
-                .filter(vo -> StringUtils.isBlank(backendType) || backendType.equals(vo.getBackendType()))
-                .collect(Collectors.toList());
+        return sysConfigMapper.selectList(lqw).stream().map(this::convertToVo).filter(vo -> StringUtils.isBlank(backendType) || backendType.equals(vo.getBackendType())).collect(Collectors.toList());
     }
 
     /**
@@ -162,7 +156,7 @@ public class CchContainerConfigServiceImpl implements ICchContainerConfigService
                 if (activeInstanceId != null && activeInstanceId.equals(id)) {
                     disconnectActiveInstance();
                 }
-                
+
                 SysConfig config = sysConfigMapper.selectById(id);
                 if (config != null && isContainerConfig(config)) {
                     sysConfigService.deleteConfigByIds(List.of(id));
@@ -274,7 +268,7 @@ public class CchContainerConfigServiceImpl implements ICchContainerConfigService
             }
 
             log.info("正在连接Docker: {}", config.getDockerUrl());
-            
+
             // TODO: 使用docker-java实现实际连接
             // DefaultDockerClientConfig.Builder configBuilder = DefaultDockerClientConfig.createDefaultConfigBuilder()
             //         .withDockerHost(config.getDockerUrl());
@@ -340,9 +334,7 @@ public class CchContainerConfigServiceImpl implements ICchContainerConfigService
      */
     private void saveActiveInstance(Long instanceId) {
         try {
-            SysConfig activeConfig = sysConfigMapper.selectOne(
-                new LambdaQueryWrapper<SysConfig>().eq(SysConfig::getConfigKey, ACTIVE_INSTANCE_KEY)
-            );
+            SysConfig activeConfig = sysConfigMapper.selectOne(new LambdaQueryWrapper<SysConfig>().eq(SysConfig::getConfigKey, ACTIVE_INSTANCE_KEY));
 
             if (activeConfig != null) {
                 SysConfigBo bo = new SysConfigBo();
@@ -367,9 +359,7 @@ public class CchContainerConfigServiceImpl implements ICchContainerConfigService
      */
     private void clearActiveInstance() {
         try {
-            SysConfig activeConfig = sysConfigMapper.selectOne(
-                new LambdaQueryWrapper<SysConfig>().eq(SysConfig::getConfigKey, ACTIVE_INSTANCE_KEY)
-            );
+            SysConfig activeConfig = sysConfigMapper.selectOne(new LambdaQueryWrapper<SysConfig>().eq(SysConfig::getConfigKey, ACTIVE_INSTANCE_KEY));
             if (activeConfig != null) {
                 sysConfigService.deleteConfigByIds(List.of(activeConfig.getConfigId()));
             }
@@ -449,8 +439,7 @@ public class CchContainerConfigServiceImpl implements ICchContainerConfigService
         vo.setCreateTime(config.getCreateTime());
 
         // 从JSON中解析配置信息
-        @SuppressWarnings("unchecked")
-        Map<String, Object> configMap = JSONUtil.toBean(config.getConfigValue(), Map.class);
+        @SuppressWarnings("unchecked") Map<String, Object> configMap = JSONUtil.toBean(config.getConfigValue(), Map.class);
         if (configMap != null) {
             vo.setBackendType((String) configMap.get("backendType"));
             vo.setDockerUrl((String) configMap.get("dockerUrl"));

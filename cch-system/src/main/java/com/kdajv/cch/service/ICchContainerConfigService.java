@@ -1,8 +1,8 @@
-package org.dromara.system.service;
+package com.kdajv.cch.service;
 
+import com.kdajv.cch.domain.vo.CchContainerConfigVo;
 import org.dromara.common.mybatis.core.page.PageQuery;
 import org.dromara.common.mybatis.core.page.TableDataInfo;
-import org.dromara.system.domain.vo.CchContainerConfigVo;
 
 import java.util.List;
 
@@ -17,9 +17,9 @@ public interface ICchContainerConfigService {
     /**
      * 分页查询容器配置列表
      *
-     * @param configName 配置名称（可选）
+     * @param configName  配置名称（可选）
      * @param backendType 后端类型（可选）
-     * @param pageQuery 分页参数
+     * @param pageQuery   分页参数
      * @return 容器配置分页列表
      */
     TableDataInfo<CchContainerConfigVo> queryPageList(String configName, String backendType, PageQuery pageQuery);
@@ -35,7 +35,7 @@ public interface ICchContainerConfigService {
     /**
      * 查询容器配置列表
      *
-     * @param configName 配置名称（可选）
+     * @param configName  配置名称（可选）
      * @param backendType 后端类型（可选）
      * @return 容器配置集合
      */

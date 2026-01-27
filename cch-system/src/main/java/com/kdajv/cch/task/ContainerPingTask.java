@@ -1,4 +1,4 @@
-package org.dromara.system.task;
+package com.kdajv.cch.task;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
