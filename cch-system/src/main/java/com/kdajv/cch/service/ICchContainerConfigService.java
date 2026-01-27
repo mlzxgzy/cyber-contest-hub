@@ -100,4 +100,11 @@ public interface ICchContainerConfigService {
      * @return 镜像列表
      */
     List<DockerImageVo> getDockerImages();
+
+    /**
+     * 获取当前活跃的客户端实例
+     *
+     * @return 活跃的客户端实例，如果不存在返回null
+     */
+    Object getActiveClient();
 }

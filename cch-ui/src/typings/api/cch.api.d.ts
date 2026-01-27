@@ -378,5 +378,60 @@ declare namespace Api {
       /** 停止的容器数量 */
       containersStopped: number;
     }
+
+    /** challenge container image */
+    type ChallengeContainerImage = Common.CommonRecord<{
+      /** 主键 */
+      id: CommonType.IdType;
+      /** 题目ID */
+      challengeId: CommonType.IdType;
+      /** 镜像名称 */
+      imageName: string;
+      /** 镜像标签 */
+      imageTag: string;
+      /** 镜像大小(字节) */
+      imageSize?: number;
+      /** 镜像文件存储路径 */
+      filePath: string;
+      /** 镜像文件SHA256哈希值 */
+      fileHash?: string;
+      /** 上传状态(uploading:上传中,uploaded:已上传,validating:验证中,available:可用,error:错误) */
+      status: 'uploading' | 'uploaded' | 'validating' | 'available' | 'error';
+      /** 上传进度(百分比) */
+      progress?: number;
+      /** 错误信息 */
+      errorMessage?: string;
+    }>;
+
+    /** challenge container image search params */
+    type ChallengeContainerImageSearchParams = CommonType.RecordNullable<
+      Pick<
+        Api.Cch.ChallengeContainerImage,
+        | 'challengeId'
+        | 'imageName'
+        | 'status'
+      > &
+      Api.Common.CommonSearchParams
+    >;
+
+    /** challenge container image operate params */
+    type ChallengeContainerImageOperateParams = CommonType.RecordNullable<
+      Pick<
+        Api.Cch.ChallengeContainerImage,
+        | 'id'
+        | 'challengeId'
+        | 'imageName'
+        | 'imageTag'
+        | 'imageSize'
+        | 'filePath'
+        | 'fileHash'
+        | 'status'
+        | 'progress'
+        | 'errorMessage'
+      >
+    >;
+
+    /** challenge container image list */
+    type ChallengeContainerImageList = Api.Common.PaginatingQueryRecord<ChallengeContainerImage>;
   }
 }

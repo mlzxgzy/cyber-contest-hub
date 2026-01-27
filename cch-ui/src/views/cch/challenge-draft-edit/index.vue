@@ -28,6 +28,7 @@ import FileUpload from '@/components/custom/file-upload.vue';
 import {AcceptType} from '@/enum/business';
 import {getRoutePath} from '@/router/elegant/transform';
 import ChallengeDraftHistory from './modules/challenge-draft-edit-history.vue';
+import ChallengeContainerManagement from './modules/challenge-container-management.vue';
 
 defineOptions({
   name: 'ChallengeDraftEdit'
@@ -346,6 +347,11 @@ function goBack() {
 function downloadFile(fileId: CommonType.IdType) {
   downloadChallengeFile(fileId);
 }
+
+// 加载镜像列表
+async function loadImageList() {
+  // 保留此函数以供子组件事件调用
+}
 </script>
 
 <template>
@@ -598,10 +604,10 @@ function downloadFile(fileId: CommonType.IdType) {
               </NCard>
             </NTabPane>
             <NTabPane v-if="draftData?.config?.runType === 'container'" name="container" tab="容器管理">
-              <div class="p-4">
-                <h3>容器管理</h3>
-                <p>TODO: 容器配置管理功能</p>
-              </div>
+              <ChallengeContainerManagement
+                :challenge-id="challengeId"
+                @update="loadImageList"
+              />
             </NTabPane>
             <NTabPane v-if="draftData?.config?.runType === 'vm'" name="vm" tab="虚拟机管理">
               <div class="p-4">

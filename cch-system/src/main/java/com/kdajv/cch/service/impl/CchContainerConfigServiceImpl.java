@@ -599,6 +599,11 @@ public class CchContainerConfigServiceImpl implements ICchContainerConfigService
         }
     }
 
+    @Override
+    public Object getActiveClient() {
+        return activeClient;
+    }
+
     /**
      * 将字节数转换为人类可读的格式
      */
