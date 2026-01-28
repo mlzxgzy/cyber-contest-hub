@@ -21,7 +21,7 @@ import {
 } from '@/service/api/cch/challenge-container-image';
 
 interface Props {
-  challengeId: number | null;
+  challengeId: string | null;
 }
 
 const props = defineProps<Props>();
@@ -274,7 +274,7 @@ onMounted(async () => {
                   <NTag :type="getStatusType(image.status)" size="small">
                     {{ getImageStatusText(image.status) }}
                   </NTag>
-                  <span class="font-600">{{ image.imageName }}:{{ image.imageTag }}</span>
+                  <span class="font-600">{{ image.imageName.replace(/cch\/\d+\//, '') }}:{{ image.imageTag }}</span>
                   <span class="text-gray-500 text-sm">{{ formatFileSize(image.imageSize) }}</span>
                 </div>
 

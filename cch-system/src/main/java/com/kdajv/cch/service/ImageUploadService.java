@@ -185,7 +185,7 @@ public class ImageUploadService {
     /**
      * 开始Load处理阶段
      */
-    void startLoadProcess(Long imageId, String ossKey) {
+    void startLoadProcess(Long imageId, Long challengeId, String ossKey) {
         try {
             log.info("开始Load处理镜像: ID={}", imageId);
 
@@ -215,7 +215,7 @@ public class ImageUploadService {
             updateBo.setId(imageId);
             String imageWithTag = result.trim().replaceFirst("Loaded image: ", "").trim();
             String[] imageWithTagArray = imageWithTag.split(":");
-            String image = "cch/" + imageWithTagArray[0];
+            String image = "cch/%d/%s".formatted(challengeId, imageWithTagArray[0]);
             String tag = "latest";
             if (imageWithTagArray.length == 2) {
                 tag = imageWithTagArray[1];
@@ -321,7 +321,7 @@ public class ImageUploadService {
         }
 
         // 开始Load处理
-        startLoadProcess(imageId, image.getFilePath());
+        startLoadProcess(imageId, image.getChallengeId(), image.getFilePath());
         return true;
     }
 }
