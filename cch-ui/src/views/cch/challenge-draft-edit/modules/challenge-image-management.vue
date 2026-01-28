@@ -184,7 +184,7 @@ async function handleManualLoadImage(imageId: CommonType.IdType) {
       window.$message?.success('Load镜像成功');
       // 触发更新事件
       emit('update');
-      // 重新加载列表
+      // Load操作完成后自动刷新镜像列表
       await loadImageList();
     } else {
       window.$message?.error('Load镜像失败');

@@ -215,13 +215,17 @@ public class ImageUploadService {
             updateBo.setId(imageId);
             String imageWithTag = result.trim().replaceFirst("Loaded image: ", "").trim();
             String[] imageWithTagArray = imageWithTag.split(":");
-            String image = imageWithTagArray[0];
+            String image = "cch/" + imageWithTagArray[0];
             String tag = "latest";
             if (imageWithTagArray.length == 2) {
                 tag = imageWithTagArray[1];
             } else {
                 log.error("分割镜像名称时出现问题，msg:{}，分割数据：{}", result, result);
             }
+
+            dockerClient.tagImageCmd(imageWithTag, image, tag).exec();
+            dockerClient.removeImageCmd(imageWithTag).exec();
+
             updateBo.setImageName(image);
             updateBo.setImageTag(tag);
             updateBo.setStatus("available"); // 设置为已上传状态
