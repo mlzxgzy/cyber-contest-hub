@@ -2,13 +2,17 @@ package com.kdajv.cch.service;
 
 import cn.hutool.core.util.IdUtil;
 import com.github.dockerjava.api.DockerClient;
+import com.github.dockerjava.api.command.LoadImageAsyncCmd;
+import com.github.dockerjava.api.command.LoadImageCallback;
 import com.github.dockerjava.api.command.LoadImageCmd;
 import com.kdajv.cch.domain.ChallengeContainerImage;
 import com.kdajv.cch.domain.vo.ChallengeContainerImageVo;
 import com.kdajv.cch.domain.bo.ChallengeContainerImageBo;
 import com.kdajv.cch.mapper.ChallengeContainerImageMapper;
+import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
 import org.dromara.common.core.utils.MapstructUtils;
+import org.dromara.common.core.utils.StringUtils;
 import org.dromara.common.oss.core.OssClient;
 import org.dromara.common.oss.entity.UploadResult;
 import org.dromara.common.oss.factory.OssFactory;
@@ -18,7 +22,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.math.BigDecimal;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.Map;
 
@@ -157,12 +164,10 @@ public class ImageUploadService {
             updateBo.setStatus("uploaded"); // 设置为已上传状态
             updateBo.setProgress(BigDecimal.valueOf(100.0)); // 设置进度为100%
             updateBo.setErrorMessage(null);
-
-            log.info("镜像文件上传到OSS成功: {} -> {}", file.getOriginalFilename(), uploadResult.getUrl());
-
             // 上传完成，状态保持为uploaded，等待手动Load
             updateByBo(updateBo);
 
+            log.info("镜像文件上传到OSS成功: {} -> {}", file.getOriginalFilename(), uploadResult.getUrl());
         } catch (IOException e) {
             log.error("镜像上传到OSS失败: ", e);
             // 更新数据库记录为错误状态
@@ -202,13 +207,29 @@ public class ImageUploadService {
                 return;
             }
             // 执行Load操作
-            LoadImageCmd loadImageCmd = dockerClient.loadImageCmd(inputStream);
+            LoadImageCallback loadImage = dockerClient.loadImageAsyncCmd(inputStream).exec(new LoadImageCallback());
             log.info("开始加载镜像到Docker...");
-            loadImageCmd.exec();
-            log.info("镜像Load操作完成");
+            String result = loadImage.awaitMessage();
             // Load完成，更新为可用状态
-            updateStatus(imageId, "available", 100.0, null);
-            log.info("镜像Load处理完成: ID={}", imageId);
+            ChallengeContainerImageBo updateBo = new ChallengeContainerImageBo();
+            updateBo.setId(imageId);
+            String imageWithTag = result.trim().replaceFirst("Loaded image: ", "").trim();
+            String[] imageWithTagArray = imageWithTag.split(":");
+            String image = imageWithTagArray[0];
+            String tag = "latest";
+            if (imageWithTagArray.length == 2) {
+                tag = imageWithTagArray[1];
+            } else {
+                log.error("分割镜像名称时出现问题，msg:{}，分割数据：{}", result, result);
+            }
+            updateBo.setImageName(image);
+            updateBo.setImageTag(tag);
+            updateBo.setStatus("available"); // 设置为已上传状态
+            updateBo.setProgress(BigDecimal.valueOf(100.0)); // 设置进度为100%
+            updateBo.setErrorMessage(null);
+            // 上传完成，状态保持为uploaded，等待手动Load
+            updateByBo(updateBo);
+            log.info("镜像Load操作完成：id={}，msg：{}", imageId, result);
         } catch (Exception e) {
             log.error("镜像Load处理失败: ", e);
             updateStatus(imageId, "error", 100.0, e.getMessage());
@@ -224,8 +245,8 @@ public class ImageUploadService {
             OssClient ossClient = OssFactory.instance();
 
             // 创建管道输入输出流，实现流式传输
-            java.io.PipedInputStream pipedInputStream = new java.io.PipedInputStream();
-            java.io.PipedOutputStream pipedOutputStream = new java.io.PipedOutputStream(pipedInputStream);
+            PipedInputStream pipedInputStream = new PipedInputStream();
+            PipedOutputStream pipedOutputStream = new PipedOutputStream(pipedInputStream);
 
             // 在单独线程中执行下载，将数据写入PipedOutputStream
             Thread downloadThread = new Thread(() -> {
