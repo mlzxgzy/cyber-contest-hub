@@ -1,10 +1,7 @@
 package com.kdajv.cch.service;
 
 import cn.hutool.core.util.IdUtil;
-import com.github.dockerjava.api.DockerClient;
-import com.github.dockerjava.api.command.LoadImageAsyncCmd;
-import com.github.dockerjava.api.command.LoadImageCallback;
-import com.github.dockerjava.api.command.LoadImageCmd;
+import com.kdajv.cch.container.ContainerClient;
 import com.kdajv.cch.domain.ChallengeContainerImage;
 import com.kdajv.cch.domain.vo.ChallengeContainerImageVo;
 import com.kdajv.cch.domain.bo.ChallengeContainerImageBo;
@@ -192,24 +189,21 @@ public class ImageUploadService {
             // 更新状态为验证中
             updateStatus(imageId, "validating", 50.0, null);
 
-            // 获取活跃的Docker客户端
-            Object activeClient = containerConfigService.getActiveClient();
-            if (!(activeClient instanceof DockerClient dockerClient)) {
-                log.error("没有活跃的Docker连接，无法Load镜像: ID={}", imageId);
-                updateStatus(imageId, "error", 100.0, "没有活跃的Docker连接");
+            // 获取活跃的容器客户端（当前实现为 Docker，后续可扩展为 K8s）
+            ContainerClient containerClient = containerConfigService.getActiveClient();
+            if (containerClient == null) {
+                log.error("没有活跃的容器连接，无法Load镜像: ID={}", imageId);
+                updateStatus(imageId, "error", 100.0, "没有活跃的容器连接");
                 return;
             }
-
             InputStream inputStream = downloadImageFromOSSKey(ossKey);
             if (inputStream == null) {
                 log.error("无法获取镜像文件流: ID={}", imageId);
                 updateStatus(imageId, "error", 100.0, "无法获取镜像文件流");
                 return;
             }
-            // 执行Load操作
-            LoadImageCallback loadImage = dockerClient.loadImageAsyncCmd(inputStream).exec(new LoadImageCallback());
-            log.info("开始加载镜像到Docker...");
-            String result = loadImage.awaitMessage();
+            // 执行Load操作（通过容器客户端抽象）
+            String result = containerClient.loadImage(inputStream);
             // Load完成，更新为可用状态
             ChallengeContainerImageBo updateBo = new ChallengeContainerImageBo();
             updateBo.setId(imageId);
@@ -223,8 +217,8 @@ public class ImageUploadService {
                 log.error("分割镜像名称时出现问题，msg:{}，分割数据：{}", result, result);
             }
 
-            dockerClient.tagImageCmd(imageWithTag, image, tag).exec();
-            dockerClient.removeImageCmd(imageWithTag).exec();
+            containerClient.tagImage(imageWithTag, image, tag);
+            containerClient.removeImage(imageWithTag);
 
             updateBo.setImageName(image);
             updateBo.setImageTag(tag);

@@ -1,5 +1,6 @@
 package com.kdajv.cch.service;
 
+import com.kdajv.cch.container.ContainerClient;
 import com.kdajv.cch.domain.vo.CchContainerConfigVo;
 import com.kdajv.cch.domain.vo.DockerContainerVo;
 import com.kdajv.cch.domain.vo.DockerImageVo;
@@ -106,5 +107,5 @@ public interface ICchContainerConfigService {
      *
      * @return 活跃的客户端实例，如果不存在返回null
      */
-    Object getActiveClient();
+    ContainerClient getActiveClient();
 }

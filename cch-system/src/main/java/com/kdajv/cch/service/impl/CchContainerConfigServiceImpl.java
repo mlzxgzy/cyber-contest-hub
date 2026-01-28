@@ -5,10 +5,12 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.github.dockerjava.api.DockerClient;
-import com.github.dockerjava.api.model.ContainerPort;
 import com.github.dockerjava.core.DefaultDockerClientConfig;
 import com.github.dockerjava.core.DockerClientBuilder;
 import com.github.dockerjava.httpclient5.ApacheDockerHttpClient;
+import com.github.dockerjava.transport.DockerHttpClient;
+import com.kdajv.cch.container.ContainerClient;
+import com.kdajv.cch.container.DockerContainerClient;
 import com.kdajv.cch.domain.vo.CchContainerConfigVo;
 import com.kdajv.cch.domain.vo.DockerContainerVo;
 import com.kdajv.cch.domain.vo.DockerImageVo;
@@ -46,8 +48,8 @@ public class CchContainerConfigServiceImpl implements ICchContainerConfigService
     private static final String CONFIG_KEY_PREFIX = "cch.container.config.";
     private static final String ACTIVE_INSTANCE_KEY = "cch.container.active.instance";
 
-    // 当前活跃的DockerClient实例（如果使用docker-java）
-    private volatile Object activeClient = null;
+    // 当前活跃的容器客户端实例（Docker / Kubernetes 等）
+    private volatile ContainerClient activeClient = null;
     private volatile Long activeInstanceId = null;
     private final ReentrantLock lock = new ReentrantLock();
 
@@ -251,12 +253,7 @@ public class CchContainerConfigServiceImpl implements ICchContainerConfigService
         try {
             if (activeClient != null) {
                 try {
-                    // 关闭DockerClient连接
-                    if (activeClient instanceof DockerClient) {
-                        DockerClient dockerClient = (DockerClient) activeClient;
-                        dockerClient.close();
-                        log.info("已关闭DockerClient连接: {}", activeInstanceId);
-                    }
+                    activeClient.close();
                     log.info("已断开活跃实例连接: {}", activeInstanceId);
                 } catch (Exception e) {
                     log.error("断开连接时出错", e);
@@ -298,15 +295,14 @@ public class CchContainerConfigServiceImpl implements ICchContainerConfigService
             DefaultDockerClientConfig dockerConfig = configBuilder.build();
 
             ApacheDockerHttpClient apacheDockerHttpClient = new ApacheDockerHttpClient.Builder().dockerHost(dockerConfig.getDockerHost()).sslConfig(dockerConfig.getSSLConfig()).build();
-
-            // 创建DockerClient
             DockerClient dockerClient = DockerClientBuilder.getInstance(dockerConfig).withDockerHttpClient(apacheDockerHttpClient).build();
 
-            // 测试连接
-            dockerClient.pingCmd().exec();
+            // 包装为通用容器客户端并测试连接
+            DockerContainerClient containerClient = new DockerContainerClient(dockerClient);
+            containerClient.ping();
 
             // 保存连接
-            activeClient = dockerClient;
+            activeClient = containerClient;
 
             log.info("Docker连接成功: {}", config.getDockerUrl());
             return true;
@@ -335,12 +331,10 @@ public class CchContainerConfigServiceImpl implements ICchContainerConfigService
             }
 
             if ("docker".equals(config.getBackendType())) {
-                // 使用docker-java ping检查连接状态
-                if (activeClient instanceof DockerClient) {
-                    ((DockerClient) activeClient).pingCmd().exec();
+                if (activeClient != null) {
+                    activeClient.ping();
                     return true;
                 }
-                return true; // 暂时返回true
             } else if ("kubernetes".equals(config.getBackendType())) {
                 // TODO: Kubernetes ping
                 return true;
@@ -497,122 +491,35 @@ public class CchContainerConfigServiceImpl implements ICchContainerConfigService
 
     @Override
     public List<DockerContainerVo> getDockerContainers() {
-        if (activeClient == null || !(activeClient instanceof DockerClient)) {
-            throw new ServiceException("没有活跃的Docker连接");
+        if (activeClient == null) {
+            throw new ServiceException("没有活跃的容器连接");
         }
 
         try {
-            DockerClient dockerClient = (DockerClient) activeClient;
-
-            // 获取容器列表
-            List<com.github.dockerjava.api.model.Container> containers = dockerClient.listContainersCmd().withShowAll(true).exec();
-
-            // 转换为DockerContainerVo对象
-            return containers.stream().map(container -> {
-                DockerContainerVo vo = new DockerContainerVo();
-                vo.setId(container.getId());
-                vo.setNames(container.getNames() != null ? String.join(",", container.getNames()) : "");
-                vo.setImage(container.getImage());
-                vo.setImageId(container.getImageId());
-                vo.setCommand(container.getCommand());
-                vo.setCreated(String.valueOf(container.getCreated()));
-                vo.setStatus(container.getState());
-
-                ContainerPort[] ports = container.getPorts();
-                // 处理端口映射信息
-                if (ports != null) {
-                    String portsStr = Arrays.stream(ports).map(port -> port.getIp() + ":" + port.getPublicPort() + "->" + port.getPrivatePort() + "/" + port.getType()).collect(Collectors.joining(", "));
-                    vo.setPorts(portsStr);
-                } else {
-                    vo.setPorts("");
-                }
-
-                return vo;
-            }).collect(Collectors.toList());
+            return activeClient.listContainers();
         } catch (Exception e) {
-            log.error("获取Docker容器列表失败", e);
-            throw new ServiceException("获取Docker容器列表失败: " + e.getMessage());
+            log.error("获取容器列表失败", e);
+            throw new ServiceException("获取容器列表失败: " + e.getMessage());
         }
     }
 
     @Override
     public List<DockerImageVo> getDockerImages() {
-        if (activeClient == null || !(activeClient instanceof DockerClient)) {
-            throw new ServiceException("没有活跃的Docker连接");
+        if (activeClient == null) {
+            throw new ServiceException("没有活跃的容器连接");
         }
 
         try {
-            DockerClient dockerClient = (DockerClient) activeClient;
-
-            // 获取镜像列表
-            List<com.github.dockerjava.api.model.Image> images = dockerClient.listImagesCmd().exec();
-
-            // 转换为DockerImageVo对象
-            return images.stream().map(image -> {
-                DockerImageVo vo = new DockerImageVo();
-                vo.setId(image.getId());
-
-                if (image.getRepoTags() != null && image.getRepoTags().length > 0) {
-                    // 取第一个标签作为repoTags
-                    String fullTag = image.getRepoTags()[0];
-                    vo.setRepoTags(fullTag);
-
-                    // 分离仓库名和标签
-                    int lastColonIndex = fullTag.lastIndexOf(':');
-                    if (lastColonIndex > 0) {
-                        vo.setRepository(fullTag.substring(0, lastColonIndex));
-                        vo.setTag(fullTag.substring(lastColonIndex + 1));
-                    } else {
-                        vo.setRepository(fullTag);
-                        vo.setTag("latest");
-                    }
-                } else {
-                    vo.setRepoTags("<none>:<none>");
-                    vo.setRepository("<none>");
-                    vo.setTag("<none>");
-                }
-
-                // 设置ID简写
-                if (image.getId() != null && image.getId().length() >= 12) {
-                    vo.setShortId(image.getId().substring(0, 12));
-                } else {
-                    vo.setShortId(image.getId());
-                }
-
-                vo.setSize(image.getSize());
-
-                // 转换大小为人类可读格式
-                if (image.getSize() != null) {
-                    vo.setSizeHuman(humanReadableByteCount(image.getSize()));
-                }
-
-                // 设置创建时间
-                if (image.getCreated() != null) {
-                    vo.setCreated(new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date(image.getCreated() * 1000L)));
-                }
-
-                return vo;
-            }).collect(Collectors.toList());
+            return activeClient.listImages();
         } catch (Exception e) {
-            log.error("获取Docker镜像列表失败", e);
-            throw new ServiceException("获取Docker镜像列表失败: " + e.getMessage());
+            log.error("获取镜像列表失败", e);
+            throw new ServiceException("获取镜像列表失败: " + e.getMessage());
         }
     }
 
     @Override
-    public Object getActiveClient() {
+    public ContainerClient getActiveClient() {
         return activeClient;
-    }
-
-    /**
-     * 将字节数转换为人类可读的格式
-     */
-    private String humanReadableByteCount(long bytes) {
-        int unit = 1024;
-        if (bytes < unit) return bytes + " B";
-        int exp = (int) (Math.log(bytes) / Math.log(unit));
-        char pre = "KMGTPE".charAt(exp - 1);
-        return String.format("%.1f %sB", bytes / Math.pow(unit, exp), pre);
     }
 
 }
