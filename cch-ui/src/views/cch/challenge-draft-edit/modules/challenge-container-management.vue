@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {onMounted, onUnmounted, ref, watch} from 'vue';
+import {onMounted, ref, watch} from 'vue';
 import {
   NButton,
   NCard,
@@ -9,7 +9,8 @@ import {
   NText,
   NUpload,
   NUploadDragger,
-  NP
+  NP,
+  NSpace
 } from 'naive-ui';
 import type {UploadFileInfo} from 'naive-ui';
 import {
@@ -32,8 +33,23 @@ interface Emits {
 const emit = defineEmits<Emits>();
 
 const containerImages = ref<Api.Cch.ChallengeContainerImage[]>([]);
-const imageUploadFileList = ref<UploadFileInfo[]>([]);
-let imagePollingTimer: NodeJS.Timeout | null = null;
+const isRefreshDisabled = ref(false); // 控制刷新按钮是否禁用
+
+// 节流版本的加载列表函数
+async function throttledLoadImageList() {
+  if (isRefreshDisabled.value) return; // 如果正在禁用期，则直接返回
+
+  isRefreshDisabled.value = true; // 立即禁用按钮
+  
+  try {
+    await loadImageList();
+  } finally {
+    // 无论成功或失败，都在2秒后恢复按钮可用
+    setTimeout(() => {
+      isRefreshDisabled.value = false;
+    }, 2000);
+  }
+}
 
 // 加载镜像列表
 async function loadImageList() {
@@ -94,17 +110,13 @@ async function handleImageUpload(options: {
     // 触发更新事件
     emit('update');
     window.$message?.success('上传成功');
+    // 重新加载列表
+    await loadImageList();
     options.onFinish();
   } catch (err) {
     window.$message?.error(`上传异常: ${err}`);
     options.onError();
   }
-}
-
-// 下载镜像文件
-function downloadImageFile(imageId: CommonType.IdType) {
-  const downloadUrl = `/cch/challengeContainerImage/download/${imageId}`;
-  window.open(downloadUrl, '_blank');
 }
 
 // 获取状态类型
@@ -202,48 +214,18 @@ async function handleDeleteImage(imageId: CommonType.IdType) {
   }
 }
 
-// 容器镜像轮询函数
-function startImagePolling() {
-  // 先清除已有的轮询
-  if (imagePollingTimer) {
-    clearInterval(imagePollingTimer);
-  }
-
-  // 每10秒轮询一次镜像列表
-  imagePollingTimer = setInterval(async () => {
-    if (props.challengeId) {
-      await loadImageList();
-    }
-  }, 10000);
-}
-
-// 停止轮询
-function stopImagePolling() {
-  if (imagePollingTimer) {
-    clearInterval(imagePollingTimer);
-    imagePollingTimer = null;
-  }
-}
 
 // 监听challengeId变化，重新加载数据
 watch(() => props.challengeId, async (newId) => {
   if (newId) {
     await loadImageList();
-    startImagePolling();
-  } else {
-    stopImagePolling();
   }
 });
 
 onMounted(async () => {
   if (props.challengeId) {
     await loadImageList();
-    startImagePolling();
   }
-});
-
-onUnmounted(() => {
-  stopImagePolling();
 });
 </script>
 
@@ -254,10 +236,10 @@ onUnmounted(() => {
     <!-- 镜像上传区域 -->
     <NCard title="上传镜像" class="mb-4">
       <NUpload
-          :max="1"
-          accept=".tar,.tar.gz,.zip"
-          :custom-request="handleImageUpload"
-          :show-download-button="false"
+        :max="1"
+        accept=".tar,.tar.gz,.zip"
+        :custom-request="handleImageUpload"
+        :show-download-button="false"
       >
         <NUploadDragger>
           <div class="mb-3">
@@ -273,13 +255,18 @@ onUnmounted(() => {
 
     <!-- 已上传镜像列表 -->
     <NCard title="已上传镜像">
+      <template #header-extra>
+        <NButton size="tiny" @click="throttledLoadImageList" :disabled="isRefreshDisabled" type="primary">
+          {{ isRefreshDisabled ? '刷新中...' : '刷新列表' }}
+        </NButton>
+      </template>
       <NSpace vertical class="w-full">
         <template v-if="containerImages.length > 0">
           <NCard
-              v-for="image of containerImages"
-              :key="image.id"
-              size="small"
-              :class="image.status === 'error' ? 'bg-red-50' : ''"
+            v-for="image of containerImages"
+            :key="image.id"
+            size="small"
+            :class="image.status === 'error' ? 'bg-red-50' : ''"
           >
             <div class="flex items-center justify-between gap-12px">
               <div class="flex-1">
@@ -294,10 +281,10 @@ onUnmounted(() => {
                 <!-- 进度条 -->
                 <div v-if="['uploading', 'validating'].includes(image.status)" class="mb-2">
                   <NProgress
-                      type="line"
-                      :percentage="image.progress || 0"
-                      :status="image.status === 'error' ? 'error' : 'processing'"
-                      indicator-text-color="#000"
+                    type="line"
+                    :percentage="image.progress || 0"
+                    :status="image.status === 'error' ? 'error' : 'processing'"
+                    indicator-text-color="#000"
                   />
                   <div class="text-xs text-gray-500 mt-1">
                     {{ image.status === 'uploading' ? '上传中...' : '验证中...' }}
@@ -312,17 +299,17 @@ onUnmounted(() => {
               <div class="flex flex-col items-end gap-2">
                 <!-- Load按钮 - 仅在状态为uploaded时显示 -->
                 <NButton
-                    v-if="image.status === 'uploaded'"
-                    type="primary"
-                    size="small"
-                    @click="handleManualLoadImage(image.id)"
+                  v-if="image.status === 'uploaded'"
+                  type="primary"
+                  size="small"
+                  @click="handleManualLoadImage(image.id)"
                 >
                   Load到Docker
                 </NButton>
                 <NButton
-                    text
-                    type="error"
-                    @click="handleDeleteImage(image.id)"
+                  text
+                  type="error"
+                  @click="handleDeleteImage(image.id)"
                 >
                   删除
                 </NButton>
