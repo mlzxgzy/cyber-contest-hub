@@ -28,7 +28,7 @@ import FileUpload from '@/components/custom/file-upload.vue';
 import {AcceptType} from '@/enum/business';
 import {getRoutePath} from '@/router/elegant/transform';
 import ChallengeDraftHistory from './modules/challenge-draft-edit-history.vue';
-import ChallengeContainerManagement from './modules/challenge-container-management.vue';
+import ChallengeImageManagement from "@/views/cch/challenge-draft-edit/modules/challenge-image-management.vue";
 
 defineOptions({
   name: 'ChallengeDraftEdit'
@@ -603,8 +603,8 @@ async function loadImageList() {
                 </NSpace>
               </NCard>
             </NTabPane>
-            <NTabPane v-if="draftData?.config?.runType === 'container'" name="container" tab="容器管理">
-              <ChallengeContainerManagement
+            <NTabPane v-if="draftData?.config?.runType === 'container'" name="container" tab="容器镜像管理">
+              <ChallengeImageManagement
                 :challenge-id="challengeId"
                 @update="loadImageList"
               />

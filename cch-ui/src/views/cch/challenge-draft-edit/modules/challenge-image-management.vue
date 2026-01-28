@@ -40,7 +40,7 @@ async function throttledLoadImageList() {
   if (isRefreshDisabled.value) return; // 如果正在禁用期，则直接返回
 
   isRefreshDisabled.value = true; // 立即禁用按钮
-  
+
   try {
     await loadImageList();
   } finally {
