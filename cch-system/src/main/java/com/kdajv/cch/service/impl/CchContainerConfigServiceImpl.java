@@ -293,7 +293,6 @@ public class CchContainerConfigServiceImpl implements ICchContainerConfigService
             }
 
             DefaultDockerClientConfig dockerConfig = configBuilder.build();
-
             ApacheDockerHttpClient apacheDockerHttpClient = new ApacheDockerHttpClient.Builder().dockerHost(dockerConfig.getDockerHost()).sslConfig(dockerConfig.getSSLConfig()).build();
             DockerClient dockerClient = DockerClientBuilder.getInstance(dockerConfig).withDockerHttpClient(apacheDockerHttpClient).build();
 

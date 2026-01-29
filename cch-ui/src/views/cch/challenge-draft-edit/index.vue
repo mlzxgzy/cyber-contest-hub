@@ -29,6 +29,7 @@ import {AcceptType} from '@/enum/business';
 import {getRoutePath} from '@/router/elegant/transform';
 import ChallengeDraftHistory from './modules/challenge-draft-edit-history.vue';
 import ChallengeImageManagement from "@/views/cch/challenge-draft-edit/modules/challenge-image-management.vue";
+import ContainerTargetConfig from "@/views/cch/challenge-draft-edit/modules/container-target-config.vue";
 
 defineOptions({
   name: 'ChallengeDraftEdit'
@@ -146,6 +147,7 @@ function applyDraftData(data: Api.Cch.ChallengeDraft) {
   draftData.value.config.writeups ??= [];
   draftData.value.config.knowledge ??= [];
   draftData.value.config.flags ??= [];
+  draftData.value.config.containerTargets ??= [];
   hasEdited.value = false;
   dataInitialized.value = true;
 }
@@ -285,6 +287,35 @@ async function saveDraft() {
 
   saving.value = true;
   try {
+    // 容器靶机配置基础校验
+    if (draftData.value.config?.runType === 'container') {
+      const targets = draftData.value.config.containerTargets ?? [];
+      for (let i = 0; i < targets.length; i += 1) {
+        const t = targets[i];
+        if (!t) continue;
+        if (!t.imageId) {
+          window.$message?.error(`靶机 ${i + 1}：请选择镜像`);
+          return;
+        }
+        const ports = t.ports ?? {};
+        for (const [portName, cfg] of Object.entries(ports)) {
+          const name = (portName || '').trim();
+          if (!name) continue;
+          const protocol = (cfg?.protocol || '').trim();
+          const internalPort = cfg?.internalPort;
+          const externalPort = cfg?.externalPort;
+          if (!protocol) {
+            window.$message?.error(`靶机 ${i + 1}：端口「${name}」协议不能为空`);
+            return;
+          }
+          if (!internalPort || internalPort <= 0) {
+            window.$message?.error(`靶机 ${i + 1}：端口「${name}」内部端口必须为正整数`);
+            return;
+          }
+        }
+      }
+    }
+
     const requestData: Api.Cch.ChallengeDraftOperateParams = {
       id: draftData.value.id,
       challengeId: draftData.value.challengeId,
@@ -608,6 +639,9 @@ async function loadImageList() {
                 :challenge-id="challengeId"
                 @update="loadImageList"
               />
+            </NTabPane>
+            <NTabPane v-if="draftData?.config?.runType === 'container'" name="container-target" tab="容器靶机配置">
+              <ContainerTargetConfig v-model="draftData.config.containerTargets" :challenge-id="challengeId"/>
             </NTabPane>
             <NTabPane v-if="draftData?.config?.runType === 'vm'" name="vm" tab="虚拟机管理">
               <div class="p-4">

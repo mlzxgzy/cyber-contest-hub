@@ -54,10 +54,33 @@ declare namespace Api {
     type ChallengeDraftConfig = {
       stem: string;
       difficulty: string;
+      runType?: string;
       knowledge?: string[];
       attachments: ChallengeDraftConfigAttachment[];
       writeups?: ChallengeDraftConfigAttachment[];
       flags?: ChallengeDraftConfigFlag[];
+      containerTargets?: ChallengeDraftContainerTarget[];
+    }
+
+    type ChallengeDraftContainerTargetResourceLimit = {
+      cpuLimit?: number | null;
+      memoryLimit?: number | null;
+    }
+
+    type ChallengeDraftContainerTargetPort = {
+      protocol?: string | null;
+      internalPort?: number | null;
+      externalPort?: number | null;
+      remark?: string | null;
+    }
+
+    type ChallengeDraftContainerTarget = {
+      name?: string | null;
+      imageId?: CommonType.IdType | null;
+      imageName?: string | null;
+      env?: Record<string, string>;
+      ports?: Record<string, ChallengeDraftContainerTargetPort>;
+      resources?: ChallengeDraftContainerTargetResourceLimit | null;
     }
 
     type ChallengeDraftConfigAttachment = {
@@ -138,7 +161,10 @@ declare namespace Api {
         | 'challengeDescription'
         | 'config'
       >
-    >;
+    > & {
+      /** 操作类型：edit-直接更新（不新增版本），save-保存时新增版本 */
+      operateType?: 'edit' | 'save' | string;
+    };
 
     /** challenge draft list */
     type ChallengeDraftList = Api.Common.PaginatingQueryRecord<ChallengeDraft>;

@@ -5,6 +5,7 @@ import lombok.EqualsAndHashCode;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.util.Map;
 import java.util.List;
 
 /**
@@ -53,6 +54,11 @@ public class DraftConfig implements Serializable {
      * Flag列表
      */
     private List<Flag> flags;
+
+    /**
+     * 容器靶机配置（runType=container 时使用）
+     */
+    private List<ContainerTarget> containerTargets;
 
     /**
      * 题目附件
@@ -145,5 +151,87 @@ public class DraftConfig implements Serializable {
         public DynamicFlag() {
             super.setType("dynamic");
         }
+    }
+
+    /**
+     * 容器靶机配置
+     */
+    @Data
+    public static class ContainerTarget implements Serializable {
+        @Serial
+        private static final long serialVersionUID = 1L;
+
+        /**
+         * 靶机名称（可自定义）
+         */
+        private String name;
+
+        /**
+         * 镜像ID（从本题已上传镜像中选择）
+         */
+        private Long imageId;
+
+        /**
+         * 镜像名称（可选缓存字段，用于展示）
+         */
+        private String imageName;
+
+        /**
+         * 环境变量（key: 变量名, value: 变量值）
+         */
+        private Map<String, String> env;
+
+        /**
+         * 开放端口（key: 端口名称, value: 端口配置）
+         */
+        private Map<String, PortConfig> ports;
+
+        /**
+         * 资源限制
+         */
+        private ResourceLimit resources;
+    }
+
+    /**
+     * 端口配置
+     */
+    @Data
+    public static class PortConfig implements Serializable {
+        @Serial
+        private static final long serialVersionUID = 1L;
+
+        /**
+         * 协议（tcp/udp 等）
+         */
+        private String protocol;
+
+        /**
+         * 内部端口
+         */
+        private Integer internalPort;
+
+        /**
+         * 备注
+         */
+        private String remark;
+    }
+
+    /**
+     * 资源限制
+     */
+    @Data
+    public static class ResourceLimit implements Serializable {
+        @Serial
+        private static final long serialVersionUID = 1L;
+
+        /**
+         * CPU 限制（millicores，例如 500 = 0.5 核）
+         */
+        private Integer cpuLimit;
+
+        /**
+         * 内存限制（MB）
+         */
+        private Integer memoryLimit;
     }
 }

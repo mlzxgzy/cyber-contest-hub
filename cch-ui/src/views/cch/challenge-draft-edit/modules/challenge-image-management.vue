@@ -21,7 +21,7 @@ import {
 } from '@/service/api/cch/challenge-container-image';
 
 interface Props {
-  challengeId: string | null;
+  challengeId: CommonType.IdType | null;
 }
 
 const props = defineProps<Props>();
