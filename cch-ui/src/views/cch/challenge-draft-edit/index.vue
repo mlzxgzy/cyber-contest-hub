@@ -5,14 +5,18 @@ import {
   NButton,
   NCard,
   NEmpty,
-  NFormItem,
+  NGrid,
+  NGi,
   NInput,
   NInputNumber,
   NRadioButton,
   NRadioGroup,
   NSelect,
   NSpace,
-  NTag
+  NTag,
+  NTabs,
+  NTabPane,
+  NSkeleton
 } from 'naive-ui';
 import type {UploadFileInfo} from 'naive-ui';
 import {fetchChallengeDraftByChallengeId, fetchGetChallengeById} from '@/service/api/cch/challenge';
@@ -392,301 +396,1215 @@ async function loadImageList() {
 </script>
 
 <template>
-  <NSplit v-model:size="split" class="p-20px" direction="horizontal" pane1-class="pr-10px" pane2-class="pl-10px">
-    <template #1>
-      <NCard title="题目草稿编辑">
-        <template #header-extra>
-          <NSpace>
-            <NButton :loading="saving" :disabled="!hasEdited || saving" type="primary" @click="saveDraft">保存</NButton>
-            <NButton @click="goBack">返回</NButton>
-          </NSpace>
-        </template>
-        <NSkeleton v-if="loading" text :repeat="6"/>
-        <div v-else-if="draftData" class="scrollbar">
-          <NTabs animated v-model:value="activeMainTab" type="segment">
-            <NTabPane name="info" tab="题目信息">
-              <NGrid cols="1 600:2 1200:3" x-gap="12" y-gap="12">
-                <NGi>
-                  <NCard :segmented="{ content: true }" title="基本信息">
-                    <NForm ref="challengeFormRef" :model="challengeData" :rules="challengeRules">
-                      <NFormItem label="题目类型" path="category">
-                        <NSelect
-                          v-model:value="challengeData.category"
-                          :options="cchQuestionCategroyOptions"
-                          clearable
-                          placeholder="请选择题目类型"
-                        />
-                      </NFormItem>
-                      <NFormItem label="题目名称" path="name">
-                        <NInput v-model:value="challengeData.name" placeholder="请输入题目名称"/>
-                      </NFormItem>
-                      <NFormItem label="题目备注" path="remark">
-                        <NInput
-                          v-model:value="challengeData.remark"
-                          :rows="3"
-                          placeholder="请输入题目备注"
-                          type="textarea"
-                        />
-                      </NFormItem>
-                    </NForm>
-                  </NCard>
-                </NGi>
-                <NGi>
-                  <NCard :segmented="{ content: true }" title="题目信息">
-                    <NForm ref="draftFormRef" :model="draftData.config" :rules="draftRules">
-                      <NFormItem label="运行类型" path="runType">
-                        <NRadioGroup v-model:value="draftData.config.runType">
-                          <NRadioButton
-                            v-for="option in cchQuestionRunTypeOptions"
-                            :key="option.value"
-                            :value="option.value"
-                            :label="option.label"
-                          />
-                        </NRadioGroup>
-                      </NFormItem>
-                      <NFormItem label="难度" path="difficulty">
-                        <NRadioGroup v-model:value="draftData.config.difficulty">
-                          <NRadioButton
-                            v-for="option in cchQuestionDifficultyOptions"
-                            :key="option.value"
-                            :value="option.value"
-                            :label="option.label"
-                          />
-                        </NRadioGroup>
-                      </NFormItem>
-                      <NFormItem label="题干" path="stem">
-                        <NInput
-                          v-model:value="draftData.config.stem"
-                          :rows="3"
-                          placeholder="请输入题干"
-                          type="textarea"
-                        />
-                      </NFormItem>
-                      <NFormItem label="知识点" path="knowledge">
-                        <NSelect v-model:value="draftData.config.knowledge" filterable multiple tag/>
-                      </NFormItem>
-                    </NForm>
-                  </NCard>
-                </NGi>
-                <NGi>
-                  <NCard :segmented="{ content: true }" title="附件管理">
-                    <NForm ref="draftAttachmentFormRef" :model="draftData.config" :rules="draftAttachmentRules">
-                      <NFormItem>
-                        <FileUpload
-                          v-model:file-list="draftAttachmentList"
-                          upload-type="file"
-                          :show-file-list="true"
-                          :accept="AcceptType.ChallengeAttachment"
-                          :data="{ challengeId: challengeId }"
-                          action="/cch/challengeFile/upload"
-                          :on-success="handleAttachmentUploadSuccess"
-                        />
-                      </NFormItem>
-                      <NFormItem label="已上传附件">
-                        <NSpace vertical class="w-full">
-                          <template v-if="draftData.config.attachments?.length">
-                            <NCard v-for="x of draftData.config.attachments" :key="x.fileId" size="small">
-                              <div class="flex items-center justify-between gap-12px">
-                                <div class="flex-1">
-                                  <div class="mb-8px flex items-center gap-8px">
-                                    <NTag type="success" size="small">附件</NTag>
-                                    <span class="font-600">{{ x.fileName }}</span>
-                                  </div>
-                                  <NInput v-model:value="x.remark" placeholder="填写备注（可选）" size="small"/>
-                                </div>
-                                <div class="flex items-center">
-                                  <NButton text type="primary" @click="downloadFile(x.fileId)">查看/下载</NButton>
-                                </div>
-                              </div>
-                            </NCard>
-                          </template>
-                          <NEmpty v-else description="暂无附件"/>
-                        </NSpace>
-                      </NFormItem>
-                    </NForm>
-                  </NCard>
-                </NGi>
-                <NGi>
-                  <NCard :segmented="{ content: true }" title="Writeup管理">
-                    <NForm ref="draftWriteupFormRef" :model="draftData.config" :rules="draftWriteupRules">
-                      <NFormItem>
-                        <FileUpload
-                          v-model:file-list="draftWriteupList"
-                          upload-type="file"
-                          :show-file-list="true"
-                          :accept="AcceptType.ChallengeWriteup"
-                          :data="{ challengeId: challengeId }"
-                          action="/cch/challengeFile/upload"
-                          :on-success="handleWriteupUploadSuccess"
-                        />
-                      </NFormItem>
-                      <NFormItem label="已上传 Writeup">
-                        <NSpace vertical class="w-full">
-                          <template v-if="draftData.config.writeups?.length">
-                            <NCard v-for="x of draftData.config.writeups" :key="x.fileId" size="small">
-                              <div class="flex items-center justify-between gap-12px">
-                                <div class="flex-1">
-                                  <div class="mb-8px flex items-center gap-8px">
-                                    <NTag type="info" size="small">Writeup</NTag>
-                                    <span class="font-600">{{ x.fileName }}</span>
-                                  </div>
-                                  <NInput v-model:value="x.remark" placeholder="填写备注（可选）" size="small"/>
-                                </div>
-                                <div class="flex items-center">
-                                  <NButton text type="primary" @click="downloadFile(x.fileId)">查看/下载</NButton>
-                                </div>
-                              </div>
-                            </NCard>
-                          </template>
-                          <NEmpty v-else description="暂无 Writeup"/>
-                        </NSpace>
-                      </NFormItem>
-                    </NForm>
-                  </NCard>
-                </NGi>
-              </NGrid>
-            </NTabPane>
-            <NTabPane name="flag" tab="Flag管理">
-              <NCard :segmented="{ content: true }" title="Flag列表">
-                <NSpace vertical class="w-full">
-                  <NSpace>
-                    <NButton type="primary" @click="addFlag('static')">添加静态Flag</NButton>
-                    <NButton @click="addFlag('dynamic')">添加动态Flag</NButton>
-                  </NSpace>
-                  <template v-if="draftData.config.flags?.length">
-                    <NCard v-for="(flag, index) of draftData.config.flags" :key="index" size="small">
-                      <template #header>
-                        <div class="flex items-center justify-between">
-                          <div class="flex items-center gap-8px">
-                            <NTag :type="flag.type === 'static' ? 'success' : 'warning'" size="small">
-                              {{ getFlagTypeLabel(flag.type) }}
-                            </NTag>
-                            <span>Flag {{ index + 1 }}</span>
-                          </div>
-                          <NButton text type="error" size="small" @click="removeFlag(index)">删除</NButton>
-                        </div>
-                      </template>
-                      <NSpace vertical class="w-full">
-                        <NGrid cols="1 800:2" x-gap="12" y-gap="12">
-                          <NGi>
-                            <NFormItem label="Flag类型">
-                              <NSelect
-                                :value="flag.type"
-                                :options="[
-                                  { label: '静态', value: 'static' },
-                                  { label: '动态', value: 'dynamic' }
-                                ]"
-                                disabled
-                              />
-                            </NFormItem>
-                          </NGi>
-                          <NGi>
-                            <NFormItem label="分值（推荐）">
-                              <NInputNumber
-                                v-model:value="flag.score"
-                                :min="0"
-                                :precision="0"
-                                placeholder="请输入分值"
-                                class="w-full"
-                              />
-                            </NFormItem>
-                          </NGi>
-                          <NGi v-if="flag.type === 'static'">
-                            <NFormItem label="Flag内容">
-                              <NInput
-                                v-model:value="(flag as Api.Cch.ChallengeDraftConfigStaticFlag).content"
-                                placeholder="请输入Flag内容"
-                                type="textarea"
-                                :rows="2"
-                              />
-                            </NFormItem>
-                          </NGi>
-                          <NGi v-if="flag.type === 'dynamic'">
-                            <NFormItem label="生成规则配置">
-                              <NInput
-                                v-model:value="(flag as Api.Cch.ChallengeDraftConfigDynamicFlag).generatorConfig"
-                                placeholder="动态Flag生成规则（待实现）"
-                                type="textarea"
-                                :rows="2"
-                                disabled
-                              />
-                            </NFormItem>
-                          </NGi>
-                          <NGi>
-                            <NFormItem label="Flag描述（给选手查看）">
-                              <NInput
-                                v-model:value="flag.description"
-                                placeholder="请输入Flag描述，此内容会展示给选手"
-                                type="textarea"
-                                :rows="2"
-                              />
-                            </NFormItem>
-                          </NGi>
-                          <NGi>
-                            <NFormItem label="Flag备注（仅后台可见）">
-                              <NInput
-                                v-model:value="flag.remark"
-                                placeholder="请输入Flag备注，仅后台管理员可见"
-                                type="textarea"
-                                :rows="2"
-                              />
-                            </NFormItem>
-                          </NGi>
-                        </NGrid>
-                      </NSpace>
-                    </NCard>
-                  </template>
-                  <NEmpty v-else description="暂无Flag，点击上方按钮添加"/>
-                </NSpace>
-              </NCard>
-            </NTabPane>
-            <NTabPane v-if="draftData?.config?.runType === 'container'" name="container" tab="容器镜像管理">
-              <ChallengeImageManagement
-                :challenge-id="challengeId"
-                @update="loadImageList"
-              />
-            </NTabPane>
-            <NTabPane v-if="draftData?.config?.runType === 'container'" name="container-target" tab="容器靶机配置">
-              <ContainerTargetConfig v-model="draftData.config.containerTargets" :challenge-id="challengeId"/>
-            </NTabPane>
-            <NTabPane v-if="draftData?.config?.runType === 'vm'" name="vm" tab="虚拟机管理">
-              <div class="p-4">
-                <h3>虚拟机管理</h3>
-                <p>TODO: 虚拟机配置管理功能</p>
-              </div>
-            </NTabPane>
-          </NTabs>
+  <div class="draft-container">
+    <!-- 顶部标题栏 -->
+    <div class="draft-header">
+      <div class="header-left">
+        <div class="header-icon">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2L3 7V12C3 17.55 6.84 22.74 12 24C17.16 22.74 21 17.55 21 12V7L12 2Z" fill="currentColor"
+                  opacity="0.15"/>
+            <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                  stroke-linejoin="round"/>
+          </svg>
         </div>
-        <div v-else>未能加载草稿数据</div>
-      </NCard>
-    </template>
-    <template #2>
-      <NCard>
-        <NTabs v-model:value="activeSideTab" type="line">
-          <NTabPane name="history" tab="修改历史">
-            <ChallengeDraftHistory
-              ref="historyRef"
-              :challenge-id="challengeId"
-              :current-draft-id="draftId"
-              :fork-from="forkFromDraftId"
-            />
-          </NTabPane>
-          <NTabPane name="oasis" tab="Oasis">Wonderwall</NTabPane>
-        </NTabs>
-      </NCard>
-    </template>
-  </NSplit>
+        <div class="header-content">
+          <h1 class="header-title">题目草稿编辑</h1>
+          <span v-if="isForkMode" class="header-badge">派生编辑</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <NButton :loading="saving" :disabled="!hasEdited || saving" type="primary" size="large" @click="saveDraft">
+          <template #icon>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+              <polyline points="17 21 17 13 7 13 7 21"/>
+              <polyline points="7 3 7 8 15 8"/>
+            </svg>
+          </template>
+          保存草稿
+        </NButton>
+        <NButton size="large" @click="goBack">
+          <template #icon>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="19" y1="12" x2="5" y2="12"/>
+              <polyline points="12 19 5 12 12 5"/>
+            </svg>
+          </template>
+          返回
+        </NButton>
+      </div>
+    </div>
+
+    <!-- 主内容区域 -->
+    <div class="draft-main">
+      <NSplit v-model:size="split" direction="horizontal" class="draft-split">
+        <template #1>
+          <div class="main-panel">
+            <!-- 加载状态 -->
+            <div v-if="loading" class="loading-wrapper">
+              <NCard class="loading-card">
+                <div class="skeleton-grid">
+                  <NSkeleton text :repeat="3" class="skeleton-item"/>
+                  <NSkeleton text :repeat="2" class="skeleton-item"/>
+                  <NSkeleton text :repeat="4" class="skeleton-item"/>
+                </div>
+              </NCard>
+            </div>
+
+            <!-- 数据加载完成 -->
+            <template v-else-if="draftData">
+              <!-- 标签页导航 -->
+              <div class="tab-nav-wrapper">
+                <NTabs v-model:value="activeMainTab" type="card" animated class="cyber-tabs">
+                  <NTabPane name="info" tab="题目信息" tab-class="cyber-tab">
+                    <template #tab>
+                      <span class="tab-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                          <polyline points="14 2 14 8 20 8"/>
+                          <line x1="16" y1="13" x2="8" y2="13"/>
+                          <line x1="16" y1="17" x2="8" y2="17"/>
+                        </svg>
+                      </span>
+                      题目信息
+                    </template>
+                    <div class="pane-content">
+                      <NGrid cols="1 600:2 1200:3" x-gap="16" y-gap="16">
+                        <!-- 基本信息卡片 -->
+                        <NGi>
+                          <div class="info-card">
+                            <div class="card-header">
+                              <div class="card-icon basic">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                  <line x1="3" y1="9" x2="21" y2="9"/>
+                                  <line x1="9" y1="21" x2="9" y2="9"/>
+                                </svg>
+                              </div>
+                              <h3 class="card-title">基本信息</h3>
+                            </div>
+                            <div class="card-body">
+                              <NForm ref="challengeFormRef" :model="challengeData" :rules="challengeRules">
+                                <div class="form-group">
+                                  <label class="form-label">题目类型</label>
+                                  <NSelect
+                                    v-model:value="challengeData.category"
+                                    :options="cchQuestionCategroyOptions"
+                                    clearable
+                                    placeholder="请选择题目类型"
+                                    class="cyber-input"
+                                  />
+                                </div>
+                                <div class="form-group">
+                                  <label class="form-label">题目名称</label>
+                                  <NInput v-model:value="challengeData.name" placeholder="请输入题目名称"
+                                          class="cyber-input"/>
+                                </div>
+                                <div class="form-group">
+                                  <label class="form-label">题目备注</label>
+                                  <NInput
+                                    v-model:value="challengeData.remark"
+                                    :rows="3"
+                                    placeholder="请输入题目备注"
+                                    type="textarea"
+                                    class="cyber-input"
+                                  />
+                                </div>
+                              </NForm>
+                            </div>
+                          </div>
+                        </NGi>
+
+                        <!-- 题目配置卡片 -->
+                        <NGi>
+                          <div class="info-card">
+                            <div class="card-header">
+                              <div class="card-icon config">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                  <circle cx="12" cy="12" r="3"/>
+                                  <path
+                                    d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                                </svg>
+                              </div>
+                              <h3 class="card-title">题目配置</h3>
+                            </div>
+                            <div class="card-body">
+                              <NForm ref="draftFormRef" :model="draftData.config" :rules="draftRules">
+                                <div class="form-group">
+                                  <label class="form-label">运行类型</label>
+                                  <NRadioGroup v-model:value="draftData.config.runType">
+                                    <NRadioButton
+                                      v-for="option in cchQuestionRunTypeOptions"
+                                      :key="option.value"
+                                      :value="option.value"
+                                      :label="option.label"
+                                    />
+                                  </NRadioGroup>
+                                </div>
+                                <div class="form-group">
+                                  <label class="form-label">难度</label>
+                                  <NRadioGroup v-model:value="draftData.config.difficulty">
+                                    <NRadioButton
+                                      v-for="option in cchQuestionDifficultyOptions"
+                                      :key="option.value"
+                                      :value="option.value"
+                                      :label="option.label"
+                                    />
+                                  </NRadioGroup>
+                                </div>
+                                <div class="form-group">
+                                  <label class="form-label">知识点</label>
+                                  <NSelect v-model:value="draftData.config.knowledge" filterable multiple tag
+                                           class="cyber-select"/>
+                                </div>
+                                <div class="form-group full-height">
+                                  <label class="form-label">题干描述</label>
+                                  <NInput
+                                    v-model:value="draftData.config.stem"
+                                    :rows="6"
+                                    placeholder="请输入题干内容"
+                                    type="textarea"
+                                    class="cyber-input"
+                                  />
+                                </div>
+                              </NForm>
+                            </div>
+                          </div>
+                        </NGi>
+
+                        <!-- 附件管理卡片 -->
+                        <NGi>
+                          <div class="info-card">
+                            <div class="card-header">
+                              <div class="card-icon attachment">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                  <path
+                                    d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                                </svg>
+                              </div>
+                              <h3 class="card-title">附件管理</h3>
+                            </div>
+                            <div class="card-body">
+                              <FileUpload
+                                v-model:file-list="draftAttachmentList"
+                                upload-type="file"
+                                :show-file-list="true"
+                                :accept="AcceptType.ChallengeAttachment"
+                                :data="{ challengeId: challengeId }"
+                                action="/cch/challengeFile/upload"
+                                :on-success="handleAttachmentUploadSuccess"
+                              />
+                              <div v-if="draftData.config.attachments?.length" class="file-list">
+                                <div v-for="x of draftData.config.attachments" :key="x.fileId" class="file-item">
+                                  <div class="file-icon attachment">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                      <polyline points="14 2 14 8 20 8"/>
+                                    </svg>
+                                  </div>
+                                  <div class="file-info">
+                                    <div class="file-name">
+                                      <NTag type="success" size="small">附件</NTag>
+                                      <span>{{ x.fileName }}</span>
+                                    </div>
+                                    <NInput v-model:value="x.remark" placeholder="填写备注（可选）" size="small"
+                                            class="file-remark"/>
+                                  </div>
+                                  <NButton text type="primary" @click="downloadFile(x.fileId)" class="file-action">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                      <polyline points="7 10 12 15 17 10"/>
+                                      <line x1="12" y1="15" x2="12" y2="3"/>
+                                    </svg>
+                                  </NButton>
+                                </div>
+                              </div>
+                              <NEmpty v-else description="暂无附件" size="small"/>
+                            </div>
+                          </div>
+                        </NGi>
+
+                        <!-- Writeup管理卡片 -->
+                        <NGi>
+                          <div class="info-card">
+                            <div class="card-header">
+                              <div class="card-icon writeup">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                  <polyline points="14 2 14 8 20 8"/>
+                                  <line x1="16" y1="13" x2="8" y2="13"/>
+                                  <line x1="16" y1="17" x2="8" y2="17"/>
+                                  <polyline points="10 9 9 9 8 9"/>
+                                </svg>
+                              </div>
+                              <h3 class="card-title">Writeup管理</h3>
+                            </div>
+                            <div class="card-body">
+                              <FileUpload
+                                v-model:file-list="draftWriteupList"
+                                upload-type="file"
+                                :show-file-list="true"
+                                :accept="AcceptType.ChallengeWriteup"
+                                :data="{ challengeId: challengeId }"
+                                action="/cch/challengeFile/upload"
+                                :on-success="handleWriteupUploadSuccess"
+                              />
+                              <div v-if="draftData.config.writeups?.length" class="file-list">
+                                <div v-for="x of draftData.config.writeups" :key="x.fileId" class="file-item">
+                                  <div class="file-icon writeup">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                      <polyline points="14 2 14 8 20 8"/>
+                                      <line x1="16" y1="13" x2="8" y2="13"/>
+                                      <line x1="16" y1="17" x2="8" y2="17"/>
+                                    </svg>
+                                  </div>
+                                  <div class="file-info">
+                                    <div class="file-name">
+                                      <NTag type="info" size="small">Writeup</NTag>
+                                      <span>{{ x.fileName }}</span>
+                                    </div>
+                                    <NInput v-model:value="x.remark" placeholder="填写备注（可选）" size="small"
+                                            class="file-remark"/>
+                                  </div>
+                                  <NButton text type="primary" @click="downloadFile(x.fileId)" class="file-action">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                      <polyline points="7 10 12 15 17 10"/>
+                                      <line x1="12" y1="15" x2="12" y2="3"/>
+                                    </svg>
+                                  </NButton>
+                                </div>
+                              </div>
+                              <NEmpty v-else description="暂无 Writeup" size="small"/>
+                            </div>
+                          </div>
+                        </NGi>
+                      </NGrid>
+                    </div>
+                  </NTabPane>
+
+                  <NTabPane name="flag" tab="Flag管理" tab-class="cyber-tab">
+                    <template #tab>
+                      <span class="tab-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+                          <line x1="4" y1="22" x2="4" y2="15"/>
+                        </svg>
+                      </span>
+                      Flag管理
+                    </template>
+                    <div class="pane-content">
+                      <div class="flag-header">
+                        <h3 class="section-title">Flag 列表</h3>
+                        <NSpace>
+                          <NButton type="primary" @click="addFlag('static')">
+                            <template #icon>
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"/>
+                                <line x1="5" y1="12" x2="19" y2="12"/>
+                              </svg>
+                            </template>
+                            静态Flag
+                          </NButton>
+                          <NButton @click="addFlag('dynamic')">
+                            <template #icon>
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                                <path d="M2 17l10 5 10-5"/>
+                                <path d="M2 12l10 5 10-5"/>
+                              </svg>
+                            </template>
+                            动态Flag
+                          </NButton>
+                        </NSpace>
+                      </div>
+
+                      <div v-if="draftData.config.flags?.length" class="flag-list">
+                        <div v-for="(flag, index) of draftData.config.flags" :key="index" class="flag-item">
+                          <div class="flag-header-row">
+                            <div class="flag-title-row">
+                              <NTag :type="flag.type === 'static' ? 'success' : 'warning'" size="small">
+                                {{ getFlagTypeLabel(flag.type) }}
+                              </NTag>
+                              <span class="flag-index">Flag {{ index + 1 }}</span>
+                            </div>
+                            <NButton text type="error" size="small" @click="removeFlag(index)" class="delete-btn">
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path
+                                  d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                              </svg>
+                              删除
+                            </NButton>
+                          </div>
+                          <div class="flag-body">
+                            <NGrid cols="1 800:2" x-gap="12" y-gap="12">
+                              <NGi>
+                                <div class="form-group">
+                                  <label class="form-label">Flag类型</label>
+                                  <NSelect
+                                    :value="flag.type"
+                                    :options="[
+                                      { label: '静态', value: 'static' },
+                                      { label: '动态', value: 'dynamic' }
+                                    ]"
+                                    disabled
+                                    class="cyber-input"
+                                  />
+                                </div>
+                              </NGi>
+                              <NGi>
+                                <div class="form-group">
+                                  <label class="form-label">分值（推荐）</label>
+                                  <NInputNumber
+                                    v-model:value="flag.score"
+                                    :min="0"
+                                    :precision="0"
+                                    placeholder="请输入分值"
+                                    class="cyber-input w-full"
+                                  />
+                                </div>
+                              </NGi>
+                              <NGi v-if="flag.type === 'static'">
+                                <div class="form-group">
+                                  <label class="form-label">Flag内容</label>
+                                  <NInput
+                                    v-model:value="(flag as Api.Cch.ChallengeDraftConfigStaticFlag).content"
+                                    placeholder="请输入Flag内容"
+                                    type="textarea"
+                                    :rows="2"
+                                    class="cyber-input"
+                                  />
+                                </div>
+                              </NGi>
+                              <NGi v-if="flag.type === 'dynamic'">
+                                <div class="form-group">
+                                  <label class="form-label">生成规则配置</label>
+                                  <NInput
+                                    v-model:value="(flag as Api.Cch.ChallengeDraftConfigDynamicFlag).generatorConfig"
+                                    placeholder="动态Flag生成规则（待实现）"
+                                    type="textarea"
+                                    :rows="2"
+                                    disabled
+                                    class="cyber-input"
+                                  />
+                                </div>
+                              </NGi>
+                              <NGi>
+                                <div class="form-group">
+                                  <label class="form-label">Flag描述（给选手查看）</label>
+                                  <NInput
+                                    v-model:value="flag.description"
+                                    placeholder="请输入Flag描述，此内容会展示给选手"
+                                    type="textarea"
+                                    :rows="2"
+                                    class="cyber-input"
+                                  />
+                                </div>
+                              </NGi>
+                              <NGi>
+                                <div class="form-group">
+                                  <label class="form-label">Flag备注（仅后台可见）</label>
+                                  <NInput
+                                    v-model:value="flag.remark"
+                                    placeholder="请输入Flag备注，仅后台管理员可见"
+                                    type="textarea"
+                                    :rows="2"
+                                    class="cyber-input"
+                                  />
+                                </div>
+                              </NGi>
+                            </NGrid>
+                          </div>
+                        </div>
+                      </div>
+                      <NEmpty v-else description="暂无Flag，点击上方按钮添加" class="empty-state"/>
+                    </div>
+                  </NTabPane>
+
+                  <NTabPane v-if="draftData?.config?.runType === 'container'" name="container" tab-class="cyber-tab">
+                    <template #tab>
+                      <span class="tab-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                          <line x1="8" y1="21" x2="16" y2="21"/>
+                          <line x1="12" y1="17" x2="12" y2="21"/>
+                        </svg>
+                      </span>
+                      容器镜像
+                    </template>
+                    <div class="pane-content">
+                      <ChallengeImageManagement
+                        :challenge-id="challengeId"
+                        @update="loadImageList"
+                      />
+                    </div>
+                  </NTabPane>
+
+                  <NTabPane v-if="draftData?.config?.runType === 'container'" name="container-target"
+                            tab-class="cyber-tab">
+                    <template #tab>
+                      <span class="tab-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <circle cx="12" cy="12" r="10"/>
+                          <line x1="2" y1="12" x2="22" y2="12"/>
+                          <path
+                            d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                        </svg>
+                      </span>
+                      容器靶机
+                    </template>
+                    <div class="pane-content">
+                      <ContainerTargetConfig v-model="draftData.config.containerTargets" :challenge-id="challengeId"/>
+                    </div>
+                  </NTabPane>
+
+                  <NTabPane v-if="draftData?.config?.runType === 'vm'" name="vm" tab-class="cyber-tab">
+                    <template #tab>
+                      <span class="tab-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                          <line x1="8" y1="21" x2="16" y2="21"/>
+                          <line x1="12" y1="17" x2="12" y2="21"/>
+                        </svg>
+                      </span>
+                      虚拟机
+                    </template>
+                    <div class="pane-content">
+                      <div class="vm-placeholder">
+                        <div class="placeholder-icon">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                            <line x1="8" y1="21" x2="16" y2="21"/>
+                            <line x1="12" y1="17" x2="12" y2="21"/>
+                          </svg>
+                        </div>
+                        <h3>虚拟机管理</h3>
+                        <p>功能开发中...</p>
+                      </div>
+                    </div>
+                  </NTabPane>
+                </NTabs>
+              </div>
+            </template>
+
+            <!-- 加载失败状态 -->
+            <NCard v-else class="error-card">
+              <NEmpty description="未能加载草稿数据">
+                <template #extra>
+                  <NButton type="primary" @click="goBack">返回列表</NButton>
+                </template>
+              </NEmpty>
+            </NCard>
+          </div>
+        </template>
+
+        <template #2>
+          <div class="side-panel">
+            <NCard class="side-card">
+              <NTabs v-model:value="activeSideTab" type="line" animated>
+                <NTabPane name="history" tab="修改历史">
+                  <ChallengeDraftHistory
+                    ref="historyRef"
+                    :challenge-id="challengeId"
+                    :current-draft-id="draftId"
+                    :fork-from="forkFromDraftId"
+                  />
+                </NTabPane>
+                <NTabPane name="oasis" tab="Oasis">
+                  <div class="oasis-content">
+                    <div class="oasis-icon">
+                      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5"/>
+                        <path d="M8 12L11 15L16 9" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                              stroke-linejoin="round"/>
+                      </svg>
+                    </div>
+                    <p>Wonderwall</p>
+                  </div>
+                </NTabPane>
+              </NTabs>
+            </NCard>
+          </div>
+        </template>
+      </NSplit>
+    </div>
+  </div>
 </template>
 
 <style scoped lang="scss">
-/* 可以在这里添加样式 */
-label {
-  font-weight: bold;
+// 变量定义
+$primary-color: #3b82f6;
+$primary-hover: #2563eb;
+$primary-light: rgba(59, 130, 246, 0.1);
+$success-color: #10b981;
+$success-light: rgba(16, 185, 129, 0.1);
+$warning-color: #f59e0b;
+$warning-light: rgba(245, 158, 11, 0.1);
+$danger-color: #ef4444;
+$danger-light: rgba(239, 68, 68, 0.1);
+$info-color: #06b6d4;
+$info-light: rgba(6, 182, 212, 0.1);
+
+$border-color: #e5e7eb;
+$border-radius: 8px;
+$shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+$shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+$shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+
+$text-primary: #1f2937;
+$text-secondary: #6b7280;
+$text-muted: #9ca3af;
+
+$bg-primary: #ffffff;
+$bg-secondary: #f9fafb;
+$bg-tertiary: #f3f4f6;
+
+// 容器样式
+.draft-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: $bg-secondary;
+  min-height: 0; // 关键：允许内部滚动容器正确计算高度
 }
 
-.scrollbar {
-  overflow-y: auto;
-  padding-right: 15px;
-  max-height: calc(100vh - 295px);
+// 顶部标题栏
+.draft-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: $bg-primary;
+  border-bottom: 1px solid $border-color;
+  box-shadow: $shadow-sm;
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .header-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, $primary-color 0%, #8b5cf6 100%);
+    border-radius: $border-radius;
+    color: white;
+
+    svg {
+      width: 24px;
+      height: 24px;
+    }
+  }
+
+  .header-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .header-title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: $text-primary;
+  }
+
+  .header-badge {
+    padding: 4px 12px;
+    background: linear-gradient(135deg, $warning-color 0%, #f97316 100%);
+    color: white;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 20px;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 12px;
+  }
+}
+
+// 主内容区域
+.draft-main {
+  flex: 1;
+  padding: 16px;
+  overflow: hidden;
+  min-height: 0; // 关键：flex 子项默认 min-height:auto 会导致无法滚动
+}
+
+.draft-split {
+  height: 100%;
+
+  :deep(.n-split-wrapper) {
+    height: 100%;
+  }
+
+  :deep(.n-split-pane) {
+    height: 100%;
+    min-height: 0; // 关键：让 pane 内的 overflow 生效
+  }
+}
+
+// 主面板
+.main-panel {
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  padding-right: 8px;
+}
+
+// 标签页容器
+.tab-nav-wrapper {
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+// 科技风格标签页
+.cyber-tabs {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+
+  :deep(.n-tabs-nav) {
+    background: $bg-primary;
+    border-radius: $border-radius;
+    padding: 8px 8px 0 8px;
+    box-shadow: $shadow-sm;
+    flex-shrink: 0;
+  }
+
+  :deep(.n-tabs-tab-wrapper) {
+    margin-right: 4px;
+  }
+
+  :deep(.n-tabs-tab) {
+    padding: 10px 20px;
+    border-radius: $border-radius $border-radius 0 0;
+    background: $bg-secondary;
+    color: $text-secondary;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+    border-bottom: none;
+
+    &:hover {
+      color: $primary-color;
+      background: $primary-light;
+    }
+
+    &.n-tabs-tab--active {
+      color: $primary-color;
+      background: $bg-primary;
+      border-color: $border-color;
+      position: relative;
+
+      &::after {
+        content: '';
+        position: absolute;
+        bottom: -1px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, $primary-color, #8b5cf6);
+      }
+    }
+  }
+
+  // 标签内容区域 - 关键：让这个区域可以滚动
+  :deep(.n-tabs-content) {
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  :deep(.n-tabs-content--animated) {
+    height: 100%;
+  }
+
+  // NaiveUI 实际的 pane 容器：n-tabs-pane-wrapper / n-tab-pane
+  // 让 wrapper 占满剩余高度，并把滚动交给真正的 pane
+  :deep(.n-tabs-pane-wrapper) {
+    flex: 1;
+    height: 100%;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  :deep(.n-tab-pane) {
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 0;
+  }
+
+  :deep(.n-tabs-tab-pane) {
+    padding: 0;
+    height: 100%;
+  }
+}
+
+// 加载状态
+.loading-wrapper {
+  padding: 24px;
+}
+
+.loading-card {
+  border-radius: $border-radius;
+  box-shadow: $shadow;
+}
+
+.skeleton-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+// 标签页导航
+.tab-nav-wrapper {
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.tab-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 6px;
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+// 内容面板
+.pane-content {
+  padding: 16px;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+// 信息卡片
+.info-card {
+  background: $bg-primary;
+  border-radius: $border-radius;
+  box-shadow: $shadow;
+  overflow: hidden;
+  transition: box-shadow 0.3s ease;
+
+  &:hover {
+    box-shadow: $shadow-lg;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    background: linear-gradient(135deg, $bg-secondary 0%, $bg-tertiary 100%);
+    border-bottom: 1px solid $border-color;
+  }
+
+  .card-icon {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    color: white;
+
+    svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    &.basic {
+      background: linear-gradient(135deg, $primary-color, #3b82f6);
+    }
+
+    &.config {
+      background: linear-gradient(135deg, $info-color, #0891b2);
+    }
+
+    &.stem {
+      background: linear-gradient(135deg, #8b5cf6, #a855f7);
+    }
+
+    &.attachment {
+      background: linear-gradient(135deg, $success-color, #34d399);
+    }
+
+    &.writeup {
+      background: linear-gradient(135deg, $warning-color, #fbbf24);
+    }
+  }
+
+  .card-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: $text-primary;
+  }
+
+  .card-body {
+    padding: 16px;
+  }
+}
+
+// 表单样式
+.form-group {
+  margin-bottom: 16px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  &.full-height {
+    height: calc(100% - 24px);
+  }
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: $text-secondary;
+}
+
+.cyber-input {
+  width: 100%;
+
+  :deep(.n-input) {
+    border-radius: 6px;
+    background: $bg-secondary;
+    border: 1px solid $border-color;
+    transition: all 0.2s ease;
+
+    &:hover {
+      border-color: $primary-color;
+    }
+
+    &:focus {
+      border-color: $primary-color;
+      box-shadow: 0 0 0 3px $primary-light;
+    }
+  }
+}
+
+.cyber-select {
+  width: 100%;
+
+  :deep(.n-base-select) {
+    border-radius: 6px;
+  }
+}
+
+.cyber-radio-group {
+  display: flex;
+  gap: 8px;
+
+  :deep(.n-radio-button) {
+    border-radius: 6px;
+    padding: 6px 16px;
+    background: $bg-secondary;
+    border: 1px solid $border-color;
+    color: $text-secondary;
+    transition: all 0.2s ease;
+
+    &:hover {
+      border-color: $primary-color;
+      color: $primary-color;
+    }
+
+    &.n-radio-button--checked {
+      background: $primary-color;
+      border-color: $primary-color;
+      color: white;
+    }
+  }
+}
+
+// 文件列表
+.file-list {
+  margin-top: 16px;
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: $bg-secondary;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  transition: background 0.2s ease;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  &:hover {
+    background: $bg-tertiary;
+  }
+}
+
+.file-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  flex-shrink: 0;
+
+  svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  &.attachment {
+    background: $success-light;
+    color: $success-color;
+  }
+
+  &.writeup {
+    background: rgba(245, 158, 11, 0.1);
+    color: $warning-color;
+  }
+}
+
+.file-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: $text-primary;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-remark {
+  :deep(.n-input) {
+    background: transparent;
+    border: none;
+    font-size: 12px;
+
+    .n-input__input-el {
+      text-overflow: ellipsis;
+    }
+  }
+}
+
+.file-action {
+  flex-shrink: 0;
+
+  svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+// Flag管理
+.section-title {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: $text-primary;
+}
+
+.flag-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.flag-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.flag-item {
+  background: $bg-primary;
+  border-radius: $border-radius;
+  box-shadow: $shadow;
+  overflow: hidden;
+}
+
+.flag-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, $bg-secondary 0%, $bg-tertiary 100%);
+  border-bottom: 1px solid $border-color;
+}
+
+.flag-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.flag-index {
+  font-size: 14px;
+  font-weight: 500;
+  color: $text-primary;
+}
+
+.delete-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.flag-body {
+  padding: 16px;
+}
+
+// 空状态
+.empty-state {
+  padding: 48px 0;
+}
+
+// 错误卡片
+.error-card {
+  border-radius: $border-radius;
+  box-shadow: $shadow;
+
+  :deep(.n-card__content) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+  }
+}
+
+// 虚拟机占位符
+.vm-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 24px;
+  background: $bg-primary;
+  border-radius: $border-radius;
+  box-shadow: $shadow;
+  text-align: center;
+
+  .placeholder-icon {
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: $bg-secondary;
+    border-radius: 50%;
+    margin-bottom: 24px;
+    color: $text-muted;
+
+    svg {
+      width: 40px;
+      height: 40px;
+    }
+  }
+
+  h3 {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: $text-primary;
+  }
+
+  p {
+    margin: 0;
+    font-size: 14px;
+    color: $text-muted;
+  }
+}
+
+// Oasis 内容
+.oasis-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+
+  .oasis-icon {
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: $bg-secondary;
+    border-radius: 50%;
+    margin-bottom: 16px;
+    color: $primary-color;
+
+    svg {
+      width: 32px;
+      height: 32px;
+    }
+  }
+
+  p {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 500;
+    color: $text-secondary;
+  }
+}
+
+// 响应式设计
+@media (max-width: 768px) {
+  .draft-header {
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
+
+    .header-actions {
+      width: 100%;
+      justify-content: flex-end;
+    }
+  }
+
+  .flag-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
 }
 </style>
