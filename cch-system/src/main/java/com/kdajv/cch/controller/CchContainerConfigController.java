@@ -1,6 +1,7 @@
 package com.kdajv.cch.controller;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
+import com.kdajv.cch.domain.vo.ClusterNodeVo;
 import com.kdajv.cch.domain.vo.CchContainerConfigVo;
 import com.kdajv.cch.domain.vo.DockerContainerVo;
 import com.kdajv.cch.domain.vo.DockerImageVo;
@@ -148,6 +149,30 @@ public class CchContainerConfigController extends BaseController {
     @GetMapping("/images")
     public R<List<DockerImageVo>> getImages() {
         return R.ok(containerConfigService.getDockerImages());
+    }
+
+    /**
+     * 获取集群节点列表
+     */
+    @SaCheckPermission("container:config:list")
+    @GetMapping("/nodes")
+    public R<List<ClusterNodeVo>> getNodes() {
+        return R.ok(containerConfigService.getClusterNodes());
+    }
+
+    /**
+     * 更新节点外部访问地址
+     *
+     * @param nodeId  节点ID
+     * @param address 外部访问地址（IP或域名）
+     */
+    @SaCheckPermission("container:config:edit")
+    @Log(title = "容器配置", businessType = BusinessType.UPDATE)
+    @RepeatSubmit()
+    @PutMapping("/nodes/{nodeId}/external-address")
+    public R<Void> updateNodeExternalAddress(@PathVariable String nodeId, @RequestParam(required = false) String address) {
+        containerConfigService.updateNodeExternalAddress(nodeId, address);
+        return R.ok();
     }
 
 }

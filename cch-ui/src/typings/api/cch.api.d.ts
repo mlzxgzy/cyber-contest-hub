@@ -405,6 +405,32 @@ declare namespace Api {
       containersStopped: number;
     }
 
+    /** 集群节点信息（Docker Swarm 或 Kubernetes） */
+    type ClusterNode = {
+      /** 节点ID */
+      id: string;
+      /** 节点名称 */
+      name: string;
+      /** 节点角色（manager/worker 或 master/node） */
+      role?: string;
+      /** 节点状态 */
+      status?: string;
+      /** 节点地址 */
+      address?: string;
+      /** 节点标签（key-value格式） */
+      labels?: Record<string, string>;
+      /** 外部访问地址（从labels中提取） */
+      externalAccessAddress?: string;
+      /** 架构 */
+      architecture?: string;
+      /** 操作系统 */
+      operatingSystem?: string;
+      /** CPU数量 */
+      cpuCount?: number;
+      /** 内存总量（字节） */
+      memoryTotal?: number;
+    }
+
     /** challenge container image */
     type ChallengeContainerImage = Common.CommonRecord<{
       /** 主键 */

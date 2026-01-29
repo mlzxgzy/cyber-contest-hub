@@ -8,9 +8,9 @@ import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.core.DefaultDockerClientConfig;
 import com.github.dockerjava.core.DockerClientBuilder;
 import com.github.dockerjava.httpclient5.ApacheDockerHttpClient;
-import com.github.dockerjava.transport.DockerHttpClient;
 import com.kdajv.cch.container.ContainerClient;
 import com.kdajv.cch.container.DockerContainerClient;
+import com.kdajv.cch.domain.vo.ClusterNodeVo;
 import com.kdajv.cch.domain.vo.CchContainerConfigVo;
 import com.kdajv.cch.domain.vo.DockerContainerVo;
 import com.kdajv.cch.domain.vo.DockerImageVo;
@@ -27,7 +27,6 @@ import org.dromara.system.mapper.SysConfigMapper;
 import org.dromara.system.service.ISysConfigService;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -519,6 +518,90 @@ public class CchContainerConfigServiceImpl implements ICchContainerConfigService
     @Override
     public ContainerClient getActiveClient() {
         return activeClient;
+    }
+
+    @Override
+    public List<ClusterNodeVo> getClusterNodes() {
+        if (activeClient == null) {
+            throw new ServiceException("没有活跃的容器连接");
+        }
+
+        try {
+            return activeClient.listNodes();
+        } catch (Exception e) {
+            log.error("获取节点列表失败", e);
+            throw new ServiceException("获取节点列表失败: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void updateNodeExternalAddress(String nodeId, String address) {
+        if (activeClient == null) {
+            throw new ServiceException("没有活跃的容器连接");
+        }
+
+        // 校验地址格式：IP或域名
+        if (address != null && !address.trim().isEmpty()) {
+            String trimmedAddress = address.trim();
+            // 校验是否为有效IP或域名
+            if (!isValidIpAddress(trimmedAddress) && !isValidDomain(trimmedAddress)) {
+                throw new ServiceException("请输入有效的IP地址或域名");
+            }
+            address = trimmedAddress;
+        }
+
+        try {
+            activeClient.updateNodeExternalAddress(nodeId, address);
+        } catch (ServiceException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("更新节点外部访问地址失败", e);
+            throw new ServiceException("更新节点外部访问地址失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 校验是否为有效IP地址
+     */
+    private boolean isValidIpAddress(String address) {
+        // IPv4校验
+        String ipv4Pattern = "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$";
+        // IPv6校验（简化版）
+        String ipv6Pattern = "^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$" +
+                "|^([0-9a-fA-F]{1,4}:){1,7}:$" +
+                "|^([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}$" +
+                "|^([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}$" +
+                "|^([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}$" +
+                "|^([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}$" +
+                "|^([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}$" +
+                "|^[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})$" +
+                "|^:((:[0-9a-fA-F]{1,4}){1,7}|:)$" +
+                "|^::$";
+
+        return address.matches(ipv4Pattern) || address.matches(ipv6Pattern);
+    }
+
+    /**
+     * 校验是否为有效域名
+     */
+    private boolean isValidDomain(String domain) {
+        // 域名正则校验
+        String domainPattern = "^((?!-)[A-Za-z0-9-]{1,63}(?<!-)\\.)+[A-Za-z]{2,6}$";
+        return domain.matches(domainPattern);
+    }
+
+    @Override
+    public void updateNodeLabels(String nodeId, Map<String, String> labels) {
+        if (activeClient == null) {
+            throw new ServiceException("没有活跃的容器连接");
+        }
+
+        try {
+            activeClient.updateNodeLabels(nodeId, labels);
+        } catch (Exception e) {
+            log.error("更新节点标签失败", e);
+            throw new ServiceException("更新节点标签失败: " + e.getMessage());
+        }
     }
 
 }

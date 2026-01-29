@@ -13,6 +13,7 @@ import {
 import {useAuth} from '@/hooks/business/auth';
 import {useLoading} from '@sa/hooks';
 import SvgIcon from '@/components/custom/svg-icon.vue';
+import NodeList from './components/NodeList.vue';
 
 defineOptions({
   name: 'ContainerConfigList'
@@ -351,8 +352,9 @@ watch(isConnected, (connected) => {
           </div>
 
           <div class="grid grid-cols-2 gap-16px">
-            <!-- 左侧：当前连接信息 -->
-            <div class="col-span-1">
+            <!-- 左侧：当前连接信息和节点信息 -->
+            <div class="col-span-1 flex flex-col gap-16px">
+              <!-- 连接信息 -->
               <NCard title="连接信息" :bordered="false" size="small" class="card-wrapper">
                 <NDescriptions :column="1" label-placement="left">
                   <NDescriptionsItem label="配置名称">
@@ -377,6 +379,9 @@ watch(isConnected, (connected) => {
                   </NButton>
                 </div>
               </NCard>
+
+              <!-- 节点信息 -->
+              <NodeList :is-connected="isConnected" />
             </div>
 
             <!-- 右侧：容器和镜像信息 -->

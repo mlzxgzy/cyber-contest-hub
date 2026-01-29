@@ -75,3 +75,19 @@ export function fetchGetImageList() {
   });
 }
 
+/** 获取集群节点列表 */
+export function fetchGetNodeList() {
+  return request<Api.Cch.ClusterNode[]>({
+    url: '/cch/container/config/nodes',
+    method: 'get'
+  });
+}
+
+/** 更新节点外部访问地址 */
+export function fetchUpdateNodeExternalAddress(nodeId: string, address: string) {
+  return request<boolean>({
+    url: `/cch/container/config/nodes/${nodeId}/external-address`,
+    method: 'put',
+    params: { address }
+  });
+}

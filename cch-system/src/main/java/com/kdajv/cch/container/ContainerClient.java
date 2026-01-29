@@ -1,5 +1,6 @@
 package com.kdajv.cch.container;
 
+import com.kdajv.cch.domain.vo.ClusterNodeVo;
 import com.kdajv.cch.domain.vo.DockerContainerVo;
 import com.kdajv.cch.domain.vo.DockerImageVo;
 
@@ -7,6 +8,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 容器后端通用客户端接口
@@ -66,6 +68,32 @@ public interface ContainerClient extends Closeable {
      * @throws Exception 删除失败时抛出
      */
     void removeImage(String image) throws Exception;
+
+    /**
+     * 获取集群节点列表
+     *
+     * @return 节点列表
+     * @throws Exception 查询失败时抛出
+     */
+    List<ClusterNodeVo> listNodes() throws Exception;
+
+    /**
+     * 更新节点外部访问地址
+     *
+     * @param nodeId  节点ID
+     * @param address 外部访问地址（IP或域名）
+     * @throws Exception 更新失败时抛出
+     */
+    void updateNodeExternalAddress(String nodeId, String address) throws Exception;
+
+    /**
+     * 更新节点标签（内部使用）
+     *
+     * @param nodeId 节点ID
+     * @param labels 标签Map
+     * @throws Exception 更新失败时抛出
+     */
+    void updateNodeLabels(String nodeId, Map<String, String> labels) throws Exception;
 
     /**
      * 关闭客户端并释放资源

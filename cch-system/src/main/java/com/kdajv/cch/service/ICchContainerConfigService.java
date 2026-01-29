@@ -1,6 +1,7 @@
 package com.kdajv.cch.service;
 
 import com.kdajv.cch.container.ContainerClient;
+import com.kdajv.cch.domain.vo.ClusterNodeVo;
 import com.kdajv.cch.domain.vo.CchContainerConfigVo;
 import com.kdajv.cch.domain.vo.DockerContainerVo;
 import com.kdajv.cch.domain.vo.DockerImageVo;
@@ -8,6 +9,7 @@ import org.dromara.common.mybatis.core.page.PageQuery;
 import org.dromara.common.mybatis.core.page.TableDataInfo;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 容器配置 服务层
@@ -108,4 +110,27 @@ public interface ICchContainerConfigService {
      * @return 活跃的客户端实例，如果不存在返回null
      */
     ContainerClient getActiveClient();
+
+    /**
+     * 获取集群节点列表
+     *
+     * @return 节点列表
+     */
+    List<ClusterNodeVo> getClusterNodes();
+
+    /**
+     * 更新节点外部访问地址
+     *
+     * @param nodeId  节点ID
+     * @param address 外部访问地址（IP或域名）
+     */
+    void updateNodeExternalAddress(String nodeId, String address);
+
+    /**
+     * 更新节点标签（内部使用）
+     *
+     * @param nodeId 节点ID
+     * @param labels 标签Map
+     */
+    void updateNodeLabels(String nodeId, Map<String, String> labels);
 }
