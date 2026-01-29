@@ -294,7 +294,9 @@ const local: App.I18n.Schema = {
     exception_404: '404',
     exception_500: '500',
     tool: '系统工具',
-    tool_gen: '代码生成'
+    tool_gen: '代码生成',
+    'cch_container-config': '容器配置',
+    'cch_challenge-container-image': '容器镜像'
   },
   menu: {
     system_tenant: '租户管理',

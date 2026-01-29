@@ -58,6 +58,15 @@ export const generatedRoutes: GeneratedRoute[] = [
         }
       },
       {
+        name: 'cch_challenge-container-image',
+        path: '/cch/challenge-container-image',
+        component: 'view.cch_challenge-container-image',
+        meta: {
+          title: 'cch_challenge-container-image',
+          i18nKey: 'route.cch_challenge-container-image'
+        }
+      },
+      {
         name: 'cch_challenge-draft',
         path: '/cch/challenge-draft',
         component: 'view.cch_challenge-draft',
@@ -100,6 +109,15 @@ export const generatedRoutes: GeneratedRoute[] = [
         meta: {
           title: 'cch_container-config',
           i18nKey: 'route.cch_container-config'
+        }
+      },
+      {
+        name: 'cch_challenge-container-image',
+        path: '/cch/challenge-container-image',
+        component: 'view.cch_challenge-container-image',
+        meta: {
+          title: 'cch_challenge-container-image',
+          i18nKey: 'route.cch_challenge-container-image'
         }
       }
     ]

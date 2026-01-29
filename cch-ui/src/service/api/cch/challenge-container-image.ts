@@ -8,6 +8,15 @@ export function fetchBatchDeleteChallengeContainerImage(ids: CommonType.IdType[]
   });
 }
 
+/** 查询挑战容器镜像列表 */
+export function fetchGetChallengeContainerImageList(params: Api.Cch.ChallengeContainerImageSearchParams) {
+  return request<Api.Cch.ChallengeContainerImageList>({
+    url: '/cch/challengeContainerImage/list',
+    method: 'get',
+    params
+  });
+}
+
 /** 根据题目ID获取镜像列表 */
 export function fetchGetChallengeContainerImageByChallengeId(challengeId: CommonType.IdType) {
   return request<Api.Cch.ChallengeContainerImage[]>({
