@@ -30,6 +30,7 @@ import {getRoutePath} from '@/router/elegant/transform';
 import ChallengeDraftHistory from './modules/challenge-draft-edit-history.vue';
 import ChallengeImageManagement from "@/views/cch/challenge-draft-edit/modules/challenge-image-management.vue";
 import ContainerTargetConfig from "@/views/cch/challenge-draft-edit/modules/container-target-config.vue";
+import {useTabQuerySync} from './useTabQuerySync';
 
 defineOptions({
   name: 'ChallengeDraftEdit'
@@ -50,6 +51,9 @@ const hasEdited = ref(false);
 const dataInitialized = ref(false);
 const challengeInitialized = ref(false);
 const split = ref(0.8);
+
+// Tab状态同步到URL（刷新后可定位）
+const {activeMainTab, activeSideTab} = useTabQuerySync({route, router, draftData});
 
 // 是否为派生模式（从历史版本派生，保存时新增版本）
 const isForkMode = computed(() => !!route.query.forkFrom);
@@ -348,7 +352,9 @@ async function saveDraft() {
         query: {
           ...route.query,
           challengeId: data.challengeId,
-          draftId: data.id
+          draftId: data.id,
+          tab: activeMainTab.value,
+          side: activeSideTab.value
         }
       });
 
@@ -397,7 +403,7 @@ async function loadImageList() {
         </template>
         <NSkeleton v-if="loading" text :repeat="6"/>
         <div v-else-if="draftData" class="scrollbar">
-          <NTabs animated default-value="info" type="segment">
+          <NTabs animated v-model:value="activeMainTab" type="segment">
             <NTabPane name="info" tab="题目信息">
               <NGrid cols="1 600:2 1200:3" x-gap="12" y-gap="12">
                 <NGi>
@@ -656,7 +662,7 @@ async function loadImageList() {
     </template>
     <template #2>
       <NCard>
-        <NTabs type="line">
+        <NTabs v-model:value="activeSideTab" type="line">
           <NTabPane name="history" tab="修改历史">
             <ChallengeDraftHistory
               ref="historyRef"
