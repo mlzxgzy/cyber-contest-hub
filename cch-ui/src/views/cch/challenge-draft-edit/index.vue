@@ -30,6 +30,7 @@ import ChallengeImageManagement from "@/views/cch/challenge-draft-edit/modules/c
 import ContainerTargetConfig from "@/views/cch/challenge-draft-edit/modules/container-target-config.vue";
 import ChallengeBasicInfo from "@/views/cch/challenge-draft-edit/modules/challenge-basic-info.vue";
 import ChallengeContainerMockTest from "@/views/cch/challenge-draft-edit/modules/challenge-container-mock-test.vue";
+import ChallengeVersionPublishModal from "@/views/cch/challenge-draft-edit/modules/challenge-version-publish-modal.vue";
 import {useTabQuerySync} from './useTabQuerySync';
 
 defineOptions({
@@ -62,6 +63,9 @@ const forkFromDraftId = computed(() => parseQueryId(route.query.forkFrom));
 
 // 历史组件引用
 const historyRef = ref<InstanceType<typeof ChallengeDraftHistory> | null>(null);
+
+// 发版对话框显示状态
+const publishModalVisible = ref(false);
 
 watch(
   draftData,
@@ -335,6 +339,21 @@ function goBack() {
   router.push(getRoutePath('cch_challenge'));
 }
 
+function handlePublish() {
+  if (!draftData.value || !challengeData.value.id) {
+    window.$message?.warning('请先保存草稿');
+    return;
+  }
+  publishModalVisible.value = true;
+}
+
+async function handlePublishSubmitted() {
+  // 发版成功后刷新历史记录
+  if (historyRef.value) {
+    await historyRef.value.refresh();
+  }
+}
+
 // 加载镜像列表
 async function loadImageList() {
   // 保留此函数以供子组件事件调用
@@ -369,6 +388,19 @@ async function loadImageList() {
             </svg>
           </template>
           保存草稿
+        </NButton>
+        <NButton 
+          :disabled="!draftData || !challengeData.id" 
+          type="info" 
+          size="large" 
+          @click="handlePublish"
+        >
+          <template #icon>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </template>
+          发版
         </NButton>
         <NButton size="large" @click="goBack">
           <template #icon>
@@ -669,6 +701,15 @@ async function loadImageList() {
         </template>
       </NSplit>
     </div>
+
+    <!-- 发版对话框 -->
+    <ChallengeVersionPublishModal
+      v-model:visible="publishModalVisible"
+      :challenge-id="challengeData.id"
+      :challenge-name="challengeData.name"
+      :draft-id="draftId"
+      @submitted="handlePublishSubmitted"
+    />
   </div>
 </template>
 
