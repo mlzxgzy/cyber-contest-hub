@@ -110,15 +110,6 @@ export const generatedRoutes: GeneratedRoute[] = [
           title: 'cch_container-config',
           i18nKey: 'route.cch_container-config'
         }
-      },
-      {
-        name: 'cch_challenge-container-image',
-        path: '/cch/challenge-container-image',
-        component: 'view.cch_challenge-container-image',
-        meta: {
-          title: 'cch_challenge-container-image',
-          i18nKey: 'route.cch_challenge-container-image'
-        }
       }
     ]
   },

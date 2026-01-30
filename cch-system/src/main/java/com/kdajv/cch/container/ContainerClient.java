@@ -1,5 +1,6 @@
 package com.kdajv.cch.container;
 
+import com.kdajv.cch.domain.DraftConfig;
 import com.kdajv.cch.domain.vo.ClusterNodeVo;
 import com.kdajv.cch.domain.vo.DockerContainerVo;
 import com.kdajv.cch.domain.vo.DockerImageVo;
@@ -94,6 +95,79 @@ public interface ContainerClient extends Closeable {
      * @throws Exception 更新失败时抛出
      */
     void updateNodeLabels(String nodeId, Map<String, String> labels) throws Exception;
+
+    // ==================== Docker Swarm Service 操作相关方法（用于模拟测试） ====================
+
+    /**
+     * 服务端口信息（Swarm模式下使用）
+     */
+    record ServicePortInfo(
+        String serviceId,
+        String serviceName,
+        String imageName,
+        String status,
+        String host,
+        List<PortMapping> portMappings
+    ) {
+    }
+
+    /**
+     * 端口映射信息
+     */
+    record PortMapping(
+        String name,
+        String protocol,
+        Integer internalPort,
+        Integer externalPort
+    ) {
+    }
+
+    /**
+     * 创建并启动 Docker Swarm Service
+     *
+     * @param imageName   镜像名称（含标签）
+     * @param env         环境变量
+     * @param ports       端口配置
+     * @param cpuLimit    CPU限制（millicores）
+     * @param memoryLimit 内存限制（MB）
+     * @param serviceName 服务名称（可选）
+     * @return 服务端口信息
+     * @throws Exception 创建失败时抛出
+     */
+    ServicePortInfo createAndStartService(
+        String imageName,
+        Map<String, String> env,
+        Map<String, DraftConfig.PortConfig> ports,
+        Integer cpuLimit,
+        Integer memoryLimit,
+        String serviceName
+    ) throws Exception;
+
+    /**
+     * 停止并删除服务
+     *
+     * @param serviceId 服务ID
+     * @throws Exception 停止失败时抛出
+     */
+    void removeService(String serviceId) throws Exception;
+
+    /**
+     * 检查服务是否运行中
+     *
+     * @param serviceId 服务ID
+     * @return 是否运行中
+     * @throwsException 查询失败时抛出
+     */
+    boolean isServiceRunning(String serviceId) throws Exception;
+
+    /**
+     * 获取服务端口信息
+     *
+     * @param serviceId 服务ID
+     * @return 服务端口信息
+     * @throws Exception 查询失败时抛出
+     */
+    ServicePortInfo getServicePortInfo(String serviceId) throws Exception;
 
     /**
      * 关闭客户端并释放资源

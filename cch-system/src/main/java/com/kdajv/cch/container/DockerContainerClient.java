@@ -1,26 +1,25 @@
 package com.kdajv.cch.container;
 
 import com.github.dockerjava.api.DockerClient;
+import com.github.dockerjava.api.command.CreateServiceResponse;
 import com.github.dockerjava.api.command.LoadImageCallback;
 import com.github.dockerjava.api.model.*;
+import com.kdajv.cch.domain.DraftConfig;
 import com.kdajv.cch.domain.vo.ClusterNodeVo;
 import com.kdajv.cch.domain.vo.DockerContainerVo;
 import com.kdajv.cch.domain.vo.DockerImageVo;
 import lombok.extern.slf4j.Slf4j;
 import org.dromara.common.core.exception.ServiceException;
+import org.dromara.common.core.utils.StringUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Docker 实现的容器客户端
+ * Docker 实现的容器客户端（支持 Docker Swarm Service）
  */
 @Slf4j
 public class DockerContainerClient implements ContainerClient {
@@ -53,7 +52,9 @@ public class DockerContainerClient implements ContainerClient {
 
             ContainerPort[] ports = container.getPorts();
             if (ports != null) {
-                String portsStr = Arrays.stream(ports).map(port -> port.getIp() + ":" + port.getPublicPort() + "->" + port.getPrivatePort() + "/" + port.getType()).collect(Collectors.joining(", "));
+                String portsStr = Arrays.stream(ports).map(port ->
+                    port.getIp() + ":" + port.getPublicPort() + "->" + port.getPrivatePort() + "/" + port.getType()
+                ).collect(Collectors.joining(", "));
                 vo.setPorts(portsStr);
             } else {
                 vo.setPorts("");
@@ -181,7 +182,8 @@ public class DockerContainerClient implements ContainerClient {
                         vo.setOperatingSystem(node.getDescription().getPlatform().getOs());
                     }
                     if (node.getDescription().getResources() != null) {
-                        vo.setCpuCount(node.getDescription().getResources().getNanoCPUs() != null ? (int) (node.getDescription().getResources().getNanoCPUs() / 1_000_000_000L) : null);
+                        vo.setCpuCount(node.getDescription().getResources().getNanoCPUs() != null ?
+                            (int) (node.getDescription().getResources().getNanoCPUs() / 1_000_000_000L) : null);
                         vo.setMemoryTotal(node.getDescription().getResources().getMemoryBytes());
                     }
                 }
@@ -234,14 +236,232 @@ public class DockerContainerClient implements ContainerClient {
         }
     }
 
+    // ==================== Docker Swarm Service 操作方法（用于模拟测试） ====================
+
     @Override
-    public void close() throws IOException {
+    public ServicePortInfo createAndStartService(
+        String imageName,
+        Map<String, String> env,
+        Map<String, DraftConfig.PortConfig> ports,
+        Integer cpuLimit,
+        Integer memoryLimit,
+        String serviceName
+    ) throws Exception {
         try {
-            dockerClient.close();
-        } catch (IOException e) {
+            // 构建服务名称（添加mock-前缀以标识）
+            String fullServiceName = "mock-" + serviceName;
+
+            // 构建服务规格
+            ServiceSpec serviceSpec = new ServiceSpec();
+            serviceSpec.withName(fullServiceName);
+
+            // 构建容器规格
+            ContainerSpec containerSpec = new ContainerSpec()
+                .withImage(imageName)
+                .withTty(true);
+
+            // 设置环境变量
+            if (env != null && !env.isEmpty()) {
+                List<String> envList = new ArrayList<>();
+                for (Map.Entry<String, String> entry : env.entrySet()) {
+                    envList.add(entry.getKey() + "=" + entry.getValue());
+                }
+                containerSpec.withEnv(envList);
+            }
+
+            // 构建任务模板
+            TaskSpec taskSpec = new TaskSpec();
+            taskSpec.withContainerSpec(containerSpec);
+            serviceSpec.withTaskTemplate(taskSpec);
+
+            // 设置端口暴露
+            if (ports != null && !ports.isEmpty()) {
+                EndpointSpec endpointSpec = new EndpointSpec();
+                List<PortConfig> portConfigs = new ArrayList<>();
+
+                for (Map.Entry<String, DraftConfig.PortConfig> entry : ports.entrySet()) {
+                    DraftConfig.PortConfig portConfig = entry.getValue();
+                    if (portConfig.getInternalPort() != null) {
+                        PortConfig dockerPortConfig = new PortConfig()
+                            .withName(entry.getKey())
+                            .withTargetPort(portConfig.getInternalPort())
+                            .withPublishedPort(portConfig.getInternalPort());
+
+                        portConfigs.add(dockerPortConfig);
+                    }
+                }
+
+                endpointSpec.withPorts(portConfigs);
+                serviceSpec.withEndpointSpec(endpointSpec);
+            }
+
+            // 创建服务
+            CreateServiceResponse serviceResponse = dockerClient.createServiceCmd(serviceSpec).exec();
+            String serviceId = serviceResponse.getId();
+            log.info("Docker Swarm Service 创建成功: {} ({})", fullServiceName, serviceId);
+
+            // 等待服务启动
+            // Thread.sleep(2000);
+
+            // 获取服务端口信息
+            return getServicePortInfo(serviceId);
+
+        } catch (ServiceException e) {
             throw e;
         } catch (Exception e) {
-            log.warn("关闭 DockerClient 时发生非 IO 异常", e);
+            log.error("创建并启动 Docker Swarm Service 失败", e);
+            throw new ServiceException("创建并启动 Docker Swarm Service 失败: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public void removeService(String serviceId) throws Exception {
+        try {
+            // 先检查服务是否存在
+            try {
+                dockerClient.inspectServiceCmd(serviceId).exec();
+            } catch (Exception e) {
+                log.debug("服务不存在或已删除: {}", serviceId);
+                return;
+            }
+
+            // 删除服务
+            dockerClient.removeServiceCmd(serviceId).exec();
+            log.info("Docker Swarm Service 已删除: {}", serviceId);
+        } catch (Exception e) {
+            log.error("删除服务失败: {}", serviceId, e);
+            throw new ServiceException("删除 Docker Swarm Service 失败: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public boolean isServiceRunning(String serviceId) throws Exception {
+        try {
+            // 尝试检查服务，如果失败则说明服务不存在
+            dockerClient.inspectServiceCmd(serviceId).exec();
+            return true;
+        } catch (Exception e) {
+            log.debug("检查服务状态失败或服务不存在: {}", serviceId, e);
+            return false;
+        }
+    }
+
+    @Override
+    public ServicePortInfo getServicePortInfo(String serviceId) throws Exception {
+        try {
+            // 获取宿主机地址
+            String host = "localhost";
+            try {
+                List<ClusterNodeVo> nodes = listNodes();
+                for (ClusterNodeVo node : nodes) {
+                    if (StringUtils.isNotBlank(node.getExternalAccessAddress())) {
+                        host = node.getExternalAccessAddress();
+                        break;
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("获取集群节点失败，使用默认地址: {}", e.getMessage());
+            }
+
+            // 获取端口映射
+            List<PortMapping> portMappings = new ArrayList<>();
+
+            // 从服务定义获取端口信息
+            try {
+                com.github.dockerjava.api.model.Service service = dockerClient.inspectServiceCmd(serviceId).exec();
+                ServiceSpec spec = service.getSpec();
+                
+                // 获取服务名称
+                String serviceName = spec != null && spec.getName() != null ? spec.getName() : serviceId;
+                if (serviceName.length() > 12) {
+                    serviceName = serviceName.substring(0, 12);
+                }
+                
+                // 获取镜像名称
+                String imageName = "";
+                if (spec != null && spec.getTaskTemplate() != null &&
+                    spec.getTaskTemplate().getContainerSpec() != null) {
+                    imageName = spec.getTaskTemplate().getContainerSpec().getImage();
+                }
+
+                // 优先从 service.getEndpoint().getPorts() 获取实际分配的端口
+                // 这是运行时实际分配的真实端口映射
+                if (service.getEndpoint() != null && service.getEndpoint().getPorts() != null) {
+                    for (PortConfig portConfig : service.getEndpoint().getPorts()) {
+                        Integer targetPort = null;
+                        Integer publishedPort = null;
+                        
+                        // 安全地获取端口值
+                        Object targetPortObj = portConfig.getTargetPort();
+                        if (targetPortObj != null) {
+                            if (targetPortObj instanceof Integer) {
+                                targetPort = (Integer) targetPortObj;
+                            } else if (targetPortObj instanceof Number) {
+                                targetPort = ((Number) targetPortObj).intValue();
+                            }
+                        }
+                        
+                        Object publishedPortObj = portConfig.getPublishedPort();
+                        if (publishedPortObj != null) {
+                            if (publishedPortObj instanceof Integer) {
+                                publishedPort = (Integer) publishedPortObj;
+                            } else if (publishedPortObj instanceof Number) {
+                                publishedPort = ((Number) publishedPortObj).intValue();
+                            }
+                        }
+                        
+                        portMappings.add(new PortMapping(
+                            portConfig.getName() != null ? portConfig.getName() : "port",
+                            portConfig.getProtocol() != null ? portConfig.getProtocol().toString().toLowerCase() : "tcp",
+                            targetPort,
+                            publishedPort
+                        ));
+                    }
+                } 
+                // 如果运行时没有端口信息，回退到配置中的端口
+                else if (spec != null && spec.getEndpointSpec() != null &&
+                    spec.getEndpointSpec().getPorts() != null) {
+                    for (PortConfig portConfig : spec.getEndpointSpec().getPorts()) {
+                        Integer targetPort = null;
+                        Integer publishedPort = null;
+                        
+                        Object targetPortObj = portConfig.getTargetPort();
+                        if (targetPortObj != null) {
+                            if (targetPortObj instanceof Integer) {
+                                targetPort = (Integer) targetPortObj;
+                            } else if (targetPortObj instanceof Number) {
+                                targetPort = ((Number) targetPortObj).intValue();
+                            }
+                        }
+                        
+                        Object publishedPortObj = portConfig.getPublishedPort();
+                        if (publishedPortObj != null) {
+                            if (publishedPortObj instanceof Integer) {
+                                publishedPort = (Integer) publishedPortObj;
+                            } else if (publishedPortObj instanceof Number) {
+                                publishedPort = ((Number) publishedPortObj).intValue();
+                            }
+                        }
+                        
+                        portMappings.add(new PortMapping(
+                            portConfig.getName() != null ? portConfig.getName() : "port",
+                            portConfig.getProtocol() != null ? portConfig.getProtocol().toString().toLowerCase() : "tcp",
+                            targetPort,
+                            publishedPort
+                        ));
+                    }
+                }
+
+                return new ServicePortInfo(serviceId, serviceName, imageName, "running", host, portMappings);
+            } catch (Exception e) {
+                log.warn("获取服务端口配置失败，使用默认值: {}", e.getMessage());
+                // 如果获取失败，返回基本信息
+                return new ServicePortInfo(serviceId, serviceId.length() > 12 ? serviceId.substring(0, 12) : serviceId, "", "running", host, portMappings);
+            }
+
+        } catch (Exception e) {
+            log.error("获取服务端口信息失败: {}", serviceId, e);
+            throw new ServiceException("获取服务端口信息失败: " + e.getMessage(), e);
         }
     }
 
@@ -252,6 +472,15 @@ public class DockerContainerClient implements ContainerClient {
         char pre = "KMGTPE".charAt(exp - 1);
         return String.format("%.1f %sB", bytes / Math.pow(unit, exp), pre);
     }
+
+    @Override
+    public void close() throws IOException {
+        try {
+            dockerClient.close();
+        } catch (IOException e) {
+            throw e;
+        } catch (Exception e) {
+            log.warn("关闭 DockerClient 时发生非 IO 异常", e);
+        }
+    }
 }
-
-

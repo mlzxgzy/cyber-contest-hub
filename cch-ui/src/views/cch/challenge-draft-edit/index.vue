@@ -29,6 +29,7 @@ import ChallengeDraftHistory from './modules/challenge-draft-edit-history.vue';
 import ChallengeImageManagement from "@/views/cch/challenge-draft-edit/modules/challenge-image-management.vue";
 import ContainerTargetConfig from "@/views/cch/challenge-draft-edit/modules/container-target-config.vue";
 import ChallengeBasicInfo from "@/views/cch/challenge-draft-edit/modules/challenge-basic-info.vue";
+import ChallengeContainerMockTest from "@/views/cch/challenge-draft-edit/modules/challenge-container-mock-test.vue";
 import {useTabQuerySync} from './useTabQuerySync';
 
 defineOptions({
@@ -415,7 +416,7 @@ async function loadImageList() {
                       题目信息
                     </template>
                     <div class="pane-content">
-                      <ChallengeBasicInfo :challenge-data="challengeData" :draft-data="draftData" />
+                      <ChallengeBasicInfo :challenge-data="challengeData" :draft-data="draftData"/>
                     </div>
                   </NTabPane>
 
@@ -646,6 +647,9 @@ async function loadImageList() {
                     :current-draft-id="draftId"
                     :fork-from="forkFromDraftId"
                   />
+                </NTabPane>
+                <NTabPane name="containerMockTest" tab="容器模拟测试">
+                  <ChallengeContainerMockTest :current-draft-id="draftId" :challenge-id="challengeId"/>
                 </NTabPane>
                 <NTabPane name="oasis" tab="Oasis">
                   <div class="oasis-content">
