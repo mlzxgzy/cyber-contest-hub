@@ -282,10 +282,10 @@ public class DockerContainerClient implements ContainerClient {
                 for (Map.Entry<String, DraftConfig.PortConfig> entry : ports.entrySet()) {
                     DraftConfig.PortConfig portConfig = entry.getValue();
                     if (portConfig.getInternalPort() != null) {
+                        // 不设置 publishedPort，让 Docker 自动分配随机端口
                         PortConfig dockerPortConfig = new PortConfig()
                             .withName(entry.getKey())
-                            .withTargetPort(portConfig.getInternalPort())
-                            .withPublishedPort(portConfig.getInternalPort());
+                            .withTargetPort(portConfig.getInternalPort());
 
                         portConfigs.add(dockerPortConfig);
                     }

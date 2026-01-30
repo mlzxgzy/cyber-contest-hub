@@ -454,15 +454,12 @@ onUnmounted(() => {
                   <NTag v-if="container.protocol" size="small" type="info" style="margin-left: 4px;">
                     {{ container.protocol.toUpperCase() }}
                   </NTag>
-                  <span v-if="container.internalPort" class="port-info">
-                    (内部: {{ container.internalPort }})
-                  </span>
                 </div>
                 <div class="access-url">
                   <div class="url-display">
                     <code class="full-url">{{ getAccessUrl(container) }}</code>
                     <span class="port-mapping" v-if="container.externalPort">
-                      → {{ container.externalPort }}
+                      → {{ container.internalPort }}
                     </span>
                   </div>
                   <NButton text size="small" @click="copyAccessUrl(container)" title="复制完整地址">
