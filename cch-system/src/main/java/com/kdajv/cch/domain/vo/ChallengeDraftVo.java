@@ -2,7 +2,6 @@ package com.kdajv.cch.domain.vo;
 
 import cn.idev.excel.annotation.ExcelIgnoreUnannotated;
 import cn.idev.excel.annotation.ExcelProperty;
-import com.kdajv.cch.domain.ChallengeDraft;
 import com.kdajv.cch.domain.DraftConfig;
 import com.kdajv.cch.domain.bo.ChallengeDraftBo;
 import io.github.linpeilie.annotations.AutoMapper;
@@ -10,6 +9,7 @@ import lombok.Data;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.util.Date;
 
 
 /**
@@ -62,5 +62,16 @@ public class ChallengeDraftVo implements Serializable {
     @ExcelProperty(value = "配置")
     private DraftConfig config;
 
+    /**
+     * 创建时间
+     */
+    @ExcelProperty(value = "创建时间")
+    private Date createTime;
+
+    /**
+     * 更新时间
+     */
+    @ExcelProperty(value = "更新时间")
+    private Date updateTime;
 
 }

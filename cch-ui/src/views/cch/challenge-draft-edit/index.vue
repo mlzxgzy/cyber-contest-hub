@@ -50,7 +50,7 @@ const saving = ref(false);
 const hasEdited = ref(false);
 const dataInitialized = ref(false);
 const challengeInitialized = ref(false);
-const split = ref(0.8);
+const split = ref(0.75);
 
 // Tab状态同步到URL（刷新后可定位）
 const {activeMainTab, activeSideTab} = useTabQuerySync({route, router, draftData});
@@ -389,10 +389,10 @@ async function loadImageList() {
           </template>
           保存草稿
         </NButton>
-        <NButton 
-          :disabled="!draftData || !challengeData.id" 
-          type="info" 
-          size="large" 
+        <NButton
+          :disabled="!draftData || !challengeData.id"
+          type="info"
+          size="large"
           @click="handlePublish"
         >
           <template #icon>

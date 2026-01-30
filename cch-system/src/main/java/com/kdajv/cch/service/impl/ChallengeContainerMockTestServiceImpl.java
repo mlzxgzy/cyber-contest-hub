@@ -52,7 +52,7 @@ public class ChallengeContainerMockTestServiceImpl implements IChallengeContaine
             if (draft.getDraftId() == null) {
                 draft.setDraftId(draft.getId());
             }
-            draft.setName(String.format("%s (ID: %d)", draft.getChallengeName(), draft.getId()));
+            draft.setName(draft.getChallengeName());
             sources.add(draft);
         }
         // 获取同一题目下的版本列表

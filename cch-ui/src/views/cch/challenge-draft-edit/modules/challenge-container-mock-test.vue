@@ -79,6 +79,44 @@ function formatDateTime(dateStr: string): string {
   return date.toLocaleString('zh-CN');
 }
 
+// 时间格式化函数（与修改历史组件相同）
+function formatRelativeTime(time: string | Date | null | undefined): string {
+  if (!time) {
+    return '';
+  }
+
+  try {
+    const now = new Date();
+    const target = new Date(time);
+
+    // 检查日期是否有效
+    if (isNaN(target.getTime())) {
+      return '';
+    }
+
+    const diffMs = now.getTime() - target.getTime();
+    const diffHours = diffMs / (1000 * 60 * 60);
+    const diffDays = diffMs / (1000 * 60 * 60 * 24);
+
+    if (diffHours < 1) {
+      const diffMins = Math.floor(diffMs / (1000 * 60));
+      return diffMins <= 0 ? '刚刚' : `${diffMins}分钟前`;
+    } else if (diffHours < 24) {
+      return `${Math.floor(diffHours)}小时前`;
+    } else if (diffDays < 2) {
+      return '昨天';
+    } else {
+      return target.toLocaleDateString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+    }
+  } catch (err) {
+    return '';
+  }
+}
+
 // 获取状态类型
 function getStatusType(status: string): 'success' | 'warning' | 'error' | 'info' {
   switch (status) {
@@ -111,14 +149,14 @@ function getStatusLabel(status: string): string {
 async function loadSources() {
   // 获取有效的 challengeId（保持字符串格式以避免大整数精度丢失）
   const cid = props.challengeId;
-  
+
   // 验证 challengeId 是否有效
   if (cid === null || cid === undefined) {
     console.warn('[loadSources] challengeId 未定义，请检查题目是否已保存');
     sourceOptions.value = [];
     return;
   }
-  
+
   // 转换为字符串，避免大整数精度丢失
   const challengeIdStr = String(cid).trim();
   if (!challengeIdStr || challengeIdStr === '') {
@@ -137,22 +175,22 @@ async function loadSources() {
       return;
     }
 
-    console.log('[loadSources] 后端返回数据:', data, '数据条数:', data?.length);
-    
     // 根据当前来源类型过滤
     const filtered = (data || []).filter(item => {
       const match = item.sourceType === sourceType.value;
       console.log('[loadSources] 过滤项:', {id: item.id, name: item.name, sourceType: item.sourceType, match});
       return match;
     });
-    
-    sourceOptions.value = filtered.map(item => ({
-      label: item.name,
-      value: item.id
-    }));
-    
-    console.log('[loadSources] 加载完成, sourceType:', sourceType.value, '原始数据:', data?.length, '过滤后:', sourceOptions.value.length);
-    
+
+    sourceOptions.value = filtered.map(item => {
+      const timeStr = item.createTime ? formatRelativeTime(item.createTime) : '';
+      const label = timeStr ? `${item.name} - ${timeStr}` : item.name;
+      return {
+        label,
+        value: item.id
+      };
+    });
+
     if (sourceOptions.value.length === 0 && data && data.length > 0) {
       console.warn('[loadSources] 警告: 有数据但过滤后为空, 当前sourceType:', sourceType.value, '数据中的sourceType:', data.map(d => d.sourceType));
     }
@@ -271,7 +309,7 @@ function getAccessUrl(container: ContainerMockTest.ContainerInfo): string {
   if (!container.host || !container.externalPort) {
     return '-';
   }
-  
+
   // 根据协议决定 URL 格式
   const protocol = container.protocol?.toLowerCase() || 'tcp';
   if (protocol === 'tcp') {

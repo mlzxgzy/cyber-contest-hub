@@ -12,6 +12,7 @@ export namespace ContainerMockTest {
     sourceType: 'draft' | 'version';
     challengeName: string;
     versionTag?: string;
+    createTime?: string; // 创建时间（修改时间）
   }
 
   /** 容器暴露信息 */
@@ -41,11 +42,11 @@ export namespace ContainerMockTest {
 }
 
 /** 获取可选来源列表（同一题目下的草稿+版本） */
-export function fetchContainerMockTestSources(challengeId: number | string) {
+export function fetchContainerMockTestSources(challengeId: string) {
   return request<ContainerMockTest.SourceOption[]>({
     url: '/cch/containerMockTest/sources',
     method: 'get',
-    params: {challengeId: String(challengeId)}
+    params: {challengeId: challengeId}
   });
 }
 

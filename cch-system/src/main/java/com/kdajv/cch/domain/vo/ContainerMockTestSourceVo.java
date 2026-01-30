@@ -49,4 +49,9 @@ public class ContainerMockTestSourceVo implements Serializable {
      */
     private String versionTag;
 
+    /**
+     * 创建时间（修改时间）
+     */
+    private java.util.Date createTime;
+
 }

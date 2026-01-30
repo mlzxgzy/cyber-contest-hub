@@ -24,7 +24,8 @@ public interface ChallengeContainerMockTestMapper extends BaseMapperPlus<Challen
      * @return 草稿列表
      */
     @Select("""
-        SELECT id, id as draftId, challenge_id as challengeId, challenge_name as challengeName
+        SELECT id, id as draftId, challenge_id as challengeId, challenge_name as challengeName,
+               create_time as createTime
         FROM t_challenge_draft
         WHERE del_flag = 0
         AND challenge_id = #{challengeId}
@@ -40,7 +41,7 @@ public interface ChallengeContainerMockTestMapper extends BaseMapperPlus<Challen
      */
     @Select("""
         SELECT cv.id, cv.challenge_id as challengeId, cv.challenge_name as challengeName,
-               cv.version_tag as versionTag, cv.draft_id as draftId
+               cv.version_tag as versionTag, cv.draft_id as draftId, cv.create_time as createTime
         FROM t_challenge_version cv
         WHERE cv.del_flag = 0
         AND cv.challenge_id = #{challengeId}

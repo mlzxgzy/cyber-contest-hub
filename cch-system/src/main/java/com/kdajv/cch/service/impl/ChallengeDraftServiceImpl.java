@@ -187,7 +187,25 @@ public class ChallengeDraftServiceImpl implements IChallengeDraftService {
         LambdaQueryWrapper<ChallengeDraft> lqw = Wrappers.lambdaQuery();
         lqw.eq(ChallengeDraft::getChallengeId, challengeId);
         lqw.orderByDesc(ChallengeDraft::getCreateTime);
-        return baseMapper.selectVoList(lqw);
+        // 排除config字段，减少数据传输量并提高安全性
+        lqw.select(
+            ChallengeDraft::getId,
+            ChallengeDraft::getParentId,
+            ChallengeDraft::getChallengeId,
+            ChallengeDraft::getChallengeName,
+            ChallengeDraft::getChallengeDescription,
+            ChallengeDraft::getCreateTime,
+            ChallengeDraft::getUpdateTime,
+            ChallengeDraft::getCreateBy,
+            ChallengeDraft::getUpdateBy,
+            ChallengeDraft::getCreateDept
+        );
+        List<ChallengeDraftVo> result = baseMapper.selectVoList(lqw);
+        // 确保config字段为null（即使查询时已排除，也做二次保障）
+        if (result != null) {
+            result.forEach(vo -> vo.setConfig(null));
+        }
+        return result;
     }
 
     /**
