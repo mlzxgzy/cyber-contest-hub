@@ -351,10 +351,9 @@ watch(isConnected, (connected) => {
             <span class="text-18px text-success">Docker连接成功</span>
           </div>
 
-          <div class="grid grid-cols-2 gap-16px">
-            <!-- 左侧：当前连接信息和节点信息 -->
-            <div class="col-span-1 flex flex-col gap-16px">
-              <!-- 连接信息 -->
+          <NTabs type="card" animated>
+            <!-- 连接信息Tab -->
+            <NTabPane name="connection" tab="连接信息">
               <NCard title="连接信息" :bordered="false" size="small" class="card-wrapper">
                 <NDescriptions :column="1" label-placement="left">
                   <NDescriptionsItem label="配置名称">
@@ -379,16 +378,17 @@ watch(isConnected, (connected) => {
                   </NButton>
                 </div>
               </NCard>
+            </NTabPane>
 
-              <!-- 节点信息 -->
+            <!-- 节点信息Tab -->
+            <NTabPane name="nodes" tab="节点信息">
               <NodeList :is-connected="isConnected" />
-            </div>
+            </NTabPane>
 
-            <!-- 右侧：容器和镜像信息 -->
-            <div class="col-span-1">
-              <!-- 容器列表 -->
-              <NCard title="现有容器" :bordered="false" size="small" class="card-wrapper mb-16px">
-                <NScrollbar style="max-height: 300px;">
+            <!-- 容器列表Tab -->
+            <NTabPane name="containers" tab="现有容器">
+              <NCard title="现有容器" :bordered="false" size="small" class="card-wrapper">
+                <NScrollbar style="max-height: 400px;">
                   <div v-if="containersLoading" class="py-20px text-center">
                     <NSpin size="small"/>
                   </div>
@@ -411,10 +411,12 @@ watch(isConnected, (connected) => {
                   </NList>
                 </NScrollbar>
               </NCard>
+            </NTabPane>
 
-              <!-- 镜像列表 -->
+            <!-- 镜像列表Tab -->
+            <NTabPane name="images" tab="现有镜像">
               <NCard title="现有镜像" :bordered="false" size="small" class="card-wrapper">
-                <NScrollbar style="max-height: 300px;">
+                <NScrollbar style="max-height: 400px;">
                   <div v-if="imagesLoading" class="py-20px text-center">
                     <NSpin size="small"/>
                   </div>
@@ -433,8 +435,8 @@ watch(isConnected, (connected) => {
                   </NList>
                 </NScrollbar>
               </NCard>
-            </div>
-          </div>
+            </NTabPane>
+          </NTabs>
         </div>
       </template>
     </NCard>
