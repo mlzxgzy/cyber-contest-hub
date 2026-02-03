@@ -71,6 +71,15 @@ public interface ContainerClient extends Closeable {
     void removeImage(String image) throws Exception;
 
     /**
+     * 推送镜像到Registry
+     *
+     * @param imageName 镜像名称（不含标签）
+     * @param tag       镜像标签
+     * @throws Exception 推送失败时抛出
+     */
+    void pushImage(String imageName, String tag) throws Exception;
+
+    /**
      * 获取集群节点列表
      *
      * @return 节点列表

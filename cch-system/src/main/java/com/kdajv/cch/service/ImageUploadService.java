@@ -209,7 +209,7 @@ public class ImageUploadService {
             updateBo.setId(imageId);
             String imageWithTag = result.trim().replaceFirst("Loaded image: ", "").trim();
             String[] imageWithTagArray = imageWithTag.split(":");
-            String image = "cch/%d/%s".formatted(challengeId, imageWithTagArray[0]);
+            String imageName = imageWithTagArray[0];
             String tag = "latest";
             if (imageWithTagArray.length == 2) {
                 tag = imageWithTagArray[1];
@@ -217,10 +217,50 @@ public class ImageUploadService {
                 log.error("分割镜像名称时出现问题，msg:{}，分割数据：{}", result, result);
             }
 
-            containerClient.tagImage(imageWithTag, image, tag);
+            // 获取已连接的Registry配置
+            com.kdajv.cch.domain.vo.CchContainerConfigVo registryConfig = containerConfigService.getConnectedRegistry();
+            String targetImage;
+
+            if (registryConfig != null && StringUtils.isNotBlank(registryConfig.getRegistryUrl())) {
+                // Registry已连接，tag为 registryUrl/repo/challengeId/imageName:tag
+                String registryUrl = registryConfig.getRegistryUrl();
+                String repo = registryConfig.getRegistryRepo();
+                if (StringUtils.isBlank(repo)) {
+                    repo = "images";
+                }
+                targetImage = "%s/%s/%d/%s".formatted(registryUrl, repo, challengeId, imageName);
+                log.info("Registry已连接，使用Registry地址 tag镜像: {}", targetImage);
+            } else {
+                // Registry未连接，tag为 cch/challengeId/imageName:tag
+                targetImage = "cch/%d/%s".formatted(challengeId, imageName);
+                log.info("Registry未连接，使用本地地址 tag镜像: {}", targetImage);
+            }
+
+            // 移除协议头（如 http:// 或 https://）
+            String cleanRegistryUrl = null;
+            if (registryConfig != null && StringUtils.isNotBlank(registryConfig.getRegistryUrl())) {
+                cleanRegistryUrl = registryConfig.getRegistryUrl().replaceFirst("^https?://", "");
+            }
+
+            // 如果Registry已连接且有有效的URL，构建完整的目标镜像地址
+            String finalImageName;
+            if (cleanRegistryUrl != null) {
+                finalImageName = "%s/%d/%s".formatted(cleanRegistryUrl, challengeId, imageName);
+            } else {
+                finalImageName = "cch/%d/%s".formatted(challengeId, imageName);
+            }
+
+            containerClient.tagImage(imageWithTag, finalImageName, tag);
             containerClient.removeImage(imageWithTag);
 
-            updateBo.setImageName(image);
+            // 如果Registry已连接，推送镜像到Registry
+            if (cleanRegistryUrl != null) {
+                log.info("推送镜像到Registry: {}", finalImageName);
+                containerClient.pushImage(finalImageName, tag);
+                log.info("镜像推送完成: {}", finalImageName);
+            }
+
+            updateBo.setImageName(finalImageName);
             updateBo.setImageTag(tag);
             updateBo.setStatus("available"); // 设置为已上传状态
             updateBo.setProgress(BigDecimal.valueOf(100.0)); // 设置进度为100%

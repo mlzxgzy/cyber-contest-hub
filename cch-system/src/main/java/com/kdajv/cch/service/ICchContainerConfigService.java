@@ -133,4 +133,11 @@ public interface ICchContainerConfigService {
      * @param labels 标签Map
      */
     void updateNodeLabels(String nodeId, Map<String, String> labels);
+
+    /**
+     * 获取已连接的Registry配置
+     *
+     * @return Registry配置，如果不存在已连接的Registry返回null
+     */
+    CchContainerConfigVo getConnectedRegistry();
 }

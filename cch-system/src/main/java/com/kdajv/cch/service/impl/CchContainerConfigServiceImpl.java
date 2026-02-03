@@ -50,6 +50,8 @@ public class CchContainerConfigServiceImpl implements ICchContainerConfigService
     // 当前活跃的容器客户端实例（Docker / Kubernetes 等）
     private volatile ContainerClient activeClient = null;
     private volatile Long activeInstanceId = null;
+    // 当前已连接的Registry配置
+    private volatile CchContainerConfigVo connectedRegistry = null;
     private final ReentrantLock lock = new ReentrantLock();
 
     private final ISysConfigService sysConfigService;
@@ -346,6 +348,8 @@ public class CchContainerConfigServiceImpl implements ICchContainerConfigService
                 throw new ServiceException("Registry地址配置无效");
             }
 
+            // 保存Registry配置用于后续镜像推送
+            connectedRegistry = config;
             log.info("Registry连接配置验证成功: {}", config.getRegistryUrl());
             return true;
         } catch (ServiceException e) {
@@ -654,6 +658,11 @@ public class CchContainerConfigServiceImpl implements ICchContainerConfigService
             log.error("更新节点标签失败", e);
             throw new ServiceException("更新节点标签失败: " + e.getMessage());
         }
+    }
+
+    @Override
+    public CchContainerConfigVo getConnectedRegistry() {
+        return connectedRegistry;
     }
 
 }

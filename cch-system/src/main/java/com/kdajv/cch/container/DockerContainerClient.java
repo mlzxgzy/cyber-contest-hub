@@ -139,6 +139,20 @@ public class DockerContainerClient implements ContainerClient {
     }
 
     @Override
+    public void pushImage(String imageName, String tag) throws Exception {
+        try {
+            String fullImageName = imageName + ":" + tag;
+            log.info("开始推送镜像到Registry: {}", fullImageName);
+
+            dockerClient.pushImageCmd(fullImageName).start().awaitCompletion();
+
+            log.info("镜像推送成功: {}", fullImageName);
+        } catch (Exception e) {
+            throw new ServiceException("推送镜像失败: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
     public List<ClusterNodeVo> listNodes() throws Exception {
         try {
             List<SwarmNode> swarmNodes = dockerClient.listSwarmNodesCmd().exec();
