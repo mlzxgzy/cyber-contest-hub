@@ -274,8 +274,8 @@ declare namespace Api {
       id: CommonType.IdType;
       /** 配置名称 */
       configName: string;
-      /** 后端类型（docker/kubernetes） */
-      backendType: 'docker' | 'kubernetes';
+      /** 后端类型（docker/kubernetes/registry） */
+      backendType: 'docker' | 'kubernetes' | 'registry';
       /** Docker URL */
       dockerUrl?: string;
       /** Docker API版本 */
@@ -288,6 +288,14 @@ declare namespace Api {
       kubernetesConfig?: string;
       /** Kubernetes命名空间 */
       kubernetesNamespace?: string;
+      /** Registry URL */
+      registryUrl?: string;
+      /** Registry用户名 */
+      registryUsername?: string;
+      /** Registry密码 */
+      registryPassword?: string;
+      /** Registry仓库（Repo） */
+      registryRepo?: string;
       /** 状态（0正常 1停用） */
       status: Common.EnableStatus;
       /** 备注 */
@@ -317,6 +325,10 @@ declare namespace Api {
         | 'dockerTlsVerify'
         | 'kubernetesConfig'
         | 'kubernetesNamespace'
+        | 'registryUrl'
+        | 'registryUsername'
+        | 'registryPassword'
+        | 'registryRepo'
         | 'status'
         | 'remark'
       >

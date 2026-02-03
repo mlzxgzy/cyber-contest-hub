@@ -64,6 +64,26 @@ public class CchContainerConfigVo implements Serializable {
     private String kubernetesNamespace;
 
     /**
+     * Registry URL
+     */
+    private String registryUrl;
+
+    /**
+     * Registry用户名
+     */
+    private String registryUsername;
+
+    /**
+     * Registry密码
+     */
+    private String registryPassword;
+
+    /**
+     * Registry仓库（Repo）
+     */
+    private String registryRepo;
+
+    /**
      * 状态（0正常 1停用）
      */
     private String status;

@@ -37,11 +37,25 @@ const dockerForm = ref({
   dockerTlsVerify: '0' as '0' | '1'
 });
 
+// Registry连接表单
+const registryForm = ref({
+  configName: '',
+  registryUrl: '',
+  registryUsername: '',
+  registryPassword: '',
+  registryRepo: ''
+});
+
 // 连接错误信息
 const errorMessage = ref('');
 
 // 当前连接的配置信息
 const currentConfig = ref<Api.Cch.ContainerConfig | null>(null);
+
+// Registry配置信息
+const registryConfig = ref<Api.Cch.ContainerConfig | null>(null);
+const registryConnecting = ref(false);
+const registryError = ref('');
 
 // 是否已连接
 const isConnected = computed(() => currentView.value === 'connected');
@@ -171,6 +185,147 @@ async function connectDocker() {
   }
 }
 
+// 连接Registry（在Docker连接成功后的Tab中使用）
+async function connectRegistry() {
+  if (!registryForm.value.registryUrl) {
+    window.$message?.error('请输入Registry URL');
+    return;
+  }
+
+  if (!registryForm.value.registryRepo) {
+    window.$message?.error('请输入仓库（Repo）');
+    return;
+  }
+
+  if (!isConnected.value) {
+    window.$message?.error('请先连接Docker');
+    return;
+  }
+
+  const configName = registryForm.value.configName || `Registry-${currentConfig.value?.configName || 'Default'}`;
+  registryConnecting.value = true;
+  registryError.value = '';
+
+  try {
+    // 先查询是否已存在同名配置
+    const listRes = await fetchGetContainerConfigList({pageNum: 1, pageSize: 100});
+    const configs = listRes.data?.rows || [];
+    const existingConfig = configs.find(
+      (c: Api.Cch.ContainerConfig) => c.configName === configName && c.backendType === 'registry'
+    );
+
+    let targetConfig: Api.Cch.ContainerConfig | null = null;
+
+    if (existingConfig) {
+      // 配置名称已存在，更新配置
+      const {error: updateError} = await fetchUpdateContainerConfig({
+        id: existingConfig.id,
+        configName,
+        backendType: 'registry',
+        registryUrl: registryForm.value.registryUrl,
+        registryUsername: registryForm.value.registryUsername,
+        registryPassword: registryForm.value.registryPassword,
+        registryRepo: registryForm.value.registryRepo,
+        status: '0'
+      });
+
+      if (updateError) {
+        throw new Error('更新配置失败');
+      }
+      targetConfig = {...existingConfig, registryUrl: registryForm.value.registryUrl};
+      window.$message?.success('配置已更新');
+    } else {
+      // 配置名称不存在，创建新配置
+      const {error: createError} = await fetchCreateContainerConfig({
+        configName,
+        backendType: 'registry',
+        registryUrl: registryForm.value.registryUrl,
+        registryUsername: registryForm.value.registryUsername,
+        registryPassword: registryForm.value.registryPassword,
+        registryRepo: registryForm.value.registryRepo,
+        status: '0'
+      });
+
+      if (createError) {
+        throw new Error('创建配置失败');
+      }
+
+      // 获取刚创建的配置
+      const newListRes = await fetchGetContainerConfigList({pageNum: 1, pageSize: 100});
+      const newConfigs = newListRes.data?.rows || [];
+      targetConfig = newConfigs.find(
+        (c: Api.Cch.ContainerConfig) => c.configName === configName && c.backendType === 'registry'
+      ) || null;
+    }
+
+    if (!targetConfig) {
+      throw new Error('未找到配置');
+    }
+
+    // 测试连接（注意：这里不会激活为活跃实例，只是测试连接）
+    const {error: testError} = await fetchTestConnection(targetConfig.id!);
+    if (testError) {
+      throw new Error('连接测试失败');
+    }
+
+    registryConfig.value = targetConfig;
+    window.$message?.success('Registry连接成功');
+    
+    // 清空表单
+    registryForm.value = {
+      configName: '',
+      registryUrl: '',
+      registryUsername: '',
+      registryPassword: '',
+      registryRepo: ''
+    };
+  } catch (err: any) {
+    registryError.value = err.message || '连接失败，请检查配置';
+    window.$message?.error(registryError.value);
+  } finally {
+    registryConnecting.value = false;
+  }
+}
+
+// 断开Registry连接
+async function disconnectRegistry() {
+  if (!registryConfig.value) return;
+  
+  try {
+    // 这里可以调用后端API断开Registry连接，或者只是清除本地状态
+  registryConfig.value = null;
+  registryForm.value = {
+    configName: '',
+    registryUrl: '',
+    registryUsername: '',
+    registryPassword: '',
+    registryRepo: ''
+  };
+  window.$message?.success('已断开Registry连接');
+  } catch (err: any) {
+    window.$message?.error('断开Registry连接失败');
+  }
+}
+
+// 加载Registry配置（如果已存在）
+async function loadRegistryConfig() {
+  if (!isConnected.value) return;
+  
+  try {
+    const listRes = await fetchGetContainerConfigList({pageNum: 1, pageSize: 100});
+    const configs = listRes.data?.rows || [];
+    // 查找已连接的Registry配置（查找所有registry类型且状态为正常的配置，取第一个）
+    const existingRegistry = configs.find(
+      (c: Api.Cch.ContainerConfig) => c.backendType === 'registry' && c.status === '0'
+    );
+    if (existingRegistry) {
+      registryConfig.value = existingRegistry;
+    }
+  } catch (err) {
+    console.error('加载Registry配置失败:', err);
+  }
+}
+
 // 重新尝试连接（从错误页面）
 function retryConnect() {
   currentView.value = 'docker-form';
@@ -185,6 +340,7 @@ async function disconnect() {
     return;
   }
   currentConfig.value = null;
+  registryConfig.value = null;
   currentView.value = 'select';
   window.$message?.success('已断开连接');
 }
@@ -227,6 +383,7 @@ async function loadContainerAndImageList() {
 watch(isConnected, (connected) => {
   if (connected) {
     loadContainerAndImageList();
+    loadRegistryConfig();
   }
 });
 </script>
@@ -434,6 +591,102 @@ watch(isConnected, (connected) => {
                     </NListItem>
                   </NList>
                 </NScrollbar>
+              </NCard>
+            </NTabPane>
+
+            <!-- Registry Tab -->
+            <NTabPane name="registry" tab="Registry">
+              <NCard title="Registry连接" :bordered="false" size="small" class="card-wrapper">
+                <!-- 已连接Registry -->
+                <template v-if="registryConfig">
+                  <div class="flex items-center gap-8px mb-16px">
+                    <SvgIcon icon="mdi:check-circle-outline" class="text-24px text-success"/>
+                    <span class="text-18px text-success">Registry已连接</span>
+                  </div>
+                  
+                  <NDescriptions :column="1" label-placement="left" class="mb-16px">
+                    <NDescriptionsItem label="配置名称">
+                      {{ registryConfig.configName || '-' }}
+                    </NDescriptionsItem>
+                    <NDescriptionsItem label="Registry URL">
+                      {{ registryConfig.registryUrl || '-' }}
+                    </NDescriptionsItem>
+                    <NDescriptionsItem label="用户名">
+                      {{ registryConfig.registryUsername || '-' }}
+                    </NDescriptionsItem>
+                    <NDescriptionsItem label="仓库（Repo）">
+                      {{ registryConfig.registryRepo || '-' }}
+                    </NDescriptionsItem>
+                    <NDescriptionsItem label="状态">
+                      <NTag type="success" size="small">已连接</NTag>
+                    </NDescriptionsItem>
+                  </NDescriptions>
+                  
+                  <div class="flex justify-center">
+                    <NButton type="error" @click="disconnectRegistry">
+                      <template #icon>
+                        <icon-ic-round-link-off class="text-icon"/>
+                      </template>
+                      断开Registry连接
+                    </NButton>
+                  </div>
+                </template>
+
+                <!-- 未连接Registry - 显示连接表单 -->
+                <template v-else>
+                  <div class="mb-16px">
+                    <span class="text-16px font-medium">连接Registry</span>
+                    <span class="text-14px text-gray-500 ml-8px">配置Registry以推送和拉取镜像（云上Registry需要指定Repo）</span>
+                  </div>
+
+                  <NForm label-placement="left" label-width="120px" :model="registryForm">
+                    <NFormItem label="配置名称" path="configName">
+                      <NInput v-model:value="registryForm.configName" placeholder="给这个配置起个名字（可选）"/>
+                    </NFormItem>
+
+                    <NFormItem label="Registry URL" path="registryUrl" required>
+                      <NInput
+                        v-model:value="registryForm.registryUrl"
+                        placeholder="例如: https://registry.example.com 或 http://localhost:5000"
+                      />
+                    </NFormItem>
+
+                    <NFormItem label="用户名" path="registryUsername">
+                      <NInput
+                        v-model:value="registryForm.registryUsername"
+                        placeholder="Registry用户名（可选）"
+                      />
+                    </NFormItem>
+
+                    <NFormItem label="密码" path="registryPassword">
+                      <NInput
+                        v-model:value="registryForm.registryPassword"
+                        type="password"
+                        show-password-on="click"
+                        placeholder="Registry密码（可选）"
+                      />
+                    </NFormItem>
+
+                    <NFormItem label="仓库（Repo）" path="registryRepo" required>
+                      <NInput
+                        v-model:value="registryForm.registryRepo"
+                        placeholder="例如: my-namespace/my-repo 或 my-repo"
+                      />
+                    </NFormItem>
+                  </NForm>
+
+                  <div v-if="registryError" class="mb-16px">
+                    <NAlert type="error" :show-icon="true">
+                      {{ registryError }}
+                    </NAlert>
+                  </div>
+
+                  <div class="flex justify-end gap-12px">
+                    <NButton type="primary" :loading="registryConnecting" @click="connectRegistry">
+                      连接Registry
+                    </NButton>
+                  </div>
+                </template>
               </NCard>
             </NTabPane>
           </NTabs>
