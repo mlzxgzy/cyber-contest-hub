@@ -457,6 +457,22 @@ public class CchContainerConfigServiceImpl implements ICchContainerConfigService
                     log.warn("活跃实例 {} 不存在，清除记录", instanceId);
                     clearActiveInstance();
                 }
+            } else {
+                // 如果没有活跃实例，但可能有已保存的Registry配置需要恢复
+                // 查找最后配置的Registry实例
+                List<CchContainerConfigVo> registryConfigs = queryList(null, "registry");
+                if (!registryConfigs.isEmpty()) {
+                    // 取最新的Registry配置进行恢复
+                    CchContainerConfigVo latestRegistry = registryConfigs.get(0);
+                    try {
+                        if (connectRegistry(latestRegistry)) {
+                            connectedRegistry = latestRegistry;
+                            log.info("已恢复Registry连接: {}", latestRegistry.getRegistryUrl());
+                        }
+                    } catch (Exception e) {
+                        log.error("恢复Registry连接失败", e);
+                    }
+                }
             }
         } catch (Exception e) {
             log.error("初始化活跃实例失败", e);
