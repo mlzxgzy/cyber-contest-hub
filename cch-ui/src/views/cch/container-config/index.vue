@@ -200,7 +200,20 @@ async function connectDocker() {
       throw new Error('连接测试失败');
     }
 
-    currentConfig.value = targetConfig;
+    // 关键点：更新后的targetConfig可能来自旧列表（不含registry字段），这里用active接口回读最新配置
+    const {data: activeData, error: activeError} = await fetchGetActiveInstance();
+    if (!activeError && activeData) {
+      currentConfig.value = activeData;
+    } else {
+      // 兜底：至少把本次填写的registry字段合并进来，避免“刷新后才出现Registry Tab”
+      currentConfig.value = {
+        ...targetConfig,
+        registryUrl: dockerForm.value.registryUrl || undefined,
+        registryUsername: dockerForm.value.registryUsername || undefined,
+        registryPassword: dockerForm.value.registryPassword || undefined,
+        registryRepo: dockerForm.value.registryRepo || undefined
+      };
+    }
     currentView.value = 'connected';
     const successMsg = hasRegistry 
       ? 'Docker和Registry连接成功' 
