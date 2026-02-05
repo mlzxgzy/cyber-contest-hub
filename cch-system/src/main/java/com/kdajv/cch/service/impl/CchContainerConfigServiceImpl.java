@@ -458,26 +458,41 @@ public class CchContainerConfigServiceImpl implements ICchContainerConfigService
                     log.warn("活跃实例 {} 不存在，清除记录", instanceId);
                     clearActiveInstance();
                 }
-            } else {
-                // 如果没有活跃实例，但可能有已保存的Registry配置需要恢复
-                // 查找最后配置的Registry实例
-                List<CchContainerConfigVo> registryConfigs = queryList(null, "registry");
-                if (!registryConfigs.isEmpty()) {
-                    // 取最新的Registry配置进行恢复
-                    CchContainerConfigVo latestRegistry = registryConfigs.get(0);
-                    try {
-                        if (connectRegistry(latestRegistry)) {
-                            connectedRegistry = latestRegistry;
-                            log.info("已恢复Registry连接: {}", latestRegistry.getRegistryUrl());
-                        }
-                    } catch (Exception e) {
-                        log.error("恢复Registry连接失败", e);
-                    }
-                }
             }
+            // 无论是否有活跃实例，都尝试恢复Registry配置
+            restoreRegistryConnection();
         } catch (Exception e) {
             log.error("初始化活跃实例失败", e);
             clearActiveInstance();
+        }
+    }
+
+    /**
+     * 恢复Registry连接（应用启动时调用）
+     * 查找最后配置的Registry实例并尝试连接
+     */
+    private void restoreRegistryConnection() {
+        try {
+            // 如果已经有Registry连接，无需恢复
+            if (connectedRegistry != null) {
+                return;
+            }
+
+            List<CchContainerConfigVo> registryConfigs = queryList(null, "registry");
+            if (!registryConfigs.isEmpty()) {
+                // 取最新的Registry配置进行恢复
+                CchContainerConfigVo latestRegistry = registryConfigs.get(0);
+                try {
+                    if (connectRegistry(latestRegistry)) {
+                        connectedRegistry = latestRegistry;
+                        log.info("已恢复Registry连接: {}", latestRegistry.getRegistryUrl());
+                    }
+                } catch (Exception e) {
+                    log.error("恢复Registry连接失败: {}", latestRegistry.getRegistryUrl(), e);
+                }
+            }
+        } catch (Exception e) {
+            log.error("恢复Registry连接时发生异常", e);
         }
     }
 
