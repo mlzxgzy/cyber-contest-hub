@@ -348,8 +348,10 @@ public class CchContainerConfigServiceImpl implements ICchContainerConfigService
                 throw new ServiceException("Registry地址配置无效");
             }
 
-            // 保存Registry配置用于后续镜像推送
-            connectedRegistry = config;
+            // 保存Registry配置用于后续镜像推送（只有为空时才设置，避免重复赋值）
+            if (connectedRegistry == null) {
+                connectedRegistry = config;
+            }
             log.info("Registry连接配置验证成功: {}", config.getRegistryUrl());
             return true;
         } catch (ServiceException e) {
@@ -483,10 +485,9 @@ public class CchContainerConfigServiceImpl implements ICchContainerConfigService
                 // 取最新的Registry配置进行恢复
                 CchContainerConfigVo latestRegistry = registryConfigs.get(0);
                 try {
-                    if (connectRegistry(latestRegistry)) {
-                        connectedRegistry = latestRegistry;
-                        log.info("已恢复Registry连接: {}", latestRegistry.getRegistryUrl());
-                    }
+                    // connectRegistry内部会设置connectedRegistry
+                    connectRegistry(latestRegistry);
+                    log.info("已恢复Registry连接: {}", latestRegistry.getRegistryUrl());
                 } catch (Exception e) {
                     log.error("恢复Registry连接失败: {}", latestRegistry.getRegistryUrl(), e);
                 }
