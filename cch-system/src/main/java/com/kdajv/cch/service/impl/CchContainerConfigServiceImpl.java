@@ -4,8 +4,6 @@ import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.github.dockerjava.api.model.AuthConfig;
-import com.github.dockerjava.api.model.AuthResponse;
 import com.kdajv.cch.container.ContainerClient;
 import com.kdajv.cch.container.DockerContainerClient;
 import com.kdajv.cch.domain.vo.ClusterNodeVo;
@@ -48,8 +46,6 @@ public class CchContainerConfigServiceImpl implements ICchContainerConfigService
     // 当前活跃的容器客户端实例（Docker / Kubernetes 等）
     private volatile ContainerClient activeClient = null;
     private volatile Long activeInstanceId = null;
-    // 当前已连接的Registry配置
-    private volatile CchContainerConfigVo connectedRegistry = null;
     private final ReentrantLock lock = new ReentrantLock();
 
     private final ISysConfigService sysConfigService;
@@ -256,7 +252,6 @@ public class CchContainerConfigServiceImpl implements ICchContainerConfigService
                 }
             }
             activeInstanceId = null;
-            connectedRegistry = null; // 清理Registry连接
             clearActiveInstance();
         } finally {
             lock.unlock();
@@ -284,115 +279,6 @@ public class CchContainerConfigServiceImpl implements ICchContainerConfigService
         } catch (Exception e) {
             log.error("Docker连接失败: {}", config.getDockerUrl(), e);
             throw new ServiceException("Docker连接失败: " + e.getMessage());
-        }
-    }
-
-    /**
-     * 处理Registry配置（在Docker连接成功后调用）
-     * 如果Docker配置中包含Registry信息，自动创建/更新Registry配置并测试连接
-     */
-    private void handleRegistryConfig(CchContainerConfigVo dockerConfig) {
-        try {
-            // 生成Registry配置名称
-            String registryConfigName = "Registry-" + dockerConfig.getConfigName();
-
-            // 查询是否已存在同名Registry配置
-            List<CchContainerConfigVo> existingRegistryConfigs = queryList(registryConfigName, "registry");
-            CchContainerConfigVo registryConfig = existingRegistryConfigs.isEmpty() ? null : existingRegistryConfigs.get(0);
-
-            // 创建或更新Registry配置
-            CchContainerConfigVo newRegistryConfig = new CchContainerConfigVo();
-            newRegistryConfig.setConfigName(registryConfigName);
-            newRegistryConfig.setBackendType("registry");
-            newRegistryConfig.setRegistryUrl(dockerConfig.getRegistryUrl());
-            newRegistryConfig.setRegistryUsername(dockerConfig.getRegistryUsername());
-            newRegistryConfig.setRegistryPassword(dockerConfig.getRegistryPassword());
-            newRegistryConfig.setRegistryRepo(dockerConfig.getRegistryRepo());
-            newRegistryConfig.setStatus("0");
-
-            Long registryConfigId;
-            if (registryConfig != null) {
-                // 更新现有配置
-                newRegistryConfig.setId(registryConfig.getId());
-                updateByVo(newRegistryConfig);
-                registryConfigId = registryConfig.getId();
-                log.info("已更新Registry配置: {}", registryConfigName);
-            } else {
-                // 创建新配置
-                insertByVo(newRegistryConfig);
-                // 查询刚创建的配置以获取ID
-                List<CchContainerConfigVo> newConfigs = queryList(registryConfigName, "registry");
-                if (newConfigs.isEmpty()) {
-                    throw new ServiceException("创建Registry配置失败：未找到新创建的配置");
-                }
-                registryConfigId = newConfigs.get(0).getId();
-                log.info("已创建Registry配置: {}", registryConfigName);
-            }
-
-            // 测试Registry连接
-            CchContainerConfigVo registryConfigToTest = queryById(registryConfigId);
-            if (registryConfigToTest == null) {
-                throw new ServiceException("未找到Registry配置");
-            }
-
-            // 测试Registry连接（这里会设置connectedRegistry）
-            connectRegistry(registryConfigToTest);
-            log.info("Registry配置 {} 连接测试成功", registryConfigName);
-        } catch (ServiceException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("处理Registry配置失败", e);
-            throw new ServiceException("处理Registry配置失败: " + e.getMessage());
-        }
-    }
-
-    /**
-     * 连接Registry（使用docker-java测试连接）
-     */
-    private boolean connectRegistry(CchContainerConfigVo config) {
-        try {
-            if (StringUtils.isBlank(config.getRegistryUrl())) {
-                throw new ServiceException("Registry URL不能为空");
-            }
-
-            log.info("正在连接Registry: {}", config.getRegistryUrl());
-
-            // 验证Registry URL格式
-            String registryUrl = config.getRegistryUrl();
-            if (!registryUrl.startsWith("http://") && !registryUrl.startsWith("https://")) {
-                registryUrl = "https://" + registryUrl;
-            }
-
-            // 使用docker-java的AuthConfig来测试Registry连接
-            AuthConfig authConfig = new AuthConfig();
-            authConfig.withRegistryAddress(registryUrl);
-
-            // 如果提供了用户名和密码，设置认证信息
-            if (StringUtils.isNotBlank(config.getRegistryUsername()) && StringUtils.isNotBlank(config.getRegistryPassword())) {
-                authConfig.withUsername(config.getRegistryUsername());
-                authConfig.withPassword(config.getRegistryPassword());
-            }
-
-            // 执行Registry认证测试
-            try {
-                AuthResponse authResponse = activeClient.authCmd(authConfig);
-                log.info("Registry连接测试成功: {} - {}", authResponse, registryUrl);
-            } catch (Exception e) {
-                log.error("Registry连接测试失败: {}", registryUrl, e);
-                throw new ServiceException("Registry连接测试失败: " + e.getMessage());
-            }
-
-            // 保存Registry配置用于后续镜像推送（只有为空时才设置，避免重复赋值）
-            if (connectedRegistry == null) {
-                connectedRegistry = config;
-            }
-            log.info("Registry连接配置验证成功: {}", config.getRegistryUrl());
-            return true;
-        } catch (ServiceException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("Registry连接失败: {}", config.getRegistryUrl(), e);
-            throw new ServiceException("Registry连接失败: " + e.getMessage());
         }
     }
 
@@ -495,39 +381,9 @@ public class CchContainerConfigServiceImpl implements ICchContainerConfigService
                     clearActiveInstance();
                 }
             }
-            // 无论是否有活跃实例，都尝试恢复Registry配置
-            restoreRegistryConnection();
         } catch (Exception e) {
             log.error("初始化活跃实例失败", e);
             clearActiveInstance();
-        }
-    }
-
-    /**
-     * 恢复Registry连接（应用启动时调用）
-     * 查找最后配置的Registry实例并尝试连接
-     */
-    private void restoreRegistryConnection() {
-        try {
-            // 如果已经有Registry连接，无需恢复
-            if (connectedRegistry != null) {
-                return;
-            }
-
-            List<CchContainerConfigVo> registryConfigs = queryList(null, "registry");
-            if (!registryConfigs.isEmpty()) {
-                // 取最新的Registry配置进行恢复
-                CchContainerConfigVo latestRegistry = registryConfigs.get(0);
-                try {
-                    // connectRegistry内部会设置connectedRegistry
-                    connectRegistry(latestRegistry);
-                    log.info("已恢复Registry连接: {}", latestRegistry.getRegistryUrl());
-                } catch (Exception e) {
-                    log.error("恢复Registry连接失败: {}", latestRegistry.getRegistryUrl(), e);
-                }
-            }
-        } catch (Exception e) {
-            log.error("恢复Registry连接时发生异常", e);
         }
     }
 
@@ -547,11 +403,9 @@ public class CchContainerConfigServiceImpl implements ICchContainerConfigService
             if (StringUtils.isBlank(vo.getDockerUrl())) {
                 throw new ServiceException("Docker类型必须填写Docker URL");
             }
-        }
-        // Registry类型需要验证Registry URL
-        if ("registry".equals(vo.getBackendType())) {
-            if (StringUtils.isBlank(vo.getRegistryUrl())) {
-                throw new ServiceException("Registry类型必须填写Registry URL");
+            // Docker配置中Registry为可选项，但填写URL时必须填写Repo
+            if (StringUtils.isNotBlank(vo.getRegistryUrl()) && StringUtils.isBlank(vo.getRegistryRepo())) {
+                throw new ServiceException("如果填写了Registry URL，则必须填写仓库（Repo）");
             }
         }
         // Kubernetes类型需要验证Kubernetes配置
@@ -712,24 +566,4 @@ public class CchContainerConfigServiceImpl implements ICchContainerConfigService
         String domainPattern = "^((?!-)[A-Za-z0-9-]{1,63}(?<!-)\\.)+[A-Za-z]{2,6}$";
         return domain.matches(domainPattern);
     }
-
-    @Override
-    public void updateNodeLabels(String nodeId, Map<String, String> labels) {
-        if (activeClient == null) {
-            throw new ServiceException("没有活跃的容器连接");
-        }
-
-        try {
-            activeClient.updateNodeLabels(nodeId, labels);
-        } catch (Exception e) {
-            log.error("更新节点标签失败", e);
-            throw new ServiceException("更新节点标签失败: " + e.getMessage());
-        }
-    }
-
-    @Override
-    public CchContainerConfigVo getConnectedRegistry() {
-        return connectedRegistry;
-    }
-
 }

@@ -3,6 +3,7 @@ package com.kdajv.cch.service;
 import cn.hutool.core.util.IdUtil;
 import com.kdajv.cch.container.ContainerClient;
 import com.kdajv.cch.domain.ChallengeContainerImage;
+import com.kdajv.cch.domain.vo.CchContainerConfigVo;
 import com.kdajv.cch.domain.vo.ChallengeContainerImageVo;
 import com.kdajv.cch.domain.bo.ChallengeContainerImageBo;
 import com.kdajv.cch.mapper.ChallengeContainerImageMapper;
@@ -217,45 +218,34 @@ public class ImageUploadService {
                 log.error("分割镜像名称时出现问题，msg:{}，分割数据：{}", result, result);
             }
 
-            // 获取已连接的Registry配置
-            com.kdajv.cch.domain.vo.CchContainerConfigVo registryConfig = containerConfigService.getConnectedRegistry();
-            String targetImage;
-            String repo = null;  // 提前定义repo变量到外层作用域
+            // Registry信息现在直接从“活跃Docker配置”里读取（与Docker配置一起保存）
+            CchContainerConfigVo activeDockerConfig = containerConfigService.getActiveInstance();
 
-            if (registryConfig != null && StringUtils.isNotBlank(registryConfig.getRegistryUrl())) {
-                // Registry已连接，tag为 registryUrl/repo/challengeId/imageName:tag
-                String registryUrl = registryConfig.getRegistryUrl();
-                repo = registryConfig.getRegistryRepo();
-                if (StringUtils.isBlank(repo)) {
-                    repo = "images";
-                }
-                targetImage = "%s/%s/%d/%s".formatted(registryUrl, repo, challengeId, imageName);
-                log.info("Registry已连接，使用Registry地址 tag镜像: {}", targetImage);
-            } else {
-                // Registry未连接，tag为 cch/challengeId/imageName:tag
-                targetImage = "cch/%d/%s".formatted(challengeId, imageName);
-                log.info("Registry未连接，使用本地地址 tag镜像: {}", targetImage);
+            String registryUrl = activeDockerConfig != null ? activeDockerConfig.getRegistryUrl() : null;
+            String repo = activeDockerConfig != null ? activeDockerConfig.getRegistryRepo() : null;
+
+            // Docker镜像名不应包含协议头（如 http:// 或 https://）
+            String cleanRegistryUrl = StringUtils.isNotBlank(registryUrl) ? registryUrl.replaceFirst("^https?://", "") : null;
+
+            if (StringUtils.isNotBlank(cleanRegistryUrl) && StringUtils.isBlank(repo)) {
+                repo = "images";
             }
 
-            // 移除协议头（如 http:// 或 https://）
-            String cleanRegistryUrl = null;
-            if (registryConfig != null && StringUtils.isNotBlank(registryConfig.getRegistryUrl())) {
-                cleanRegistryUrl = registryConfig.getRegistryUrl().replaceFirst("^https?://", "");
-            }
-
-            // 如果Registry已连接且有有效的URL，构建完整的目标镜像地址
-            String finalImageName;
-            if (cleanRegistryUrl != null) {
+            // 构建目标镜像地址
+            final String finalImageName;
+            if (StringUtils.isNotBlank(cleanRegistryUrl)) {
                 finalImageName = "%s/%s/%d/%s".formatted(cleanRegistryUrl, repo, challengeId, imageName);
+                log.info("Registry已配置，使用Registry地址 tag镜像: {}", finalImageName);
             } else {
                 finalImageName = "cch/%d/%s".formatted(challengeId, imageName);
+                log.info("Registry未配置，使用本地地址 tag镜像: {}", finalImageName);
             }
 
             containerClient.tagImage(imageWithTag, finalImageName, tag);
             containerClient.removeImage(imageWithTag);
 
-            // 如果Registry已连接，推送镜像到Registry
-            if (cleanRegistryUrl != null) {
+            // 如果Registry已配置，推送镜像到Registry
+            if (StringUtils.isNotBlank(cleanRegistryUrl)) {
                 log.info("推送镜像到Registry: {}", finalImageName);
                 containerClient.pushImage(finalImageName, tag);
                 log.info("镜像推送完成: {}", finalImageName);

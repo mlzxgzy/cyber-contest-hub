@@ -125,19 +125,4 @@ public interface ICchContainerConfigService {
      * @param address 外部访问地址（IP或域名）
      */
     void updateNodeExternalAddress(String nodeId, String address);
-
-    /**
-     * 更新节点标签（内部使用）
-     *
-     * @param nodeId 节点ID
-     * @param labels 标签Map
-     */
-    void updateNodeLabels(String nodeId, Map<String, String> labels);
-
-    /**
-     * 获取已连接的Registry配置
-     *
-     * @return Registry配置，如果不存在已连接的Registry返回null
-     */
-    CchContainerConfigVo getConnectedRegistry();
 }
