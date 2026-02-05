@@ -407,6 +407,7 @@ public class CchContainerConfigServiceImpl implements ICchContainerConfigService
             if (activeConfig != null) {
                 SysConfigBo bo = new SysConfigBo();
                 bo.setConfigId(activeConfig.getConfigId());
+                bo.setConfigKey(ACTIVE_INSTANCE_KEY);  // 必须设置configKey，否则缓存key为null
                 bo.setConfigValue(String.valueOf(instanceId));
                 sysConfigService.updateConfig(bo);
             } else {
