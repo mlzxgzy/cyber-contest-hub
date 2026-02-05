@@ -2,8 +2,8 @@ CREATE TABLE IF NOT EXISTS `t_challenge_container_image`
 (
     `id`            bigint(20)   NOT NULL AUTO_INCREMENT COMMENT '主键',
     `challenge_id`  bigint(20)   NOT NULL COMMENT '题目ID',
-    `image_name`    varchar(255) NOT NULL COMMENT '镜像名称',
-    `image_tag`     varchar(255) NOT NULL DEFAULT 'latest' COMMENT '镜像标签',
+    `image_name`    varchar(255) NOT NULL COMMENT '镜像名称（展示用，一般为 name:tag 形式）',
+    `pull_address`  varchar(2048)          DEFAULT NULL COMMENT '镜像拉取地址（docker pull / 服务创建使用的完整地址，包含标签）',
     `image_size`    bigint(20)            DEFAULT NULL COMMENT '镜像大小(字节)',
     `file_path`     varchar(500) NOT NULL COMMENT '镜像文件存储路径',
     `file_hash`     varchar(64)           DEFAULT NULL COMMENT '镜像文件SHA256哈希值',

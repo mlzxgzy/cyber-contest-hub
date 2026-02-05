@@ -59,7 +59,6 @@ public class ImageUploadService {
         ChallengeContainerImageBo imageBo = new ChallengeContainerImageBo();
         imageBo.setChallengeId(challengeId);
         imageBo.setImageName(imageName);
-        imageBo.setImageTag("latest");
         imageBo.setImageSize(file.getSize());
         imageBo.setStatus("uploading");
         imageBo.setProgress(java.math.BigDecimal.valueOf(0.0));
@@ -95,9 +94,6 @@ public class ImageUploadService {
         // 设置默认值
         if (bo.getProgress() == null) {
             bo.setProgress(java.math.BigDecimal.ZERO);
-        }
-        if (bo.getImageTag() == null) {
-            bo.setImageTag("latest");
         }
         if (bo.getStatus() == null) {
             bo.setStatus("uploading");
@@ -251,8 +247,10 @@ public class ImageUploadService {
                 log.info("镜像推送完成: {}", finalImageName);
             }
 
-            updateBo.setImageName(finalImageName);
-            updateBo.setImageTag(tag);
+            // 展示名称使用 Load 后得到的镜像全名（包含标签）
+            updateBo.setImageName(imageWithTag);
+            // 拉取地址使用实际推送到 Registry（或本地）后的完整地址（包含标签）
+            updateBo.setPullAddress("%s:%s".formatted(finalImageName, tag));
             updateBo.setStatus("available"); // 设置为已上传状态
             updateBo.setProgress(BigDecimal.valueOf(100.0)); // 设置进度为100%
             updateBo.setErrorMessage(null);

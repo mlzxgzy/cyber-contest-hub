@@ -41,10 +41,9 @@ public class ChallengeContainerImageBo extends BaseEntity {
     private String imageName;
 
     /**
-     * 镜像标签
+     * 镜像拉取地址（用于 docker pull / service 创建的实际镜像地址）
      */
-    @NotBlank(message = "镜像标签不能为空", groups = {AddGroup.class, EditGroup.class})
-    private String imageTag;
+    private String pullAddress;
 
     /**
      * 镜像大小(字节)

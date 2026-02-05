@@ -70,10 +70,11 @@ const {columns, columnChecks, data, getData, getDataByPage, loading, mobilePagin
         minWidth: 150
       },
       {
-        key: 'imageTag',
-        title: '镜像标签',
+        key: 'pullAddress',
+        title: '镜像拉取地址',
         align: 'center',
-        minWidth: 100
+        minWidth: 220,
+        render: row => row.pullAddress || '-'
       },
       {
         key: 'imageSize',

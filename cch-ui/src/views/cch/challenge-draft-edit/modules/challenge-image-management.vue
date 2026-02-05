@@ -274,8 +274,14 @@ onMounted(async () => {
                   <NTag :type="getStatusType(image.status)" size="small">
                     {{ getImageStatusText(image.status) }}
                   </NTag>
-                  <span class="font-600">{{ image.imageName.replace(/cch\/\d+\//, '') }}:{{ image.imageTag }}</span>
+                  <!-- 镜像名称用于展示（已合并 name:tag） -->
+                  <span class="font-600">{{ image.imageName }}</span>
                   <span class="text-gray-500 text-sm">{{ formatFileSize(image.imageSize) }}</span>
+                </div>
+
+                <!-- 镜像拉取地址 -->
+                <div v-if="image.pullAddress" class="text-xs text-gray-500 mb-1">
+                  镜像拉取地址：{{ image.pullAddress }}
                 </div>
 
                 <!-- 进度条 -->

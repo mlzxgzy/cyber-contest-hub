@@ -449,10 +449,10 @@ declare namespace Api {
       id: CommonType.IdType;
       /** 题目ID */
       challengeId: CommonType.IdType;
-      /** 镜像名称 */
+      /** 镜像名称（展示用，一般为 name:tag 形式） */
       imageName: string;
-      /** 镜像标签 */
-      imageTag: string;
+      /** 镜像拉取地址（docker pull / 服务创建使用的完整地址，包含标签） */
+      pullAddress?: string;
       /** 镜像大小(字节) */
       imageSize?: number;
       /** 镜像文件存储路径 */
@@ -485,8 +485,8 @@ declare namespace Api {
         | 'id'
         | 'challengeId'
         | 'imageName'
-        | 'imageTag'
         | 'imageSize'
+        | 'pullAddress'
         | 'filePath'
         | 'fileHash'
         | 'status'

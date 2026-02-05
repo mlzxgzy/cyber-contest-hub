@@ -72,9 +72,6 @@ public class ChallengeContainerImageServiceImpl implements IChallengeContainerIm
         if (bo.getProgress() == null) {
             bo.setProgress(java.math.BigDecimal.ZERO);
         }
-        if (bo.getImageTag() == null) {
-            bo.setImageTag("latest");
-        }
         if (bo.getStatus() == null) {
             bo.setStatus("uploading");
         }

@@ -43,14 +43,14 @@ public class ChallengeContainerImage extends BaseEntity {
     private Long challengeId;
 
     /**
-     * 镜像名称
+     * 镜像名称（用于展示，通常为 name:tag 形式）
      */
     private String imageName;
 
     /**
-     * 镜像标签
+     * 镜像拉取地址（用于 docker pull / service 创建的实际镜像地址）
      */
-    private String imageTag;
+    private String pullAddress;
 
     /**
      * 镜像大小(字节)

@@ -42,7 +42,7 @@ const containerImages = ref<Api.Cch.ChallengeContainerImage[]>([]);
 
 const imageOptions = computed(() => {
   return (containerImages.value || []).map(img => {
-    const label = `${img.imageName?.replace(/^cch\/\d+\//, '')}:${img.imageTag} (${img.status})`;
+    const label = `${img.imageName} (${img.status})`;
     return {label, value: img.id};
   });
 });
@@ -105,7 +105,8 @@ function resolveImageName(imageId?: CommonType.IdType | null) {
   if (!imageId) return null;
   const found = containerImages.value.find(x => x.id === imageId);
   if (!found) return null;
-  return `${found.imageName}:${found.imageTag}`;
+  // 优先使用镜像拉取地址作为实际运行镜像名称；否则退回展示名称
+  return found.pullAddress || found.imageName || null;
 }
 </script>
 
