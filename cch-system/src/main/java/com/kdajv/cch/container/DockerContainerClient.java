@@ -1,10 +1,15 @@
 package com.kdajv.cch.container;
 
 import com.github.dockerjava.api.DockerClient;
+import com.github.dockerjava.api.command.AuthCmd;
 import com.github.dockerjava.api.command.CreateServiceResponse;
 import com.github.dockerjava.api.command.LoadImageCallback;
 import com.github.dockerjava.api.model.*;
+import com.github.dockerjava.core.DefaultDockerClientConfig;
+import com.github.dockerjava.core.DockerClientBuilder;
+import com.github.dockerjava.httpclient5.ApacheDockerHttpClient;
 import com.kdajv.cch.domain.DraftConfig;
+import com.kdajv.cch.domain.vo.CchContainerConfigVo;
 import com.kdajv.cch.domain.vo.ClusterNodeVo;
 import com.kdajv.cch.domain.vo.DockerContainerVo;
 import com.kdajv.cch.domain.vo.DockerImageVo;
@@ -28,6 +33,70 @@ public class DockerContainerClient implements ContainerClient {
 
     public DockerContainerClient(DockerClient dockerClient) {
         this.dockerClient = dockerClient;
+    }
+
+    /**
+     * 通过配置创建Docker容器客户端
+     *
+     * @param config 容器配置
+     * @throws ServiceException 配置无效或创建失败时抛出
+     */
+    public DockerContainerClient(CchContainerConfigVo config) {
+        if (StringUtils.isBlank(config.getDockerUrl())) {
+            throw new ServiceException("Docker URL不能为空");
+        }
+
+        log.info("正在创建Docker客户端: {}", config.getDockerUrl());
+
+        try {
+            // 使用docker-java创建DockerClient
+            DefaultDockerClientConfig.Builder configBuilder = DefaultDockerClientConfig.createDefaultConfigBuilder()
+                .withDockerHost(config.getDockerUrl());
+
+            if (StringUtils.isNotBlank(config.getDockerApiVersion())) {
+                configBuilder.withApiVersion(config.getDockerApiVersion());
+            }
+
+            // 处理TLS认证
+            if ("1".equals(config.getDockerTlsVerify()) && StringUtils.isNotBlank(config.getDockerCertPath())) {
+                configBuilder.withDockerTlsVerify(true);
+                configBuilder.withDockerCertPath(config.getDockerCertPath());
+            }
+
+            // 处理Registry认证
+            if (StringUtils.isNotBlank(config.getRegistryUrl())) {
+                configBuilder.withRegistryUrl(config.getRegistryUrl());
+                configBuilder.withRegistryUsername(config.getRegistryUsername());
+                configBuilder.withRegistryPassword(config.getRegistryPassword());
+            }
+
+            DefaultDockerClientConfig dockerConfig = configBuilder.build();
+            ApacheDockerHttpClient apacheDockerHttpClient = new ApacheDockerHttpClient.Builder()
+                .dockerHost(dockerConfig.getDockerHost())
+                .sslConfig(dockerConfig.getSSLConfig())
+                .build();
+            this.dockerClient = DockerClientBuilder.getInstance(dockerConfig)
+                .withDockerHttpClient(apacheDockerHttpClient)
+                .build();
+
+            log.info("Docker客户端创建成功: {}", config.getDockerUrl());
+
+            // 处理Registry认证
+            if (StringUtils.isNotBlank(config.getRegistryUrl())) {
+                try {
+                    AuthResponse exec = this.dockerClient.authCmd().exec();
+                    log.info("Registry连接成功: {} - {}", exec, config.getRegistryUrl());
+                } catch (Exception e) {
+                    log.error("Registry连接失败: {}", config.getRegistryUrl(), e);
+                    throw new ServiceException("Registry连接失败: " + e.getMessage(), e);
+                }
+            }
+        } catch (ServiceException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Docker客户端创建失败: {}", config.getDockerUrl(), e);
+            throw new ServiceException("Docker客户端创建失败: " + e.getMessage(), e);
+        }
     }
 
     @Override
@@ -384,13 +453,13 @@ public class DockerContainerClient implements ContainerClient {
             try {
                 com.github.dockerjava.api.model.Service service = dockerClient.inspectServiceCmd(serviceId).exec();
                 ServiceSpec spec = service.getSpec();
-                
+
                 // 获取服务名称
                 String serviceName = spec != null && spec.getName() != null ? spec.getName() : serviceId;
                 if (serviceName.length() > 12) {
                     serviceName = serviceName.substring(0, 12);
                 }
-                
+
                 // 获取镜像名称
                 String imageName = "";
                 if (spec != null && spec.getTaskTemplate() != null &&
@@ -404,7 +473,7 @@ public class DockerContainerClient implements ContainerClient {
                     for (PortConfig portConfig : service.getEndpoint().getPorts()) {
                         Integer targetPort = null;
                         Integer publishedPort = null;
-                        
+
                         // 安全地获取端口值
                         Object targetPortObj = portConfig.getTargetPort();
                         if (targetPortObj != null) {
@@ -414,7 +483,7 @@ public class DockerContainerClient implements ContainerClient {
                                 targetPort = ((Number) targetPortObj).intValue();
                             }
                         }
-                        
+
                         Object publishedPortObj = portConfig.getPublishedPort();
                         if (publishedPortObj != null) {
                             if (publishedPortObj instanceof Integer) {
@@ -423,7 +492,7 @@ public class DockerContainerClient implements ContainerClient {
                                 publishedPort = ((Number) publishedPortObj).intValue();
                             }
                         }
-                        
+
                         portMappings.add(new PortMapping(
                             portConfig.getName() != null ? portConfig.getName() : "port",
                             portConfig.getProtocol() != null ? portConfig.getProtocol().toString().toLowerCase() : "tcp",
@@ -431,14 +500,14 @@ public class DockerContainerClient implements ContainerClient {
                             publishedPort
                         ));
                     }
-                } 
+                }
                 // 如果运行时没有端口信息，回退到配置中的端口
                 else if (spec != null && spec.getEndpointSpec() != null &&
                     spec.getEndpointSpec().getPorts() != null) {
                     for (PortConfig portConfig : spec.getEndpointSpec().getPorts()) {
                         Integer targetPort = null;
                         Integer publishedPort = null;
-                        
+
                         Object targetPortObj = portConfig.getTargetPort();
                         if (targetPortObj != null) {
                             if (targetPortObj instanceof Integer) {
@@ -447,7 +516,7 @@ public class DockerContainerClient implements ContainerClient {
                                 targetPort = ((Number) targetPortObj).intValue();
                             }
                         }
-                        
+
                         Object publishedPortObj = portConfig.getPublishedPort();
                         if (publishedPortObj != null) {
                             if (publishedPortObj instanceof Integer) {
@@ -456,7 +525,7 @@ public class DockerContainerClient implements ContainerClient {
                                 publishedPort = ((Number) publishedPortObj).intValue();
                             }
                         }
-                        
+
                         portMappings.add(new PortMapping(
                             portConfig.getName() != null ? portConfig.getName() : "port",
                             portConfig.getProtocol() != null ? portConfig.getProtocol().toString().toLowerCase() : "tcp",
@@ -477,6 +546,19 @@ public class DockerContainerClient implements ContainerClient {
             log.error("获取服务端口信息失败: {}", serviceId, e);
             throw new ServiceException("获取服务端口信息失败: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * 执行容器注册中心认证
+     *
+     * @param config 认证配置信息，包含用户名、密码、注册中心地址等
+     * @return
+     */
+    @Override
+    public AuthResponse authCmd(AuthConfig config) {
+        AuthCmd authCmd = dockerClient.authCmd();
+        authCmd.withAuthConfig(config);
+        return authCmd.exec();
     }
 
     private String humanReadableByteCount(long bytes) {

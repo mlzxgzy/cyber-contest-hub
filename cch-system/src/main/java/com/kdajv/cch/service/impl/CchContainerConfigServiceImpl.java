@@ -4,10 +4,8 @@ import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.github.dockerjava.api.DockerClient;
-import com.github.dockerjava.core.DefaultDockerClientConfig;
-import com.github.dockerjava.core.DockerClientBuilder;
-import com.github.dockerjava.httpclient5.ApacheDockerHttpClient;
+import com.github.dockerjava.api.model.AuthConfig;
+import com.github.dockerjava.api.model.AuthResponse;
 import com.kdajv.cch.container.ContainerClient;
 import com.kdajv.cch.container.DockerContainerClient;
 import com.kdajv.cch.domain.vo.ClusterNodeVo;
@@ -201,16 +199,9 @@ public class CchContainerConfigServiceImpl implements ICchContainerConfigService
                         disconnectActiveInstance();
                     }
                     success = connectDocker(config);
-                    if (success) {
-                        // 保存当前活跃实例（只有Docker类型才设置为活跃实例）
-                        activeInstanceId = id;
-                        saveActiveInstance(id);
-                        log.info("容器实例 {} 连接成功并已激活", id);
-                    }
-                } else if ("registry".equals(config.getBackendType())) {
-                    // Registry类型只测试连接，不设置为活跃实例，也不影响现有Docker连接
-                    success = connectRegistry(config);
-                    log.info("Registry配置 {} 连接测试成功", id);
+                    activeInstanceId = id;
+                    saveActiveInstance(id);
+                    log.info("容器实例 {} 连接成功并已激活", id);
                 } else if ("kubernetes".equals(config.getBackendType())) {
                     throw new ServiceException("Kubernetes连接测试暂未实现");
                 } else {
@@ -265,6 +256,7 @@ public class CchContainerConfigServiceImpl implements ICchContainerConfigService
                 }
             }
             activeInstanceId = null;
+            connectedRegistry = null; // 清理Registry连接
             clearActiveInstance();
         } finally {
             lock.unlock();
@@ -276,31 +268,10 @@ public class CchContainerConfigServiceImpl implements ICchContainerConfigService
      */
     private boolean connectDocker(CchContainerConfigVo config) {
         try {
-            if (StringUtils.isBlank(config.getDockerUrl())) {
-                throw new ServiceException("Docker URL不能为空");
-            }
-
             log.info("正在连接Docker: {}", config.getDockerUrl());
 
-            // 使用docker-java创建DockerClient
-            DefaultDockerClientConfig.Builder configBuilder = DefaultDockerClientConfig.createDefaultConfigBuilder().withDockerHost(config.getDockerUrl());
-
-            if (StringUtils.isNotBlank(config.getDockerApiVersion())) {
-                configBuilder.withApiVersion(config.getDockerApiVersion());
-            }
-
-            // 处理TLS认证
-            if ("1".equals(config.getDockerTlsVerify()) && StringUtils.isNotBlank(config.getDockerCertPath())) {
-                configBuilder.withDockerTlsVerify(true);
-                configBuilder.withDockerCertPath(config.getDockerCertPath());
-            }
-
-            DefaultDockerClientConfig dockerConfig = configBuilder.build();
-            ApacheDockerHttpClient apacheDockerHttpClient = new ApacheDockerHttpClient.Builder().dockerHost(dockerConfig.getDockerHost()).sslConfig(dockerConfig.getSSLConfig()).build();
-            DockerClient dockerClient = DockerClientBuilder.getInstance(dockerConfig).withDockerHttpClient(apacheDockerHttpClient).build();
-
-            // 包装为通用容器客户端并测试连接
-            DockerContainerClient containerClient = new DockerContainerClient(dockerClient);
+            // 使用配置创建容器客户端（构造函数内部会创建DockerClient）
+            DockerContainerClient containerClient = new DockerContainerClient(config);
             containerClient.ping();
 
             // 保存连接
@@ -317,7 +288,66 @@ public class CchContainerConfigServiceImpl implements ICchContainerConfigService
     }
 
     /**
-     * 连接Registry
+     * 处理Registry配置（在Docker连接成功后调用）
+     * 如果Docker配置中包含Registry信息，自动创建/更新Registry配置并测试连接
+     */
+    private void handleRegistryConfig(CchContainerConfigVo dockerConfig) {
+        try {
+            // 生成Registry配置名称
+            String registryConfigName = "Registry-" + dockerConfig.getConfigName();
+
+            // 查询是否已存在同名Registry配置
+            List<CchContainerConfigVo> existingRegistryConfigs = queryList(registryConfigName, "registry");
+            CchContainerConfigVo registryConfig = existingRegistryConfigs.isEmpty() ? null : existingRegistryConfigs.get(0);
+
+            // 创建或更新Registry配置
+            CchContainerConfigVo newRegistryConfig = new CchContainerConfigVo();
+            newRegistryConfig.setConfigName(registryConfigName);
+            newRegistryConfig.setBackendType("registry");
+            newRegistryConfig.setRegistryUrl(dockerConfig.getRegistryUrl());
+            newRegistryConfig.setRegistryUsername(dockerConfig.getRegistryUsername());
+            newRegistryConfig.setRegistryPassword(dockerConfig.getRegistryPassword());
+            newRegistryConfig.setRegistryRepo(dockerConfig.getRegistryRepo());
+            newRegistryConfig.setStatus("0");
+
+            Long registryConfigId;
+            if (registryConfig != null) {
+                // 更新现有配置
+                newRegistryConfig.setId(registryConfig.getId());
+                updateByVo(newRegistryConfig);
+                registryConfigId = registryConfig.getId();
+                log.info("已更新Registry配置: {}", registryConfigName);
+            } else {
+                // 创建新配置
+                insertByVo(newRegistryConfig);
+                // 查询刚创建的配置以获取ID
+                List<CchContainerConfigVo> newConfigs = queryList(registryConfigName, "registry");
+                if (newConfigs.isEmpty()) {
+                    throw new ServiceException("创建Registry配置失败：未找到新创建的配置");
+                }
+                registryConfigId = newConfigs.get(0).getId();
+                log.info("已创建Registry配置: {}", registryConfigName);
+            }
+
+            // 测试Registry连接
+            CchContainerConfigVo registryConfigToTest = queryById(registryConfigId);
+            if (registryConfigToTest == null) {
+                throw new ServiceException("未找到Registry配置");
+            }
+
+            // 测试Registry连接（这里会设置connectedRegistry）
+            connectRegistry(registryConfigToTest);
+            log.info("Registry配置 {} 连接测试成功", registryConfigName);
+        } catch (ServiceException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("处理Registry配置失败", e);
+            throw new ServiceException("处理Registry配置失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 连接Registry（使用docker-java测试连接）
      */
     private boolean connectRegistry(CchContainerConfigVo config) {
         try {
@@ -327,9 +357,15 @@ public class CchContainerConfigServiceImpl implements ICchContainerConfigService
 
             log.info("正在连接Registry: {}", config.getRegistryUrl());
 
-            // 使用docker-java的AuthConfig来连接Registry
-            com.github.dockerjava.api.model.AuthConfig authConfig = new com.github.dockerjava.api.model.AuthConfig();
-            authConfig.withRegistryAddress(config.getRegistryUrl());
+            // 验证Registry URL格式
+            String registryUrl = config.getRegistryUrl();
+            if (!registryUrl.startsWith("http://") && !registryUrl.startsWith("https://")) {
+                registryUrl = "https://" + registryUrl;
+            }
+
+            // 使用docker-java的AuthConfig来测试Registry连接
+            AuthConfig authConfig = new AuthConfig();
+            authConfig.withRegistryAddress(registryUrl);
 
             // 如果提供了用户名和密码，设置认证信息
             if (StringUtils.isNotBlank(config.getRegistryUsername()) && StringUtils.isNotBlank(config.getRegistryPassword())) {
@@ -337,15 +373,13 @@ public class CchContainerConfigServiceImpl implements ICchContainerConfigService
                 authConfig.withPassword(config.getRegistryPassword());
             }
 
-            // 测试连接：尝试访问Registry的v2 API
-            // 注意：docker-java的AuthConfig主要用于镜像推送/拉取时的认证
-            // 这里我们只是验证配置是否正确，实际使用时会在镜像操作时使用这个AuthConfig
-            log.info("Registry连接配置已创建: {}", config.getRegistryUrl());
-
-            // 由于docker-java没有直接的Registry ping方法，我们只验证配置的有效性
-            // 实际的连接测试会在使用Registry时进行（如拉取镜像）
-            if (StringUtils.isBlank(authConfig.getRegistryAddress())) {
-                throw new ServiceException("Registry地址配置无效");
+            // 执行Registry认证测试
+            try {
+                AuthResponse authResponse = activeClient.authCmd(authConfig);
+                log.info("Registry连接测试成功: {} - {}", authResponse, registryUrl);
+            } catch (Exception e) {
+                log.error("Registry连接测试失败: {}", registryUrl, e);
+                throw new ServiceException("Registry连接测试失败: " + e.getMessage());
             }
 
             // 保存Registry配置用于后续镜像推送（只有为空时才设置，避免重复赋值）

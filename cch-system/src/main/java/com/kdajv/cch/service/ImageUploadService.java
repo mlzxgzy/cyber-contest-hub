@@ -220,11 +220,12 @@ public class ImageUploadService {
             // 获取已连接的Registry配置
             com.kdajv.cch.domain.vo.CchContainerConfigVo registryConfig = containerConfigService.getConnectedRegistry();
             String targetImage;
+            String repo = null;  // 提前定义repo变量到外层作用域
 
             if (registryConfig != null && StringUtils.isNotBlank(registryConfig.getRegistryUrl())) {
                 // Registry已连接，tag为 registryUrl/repo/challengeId/imageName:tag
                 String registryUrl = registryConfig.getRegistryUrl();
-                String repo = registryConfig.getRegistryRepo();
+                repo = registryConfig.getRegistryRepo();
                 if (StringUtils.isBlank(repo)) {
                     repo = "images";
                 }
@@ -245,7 +246,7 @@ public class ImageUploadService {
             // 如果Registry已连接且有有效的URL，构建完整的目标镜像地址
             String finalImageName;
             if (cleanRegistryUrl != null) {
-                finalImageName = "%s/%d/%s".formatted(cleanRegistryUrl, challengeId, imageName);
+                finalImageName = "%s/%s/%d/%s".formatted(cleanRegistryUrl, repo, challengeId, imageName);
             } else {
                 finalImageName = "cch/%d/%s".formatted(challengeId, imageName);
             }
@@ -318,7 +319,7 @@ public class ImageUploadService {
     public Double getUploadProgress(Long imageId) {
         Double progress = uploadProgress.get(imageId);
         if (progress == null) {
-            // 如果不在内存中，则从数据库获取最新状态
+             // 如果不在内存中，则从数据库获取最新状态
             ChallengeContainerImageVo image = queryById(imageId);
             if (image != null && image.getProgress() != null) {
                 return image.getProgress().doubleValue();

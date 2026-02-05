@@ -1,5 +1,7 @@
 package com.kdajv.cch.container;
 
+import com.github.dockerjava.api.model.AuthConfig;
+import com.github.dockerjava.api.model.AuthResponse;
 import com.kdajv.cch.domain.DraftConfig;
 import com.kdajv.cch.domain.vo.ClusterNodeVo;
 import com.kdajv.cch.domain.vo.DockerContainerVo;
@@ -177,6 +179,14 @@ public interface ContainerClient extends Closeable {
      * @throws Exception 查询失败时抛出
      */
     ServicePortInfo getServicePortInfo(String serviceId) throws Exception;
+
+    /**
+     * 执行容器注册中心认证
+     *
+     * @param config 认证配置信息，包含用户名、密码、注册中心地址等
+     * @return 认证响应结果，包含认证状态和相关信息
+     */
+    AuthResponse authCmd(AuthConfig config);
 
     /**
      * 关闭客户端并释放资源
