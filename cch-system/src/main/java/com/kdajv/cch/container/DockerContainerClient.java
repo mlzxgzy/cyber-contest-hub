@@ -332,7 +332,10 @@ public class DockerContainerClient implements ContainerClient {
     ) throws Exception {
         try {
             // 构建服务名称（添加mock-前缀以标识）
-            String fullServiceName = "mock-" + serviceName;
+            // 调用方可能已经加过 mock-，这里避免重复前缀导致的名称冗余
+            String fullServiceName = serviceName != null && serviceName.startsWith("mock-")
+                ? serviceName
+                : "mock-" + serviceName;
 
             // 构建服务规格
             ServiceSpec serviceSpec = new ServiceSpec();
@@ -383,11 +386,9 @@ public class DockerContainerClient implements ContainerClient {
             String serviceId = serviceResponse.getId();
             log.info("Docker Swarm Service 创建成功: {} ({})", fullServiceName, serviceId);
 
-            // 等待服务启动
-            // Thread.sleep(2000);
-
             // 获取服务端口信息
-            return getServicePortInfo(serviceId);
+            // Swarm 分配 publishedPort/更新 endpoint 是异步的，刚创建后立刻 inspect 往往会拿到 0
+            return waitForServicePortInfoReady(serviceId, ports, 15_000L);
 
         } catch (ServiceException e) {
             throw e;
@@ -492,6 +493,10 @@ public class DockerContainerClient implements ContainerClient {
                                 publishedPort = ((Number) publishedPortObj).intValue();
                             }
                         }
+                        // Swarm 在端口尚未就绪时可能返回 0，这里视为“未分配”
+                        if (publishedPort != null && publishedPort <= 0) {
+                            publishedPort = null;
+                        }
 
                         portMappings.add(new PortMapping(
                             portConfig.getName() != null ? portConfig.getName() : "port",
@@ -525,6 +530,9 @@ public class DockerContainerClient implements ContainerClient {
                                 publishedPort = ((Number) publishedPortObj).intValue();
                             }
                         }
+                        if (publishedPort != null && publishedPort <= 0) {
+                            publishedPort = null;
+                        }
 
                         portMappings.add(new PortMapping(
                             portConfig.getName() != null ? portConfig.getName() : "port",
@@ -546,6 +554,52 @@ public class DockerContainerClient implements ContainerClient {
             log.error("获取服务端口信息失败: {}", serviceId, e);
             throw new ServiceException("获取服务端口信息失败: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * 等待 Swarm Endpoint 的 publishedPort 分配完成（避免拿到 0 / null）
+     */
+    private ServicePortInfo waitForServicePortInfoReady(
+        String serviceId,
+        Map<String, DraftConfig.PortConfig> ports,
+        long maxWaitMs
+    ) throws Exception {
+        // 未配置端口，不需要等待
+        if (ports == null || ports.isEmpty()) {
+            return getServicePortInfo(serviceId);
+        }
+
+        long deadline = System.currentTimeMillis() + Math.max(1_000L, maxWaitMs);
+        ServicePortInfo last = null;
+
+        while (System.currentTimeMillis() < deadline) {
+            last = getServicePortInfo(serviceId);
+            List<PortMapping> mappings = last != null ? last.portMappings() : null;
+
+            if (mappings != null && !mappings.isEmpty()) {
+                boolean allReady = true;
+                for (PortMapping pm : mappings) {
+                    Integer ext = pm.externalPort();
+                    if (ext == null || ext <= 0) {
+                        allReady = false;
+                        break;
+                    }
+                }
+                if (allReady) {
+                    return last;
+                }
+            }
+
+            try {
+                Thread.sleep(300L);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+
+        // 超时：返回最后一次拿到的信息（可能仍有 null，但不再返回 0）
+        return last != null ? last : getServicePortInfo(serviceId);
     }
 
     /**

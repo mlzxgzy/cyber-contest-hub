@@ -219,7 +219,6 @@ public class ChallengeContainerMockTestServiceImpl implements IChallengeContaine
 
     @Override
     public List<ChallengeContainerMockTestVo> getMyActiveTests() {
-
         List<ChallengeContainerMockTest> tests = mockTestMapper.selectList(
             new LambdaQueryWrapper<ChallengeContainerMockTest>()
                 .eq(ChallengeContainerMockTest::getStatus, "running")
