@@ -683,18 +683,6 @@ async function loadImageList() {
                 <NTabPane name="containerMockTest" tab="容器模拟测试">
                   <ChallengeContainerMockTest :current-draft-id="draftId" :challenge-id="challengeId"/>
                 </NTabPane>
-                <NTabPane name="oasis" tab="Oasis">
-                  <div class="oasis-content">
-                    <div class="oasis-icon">
-                      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5"/>
-                        <path d="M8 12L11 15L16 9" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                              stroke-linejoin="round"/>
-                      </svg>
-                    </div>
-                    <p>Wonderwall</p>
-                  </div>
-                </NTabPane>
               </NTabs>
             </NCard>
           </div>
