@@ -393,8 +393,16 @@ public class DockerContainerClient implements ContainerClient {
         } catch (ServiceException e) {
             throw e;
         } catch (Exception e) {
+            // 记录详细错误信息用于调试，但不暴露给调用方
             log.error("创建并启动 Docker Swarm Service 失败", e);
-            throw new ServiceException("创建并启动 Docker Swarm Service 失败: " + e.getMessage(), e);
+
+            // 使用具体异常类型判断，提升健壮性
+            if (e.getMessage().contains("This node is not a swarm manager")) {
+                throw new ServiceException("DockerSwarm未初始化！");
+            }
+
+            // 避免暴露原始异常信息，仅返回通用错误提示
+            throw new ServiceException("创建并启动 Docker Swarm Service 失败");
         }
     }
 
