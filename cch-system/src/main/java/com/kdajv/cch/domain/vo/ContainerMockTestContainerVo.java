@@ -28,7 +28,7 @@ public class ContainerMockTestContainerVo implements Serializable {
     private String host;
 
     /**
-     * 协议：tcp/udp
+     * 协议：tcp/udp/http
      */
     private String protocol;
 

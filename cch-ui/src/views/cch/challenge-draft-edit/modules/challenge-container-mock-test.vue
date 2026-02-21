@@ -312,15 +312,17 @@ function getAccessUrl(container: ContainerMockTest.ContainerInfo): string {
 
   // 根据协议决定 URL 格式
   const protocol = container.protocol?.toLowerCase() || 'tcp';
-  if (protocol === 'tcp') {
-    // TCP 协议通常使用 http，但也可以根据端口判断（443 用 https）
-    const useHttps = container.externalPort === 443;
-    return `${useHttps ? 'https' : 'http'}://${container.host}:${container.externalPort}`;
+  if (protocol === 'http') {
+    // HTTP 协议使用浏览器可访问的URL格式
+    return `http://${container.host}:${container.externalPort}`;
+  } else if (protocol === 'tcp') {
+    // TCP 协议使用netcat命令格式，方便用户直接复制到终端使用
+    return `nc ${container.host} ${container.externalPort}`;
   } else if (protocol === 'udp') {
-    // UDP 协议显示为 udp://
-    return `udp://${container.host}:${container.externalPort}`;
+    // UDP 协议使用netcat UDP命令格式，同样方便终端使用
+    return `nc -u ${container.host} ${container.externalPort}`;
   } else {
-    // 其他协议
+    // 其他协议保持原有逻辑
     return `${protocol}://${container.host}:${container.externalPort}`;
   }
 }
