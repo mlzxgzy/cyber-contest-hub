@@ -20,6 +20,7 @@ import PortsMapEditor from '../components/PortsMapEditor.vue';
 interface Props {
   modelValue?: Api.Cch.ChallengeDraftContainerTarget[];
   challengeId: CommonType.IdType | null;
+  challengeName?: string | null;
 }
 
 interface Emits {
@@ -82,10 +83,22 @@ watch(
   {immediate: true, deep: true}
 );
 
+/**
+ * 生成随机8位数字字符
+ */
+function generateRandomDigits(length: number = 8): string {
+  return Array.from({ length }, () => Math.floor(Math.random() * 10)).join('');
+}
+
 function addTarget() {
   const next = targets.value.slice();
+  // 自动生成名称：本题名称-随机8位数字字符
+  const challengeName = props.challengeName || '靶机';
+  const randomDigits = generateRandomDigits(8);
+  const autoName = `${challengeName}-${randomDigits}`;
+  
   next.push({
-    name: null,
+    name: autoName,
     imageId: null,
     imageName: null,
     env: {},
@@ -132,7 +145,7 @@ function resolveImageName(imageId?: CommonType.IdType | null) {
 
           <NGrid cols="1 900:2" x-gap="12" y-gap="12">
             <NGi>
-              <NFormItem label="名称">
+              <NFormItem label="名称" required>
                 <NInput v-model:value="t.name" placeholder="例如：web / pwn / db"/>
               </NFormItem>
             </NGi>

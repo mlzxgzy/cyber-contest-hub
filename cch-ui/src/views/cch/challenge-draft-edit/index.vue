@@ -255,6 +255,11 @@ async function saveDraft() {
       for (let i = 0; i < targets.length; i += 1) {
         const t = targets[i];
         if (!t) continue;
+        // 校验靶机名称必填
+        if (!t.name || !t.name.trim()) {
+          window.$message?.error(`靶机 ${i + 1}：名称不能为空`);
+          return;
+        }
         if (!t.imageId) {
           window.$message?.error(`靶机 ${i + 1}：请选择镜像`);
           return;
@@ -624,7 +629,11 @@ async function loadImageList() {
                       容器靶机
                     </template>
                     <div class="pane-content">
-                      <ContainerTargetConfig v-model="draftData.config.containerTargets" :challenge-id="challengeId"/>
+                      <ContainerTargetConfig 
+                        v-model="draftData.config.containerTargets" 
+                        :challenge-id="challengeId"
+                        :challenge-name="challengeData.name"
+                      />
                     </div>
                   </NTabPane>
 
