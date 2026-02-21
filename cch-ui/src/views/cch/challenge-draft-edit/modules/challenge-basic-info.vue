@@ -333,6 +333,16 @@ function downloadFile(fileId: CommonType.IdType) {
 </template>
 
 <style scoped lang="scss">
+// 扁平化设计变量
+$border-radius-sm: 2px;
+$border-radius: 4px;
+$border-color: #e5e7eb;
+$bg-primary: #ffffff;
+$bg-secondary: #f9fafb;
+$bg-hover: #f3f4f6;
+$shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+$shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+
 .info-masonry {
   column-count: 1;
   column-gap: 16px;
@@ -347,67 +357,94 @@ function downloadFile(fileId: CommonType.IdType) {
   margin-bottom: 16px;
 }
 
-/* 复用 index.vue 中的卡片与图标样式，保证大小一致 */
 .info-card {
-  background: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  background: $bg-primary;
+  border-radius: $border-radius;
+  border: 1px solid $border-color;
+  box-shadow: $shadow-sm;
   overflow: hidden;
-  transition: box-shadow 0.3s ease;
+  transition: all 0.2s ease;
 
   &:hover {
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    box-shadow: $shadow;
+    border-color: #d1d5db;
   }
 
   .card-header {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 16px;
-    background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
-    border-bottom: 1px solid #e5e7eb;
+    padding: 14px 16px;
+    background: $bg-secondary;
+    border-bottom: 1px solid $border-color;
   }
 
   .card-icon {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 8px;
+    border-radius: $border-radius-sm;
     color: #ffffff;
+    flex-shrink: 0;
 
     svg {
-      width: 20px;
-      height: 20px;
+      width: 18px;
+      height: 18px;
     }
 
     &.basic {
-      background: linear-gradient(135deg, #3b82f6, #3b82f6);
+      background: #3b82f6;
     }
 
     &.config {
-      background: linear-gradient(135deg, #06b6d4, #0891b2);
+      background: #06b6d4;
     }
 
     &.attachment {
-      background: linear-gradient(135deg, #10b981, #34d399);
+      background: #10b981;
     }
 
     &.writeup {
-      background: linear-gradient(135deg, #f59e0b, #fbbf24);
+      background: #f59e0b;
     }
   }
 
   .card-title {
     margin: 0;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
     color: #1f2937;
+    letter-spacing: 0.01em;
   }
 
   .card-body {
     padding: 16px;
+  }
+}
+
+.form-group {
+  margin-bottom: 16px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  .form-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 8px;
+  }
+
+  .cyber-input,
+  .cyber-select {
+    :deep(.n-input),
+    :deep(.n-select) {
+      border-radius: $border-radius-sm;
+    }
   }
 }
 
@@ -419,33 +456,35 @@ function downloadFile(fileId: CommonType.IdType) {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px;
-  background: #f9fafb;
-  border-radius: 6px;
+  padding: 10px 12px;
+  background: $bg-secondary;
+  border: 1px solid $border-color;
+  border-radius: $border-radius-sm;
   margin-bottom: 8px;
-  transition: background 0.2s ease;
+  transition: all 0.2s ease;
 
   &:last-child {
     margin-bottom: 0;
   }
 
   &:hover {
-    background: #f3f4f6;
+    background: $bg-hover;
+    border-color: #d1d5db;
   }
 }
 
 .file-icon {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
+  border-radius: $border-radius-sm;
   flex-shrink: 0;
 
   svg {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
   }
 
   &.attachment {
@@ -481,6 +520,7 @@ function downloadFile(fileId: CommonType.IdType) {
     background: transparent;
     border: none;
     font-size: 12px;
+    border-radius: $border-radius-sm;
 
     .n-input__input-el {
       text-overflow: ellipsis;
@@ -492,8 +532,8 @@ function downloadFile(fileId: CommonType.IdType) {
   flex-shrink: 0;
 
   svg {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
   }
 }
 </style>

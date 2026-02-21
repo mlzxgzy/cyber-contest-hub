@@ -111,22 +111,22 @@ function resolveImageName(imageId?: CommonType.IdType | null) {
 </script>
 
 <template>
-  <div class="p-4">
-    <div class="mb-12px flex items-center justify-between">
-      <div class="text-16px font-600">容器靶机配置</div>
+  <div class="container-target-config">
+    <div class="config-header">
+      <div class="config-title">容器靶机配置</div>
       <NSpace>
-        <NButton secondary type="primary" @click="addTarget">新增靶机</NButton>
-        <NButton secondary @click="loadImages">刷新镜像列表</NButton>
+        <NButton type="primary" @click="addTarget">新增靶机</NButton>
+        <NButton @click="loadImages">刷新镜像列表</NButton>
       </NSpace>
     </div>
 
     <NSpace vertical class="w-full">
       <template v-if="targets.length">
-        <NCard v-for="(t, idx) in targets" :key="idx" size="small">
+        <NCard v-for="(t, idx) in targets" :key="idx" size="small" class="target-card">
           <template #header>
-            <div class="flex items-center justify-between">
-              <div class="font-600">靶机 {{ idx + 1 }}</div>
-              <NButton text type="error" @click="removeTarget(idx)">删除</NButton>
+            <div class="target-card-header">
+              <div class="target-title">靶机 {{ idx + 1 }}</div>
+              <NButton text type="error" size="small" @click="removeTarget(idx)">删除</NButton>
             </div>
           </template>
 
@@ -178,18 +178,97 @@ function resolveImageName(imageId?: CommonType.IdType | null) {
 
           <NDivider/>
 
-          <NFormItem label="环境变量 (Map&lt;string,string&gt;)">
+          <NFormItem label="环境变量 (Map<string,string>)">
             <EnvMapEditor v-model="t.env"/>
           </NFormItem>
 
           <NDivider/>
 
-          <NFormItem label="开放端口 (Map&lt;name,entity&gt;)">
+          <NFormItem label="开放端口 (Map<name,entity>)">
             <PortsMapEditor v-model="t.ports"/>
           </NFormItem>
         </NCard>
       </template>
-      <NEmpty v-else description="暂无靶机配置，点击“新增靶机”开始配置"/>
+      <NEmpty v-else description="暂无靶机配置，点击'新增靶机'开始配置"/>
     </NSpace>
   </div>
 </template>
+
+<style scoped lang="scss">
+// 扁平化设计变量
+$border-radius-sm: 2px;
+$border-radius: 4px;
+$border-color: #e5e7eb;
+$bg-primary: #ffffff;
+$bg-secondary: #f9fafb;
+$shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+$shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+
+.container-target-config {
+  padding: 16px;
+}
+
+.config-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.config-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+  letter-spacing: 0.01em;
+}
+
+.target-card {
+  border-radius: $border-radius;
+  border: 1px solid $border-color;
+  box-shadow: $shadow-sm;
+  transition: all 0.2s ease;
+
+  &:hover {
+    box-shadow: $shadow;
+    border-color: #d1d5db;
+  }
+
+  :deep(.n-card__header) {
+    padding: 14px 16px;
+    border-bottom: 1px solid $border-color;
+    background: $bg-secondary;
+  }
+
+  :deep(.n-card__content) {
+    padding: 16px;
+  }
+}
+
+.target-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.target-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: #1f2937;
+}
+
+:deep(.n-divider) {
+  margin: 16px 0;
+}
+
+:deep(.n-form-item-label) {
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+}
+
+:deep(.n-input),
+:deep(.n-select),
+:deep(.n-input-number) {
+  border-radius: $border-radius-sm;
+}
+</style>

@@ -230,11 +230,11 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="p-4">
-    <h3 class="mb-4">容器镜像管理</h3>
+  <div class="image-management-container">
+    <h3 class="section-title">容器镜像管理</h3>
 
     <!-- 镜像上传区域 -->
-    <NCard title="上传镜像" class="mb-4">
+    <NCard title="上传镜像" class="upload-card">
       <NUpload
         :max="1"
         accept=".tar,.tar.gz,.zip"
@@ -254,9 +254,9 @@ onMounted(async () => {
     </NCard>
 
     <!-- 已上传镜像列表 -->
-    <NCard title="已上传镜像">
+    <NCard title="已上传镜像" class="list-card">
       <template #header-extra>
-        <NButton size="tiny" @click="throttledLoadImageList" :disabled="isRefreshDisabled" type="primary">
+        <NButton size="small" @click="throttledLoadImageList" :disabled="isRefreshDisabled" type="primary">
           {{ isRefreshDisabled ? '刷新中...' : '刷新列表' }}
         </NButton>
       </template>
@@ -266,44 +266,43 @@ onMounted(async () => {
             v-for="image of containerImages"
             :key="image.id"
             size="small"
-            :class="image.status === 'error' ? 'bg-red-50' : ''"
+            class="image-item-card"
+            :class="image.status === 'error' ? 'error-state' : ''"
           >
-            <div class="flex items-center justify-between gap-12px">
-              <div class="flex-1">
-                <div class="mb-2 flex items-center gap-8px">
+            <div class="image-item-content">
+              <div class="image-item-main">
+                <div class="image-header">
                   <NTag :type="getStatusType(image.status)" size="small">
                     {{ getImageStatusText(image.status) }}
                   </NTag>
-                  <!-- 镜像名称用于展示（已合并 name:tag） -->
-                  <span class="font-600">{{ image.imageName }}</span>
-                  <span class="text-gray-500 text-sm">{{ formatFileSize(image.imageSize) }}</span>
+                  <span class="image-name">{{ image.imageName }}</span>
+                  <span class="image-size">{{ formatFileSize(image.imageSize) }}</span>
                 </div>
 
                 <!-- 镜像拉取地址 -->
-                <div v-if="image.pullAddress" class="text-xs text-gray-500 mb-1">
+                <div v-if="image.pullAddress" class="image-pull-address">
                   镜像拉取地址：{{ image.pullAddress }}
                 </div>
 
                 <!-- 进度条 -->
-                <div v-if="['uploading', 'validating'].includes(image.status)" class="mb-2">
+                <div v-if="['uploading', 'validating'].includes(image.status)" class="image-progress">
                   <NProgress
                     type="line"
                     :percentage="image.progress || 0"
                     :status="image.status === 'error' ? 'error' : 'processing'"
                     indicator-text-color="#000"
                   />
-                  <div class="text-xs text-gray-500 mt-1">
+                  <div class="progress-text">
                     {{ image.status === 'uploading' ? '上传中...' : '验证中...' }}
                   </div>
                 </div>
 
                 <!-- 错误信息 -->
-                <div v-if="image.status === 'error'" class="text-red-500 text-sm mb-2">
+                <div v-if="image.status === 'error'" class="image-error">
                   错误: {{ image.errorMessage }}
                 </div>
               </div>
-              <div class="flex flex-col items-end gap-2">
-                <!-- Load按钮 - 仅在状态为uploaded时显示 -->
+              <div class="image-item-actions">
                 <NButton
                   v-if="image.status === 'uploaded'"
                   type="primary"
@@ -315,6 +314,7 @@ onMounted(async () => {
                 <NButton
                   text
                   type="error"
+                  size="small"
                   @click="handleDeleteImage(image.id)"
                 >
                   删除
@@ -328,3 +328,130 @@ onMounted(async () => {
     </NCard>
   </div>
 </template>
+
+<style scoped lang="scss">
+// 扁平化设计变量
+$border-radius-sm: 2px;
+$border-radius: 4px;
+$border-color: #e5e7eb;
+$bg-primary: #ffffff;
+$bg-secondary: #f9fafb;
+$bg-hover: #f3f4f6;
+$shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+$shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+
+.image-management-container {
+  padding: 16px;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 16px;
+  letter-spacing: 0.01em;
+}
+
+.upload-card,
+.list-card {
+  border-radius: $border-radius;
+  border: 1px solid $border-color;
+  box-shadow: $shadow-sm;
+
+  :deep(.n-card__header) {
+    padding: 14px 16px;
+    border-bottom: 1px solid $border-color;
+    background: $bg-secondary;
+  }
+
+  :deep(.n-card__content) {
+    padding: 16px;
+  }
+}
+
+.upload-card {
+  margin-bottom: 16px;
+}
+
+.image-item-card {
+  border-radius: $border-radius-sm;
+  border: 1px solid $border-color;
+  box-shadow: $shadow-sm;
+  transition: all 0.2s ease;
+
+  &:hover {
+    box-shadow: $shadow;
+    border-color: #d1d5db;
+  }
+
+  &.error-state {
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.02);
+  }
+
+  :deep(.n-card__content) {
+    padding: 12px;
+  }
+}
+
+.image-item-content {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.image-item-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.image-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+
+  .image-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: #1f2937;
+  }
+
+  .image-size {
+    font-size: 12px;
+    color: #6b7280;
+  }
+}
+
+.image-pull-address {
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 8px;
+  word-break: break-all;
+}
+
+.image-progress {
+  margin-bottom: 8px;
+
+  .progress-text {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 4px;
+  }
+}
+
+.image-error {
+  font-size: 13px;
+  color: #ef4444;
+  margin-bottom: 8px;
+}
+
+.image-item-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+</style>

@@ -350,6 +350,7 @@ onMounted(() => {
   flex-shrink: 0;
   z-index: 3;
   transition: all 0.2s ease;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
 .timeline-line {
@@ -362,8 +363,8 @@ onMounted(() => {
 
 .version-card {
   flex: 1;
-  border: 2px solid;
-  border-radius: 8px;
+  border: 1px solid;
+  border-radius: 4px;
   padding: 12px 14px;
   display: flex;
   justify-content: space-between;
@@ -374,9 +375,11 @@ onMounted(() => {
   min-height: 56px;
   background: #ffffff;
   border-color: #e5e7eb;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   
   &:hover {
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    border-color: #d1d5db;
   }
 }
 

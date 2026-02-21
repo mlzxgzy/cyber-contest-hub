@@ -577,9 +577,20 @@ onUnmounted(() => {
 }
 
 .test-card {
+  border-radius: 4px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    border-color: #d1d5db;
+  }
+
   :deep(.n-card__header) {
     padding: 12px;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid #e5e7eb;
+    background: #f9fafb;
   }
 
   :deep(.n-card__content) {
@@ -625,8 +636,8 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 0;
-  border-bottom: 1px solid #f5f5f5;
+  padding: 10px 0;
+  border-bottom: 1px solid #e5e7eb;
 
   &:last-child {
     border-bottom: none;
@@ -671,9 +682,10 @@ onUnmounted(() => {
     color: #3b82f6;
     background: #f0f7ff;
     padding: 4px 8px;
-    border-radius: 4px;
+    border-radius: 2px;
     word-break: break-all;
     max-width: 300px;
+    border: 1px solid #dbeafe;
   }
 
   .port-mapping {
