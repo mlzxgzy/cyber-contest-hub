@@ -222,6 +222,27 @@ public class DockerContainerClient implements ContainerClient {
     }
 
     @Override
+    public void pullImage(String imageNameWithTag) throws Exception {
+        try {
+            log.info("开始从Registry拉取镜像: {}", imageNameWithTag);
+            dockerClient.pullImageCmd(imageNameWithTag).start().awaitCompletion();
+            log.info("镜像拉取成功: {}", imageNameWithTag);
+        } catch (Exception e) {
+            throw new ServiceException("拉取镜像失败: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public InputStream saveImage(String imageNameWithTag) throws Exception {
+        try {
+            log.info("开始导出镜像为tar流: {}", imageNameWithTag);
+            return dockerClient.saveImageCmd(imageNameWithTag).exec();
+        } catch (Exception e) {
+            throw new ServiceException("导出镜像失败: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
     public List<ClusterNodeVo> listNodes() throws Exception {
         try {
             List<SwarmNode> swarmNodes = dockerClient.listSwarmNodesCmd().exec();

@@ -153,6 +153,13 @@
                 <version>${fastexcel.version}</version>
             </dependency>
 
+            <!-- Apache Commons Compress - 修复 POI 版本冲突 -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>1.28.0</version>
+            </dependency>
+
             <!-- velocity代码生成使用模板 -->
             <dependency>
                 <groupId>org.apache.velocity</groupId>

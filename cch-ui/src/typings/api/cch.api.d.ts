@@ -216,6 +216,50 @@ declare namespace Api {
     /** challenge version list */
     type ChallengeVersionList = Api.Common.PaginatingQueryRecord<ChallengeVersion>;
 
+    /** challenge version export task */
+    type ChallengeVersionExportTask = Common.CommonRecord<{
+      /** 主键 */
+      id: CommonType.IdType;
+      /** 题目版本ID */
+      versionId: CommonType.IdType;
+      /** 版本号 */
+      versionTag: string;
+      /** 题目名称 */
+      challengeName?: string;
+      /** 任务状态（0-待处理，1-处理中，2-已完成，3-失败） */
+      taskStatus: 0 | 1 | 2 | 3;
+      /** 任务状态文本 */
+      taskStatusText?: string;
+      /** OSS文件ID */
+      ossFileId?: CommonType.IdType;
+      /** OSS文件名 */
+      ossFileName?: string;
+      /** 文件大小（字节） */
+      fileSize?: number;
+      /** 文件大小文本（格式化） */
+      fileSizeText?: string;
+      /** 临时下载链接 */
+      downloadUrl?: string;
+      /** 文件过期时间 */
+      expireTime?: string;
+      /** 错误信息 */
+      errorMessage?: string;
+    }>;
+
+    /** export task search params */
+    type ExportTaskSearchParams = CommonType.RecordNullable<
+      Pick<
+        Api.Cch.ChallengeVersionExportTask,
+        | 'versionId'
+        | 'versionTag'
+        | 'taskStatus'
+      > &
+      Api.Common.CommonSearchParams
+    >;
+
+    /** export task list */
+    type ExportTaskList = Api.Common.PaginatingQueryRecord<ChallengeVersionExportTask>;
+
     /** challenge file */
     type ChallengeFile = Common.CommonRecord<{
       /** 主键 */
