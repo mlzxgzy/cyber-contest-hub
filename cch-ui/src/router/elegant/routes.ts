@@ -110,6 +110,24 @@ export const generatedRoutes: GeneratedRoute[] = [
           title: 'cch_container-config',
           i18nKey: 'route.cch_container-config'
         }
+      },
+      {
+        name: 'cch_project',
+        path: '/cch/project',
+        component: 'view.cch_project',
+        meta: {
+          title: '项目管理',
+          i18nKey: 'route.cch_project'
+        }
+      },
+      {
+        name: 'cch_project-detail',
+        path: '/cch/project-detail',
+        component: 'view.cch_project-detail',
+        meta: {
+          title: '项目详情',
+          i18nKey: 'route.cch_project-detail'
+        }
       }
     ]
   },

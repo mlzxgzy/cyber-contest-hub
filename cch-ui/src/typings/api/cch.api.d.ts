@@ -541,5 +541,121 @@ declare namespace Api {
 
     /** challenge container image list */
     type ChallengeContainerImageList = Api.Common.PaginatingQueryRecord<ChallengeContainerImage>;
+
+    /** contest meta */
+    type ContestMeta = {
+      /** 竞赛名称 */
+      contestName?: string;
+      /** 赛事备注 */
+      contestRemark?: string;
+      /** 开始时间 */
+      startTime?: string | undefined;
+      /** 结束时间 */
+      endTime?: string | undefined;
+    };
+
+    /** project */
+    type Project = Common.CommonRecord<{
+      /** 主键 */
+      id: CommonType.IdType;
+      /** 项目类型（'normal'普通项目, 'contest'竞赛项目） */
+      projectType: 'normal' | 'contest';
+      /** 项目名称 */
+      name: string;
+      /** 备注 */
+      remark?: string;
+      /** 竞赛meta信息（仅竞赛项目使用） */
+      meta?: ContestMeta;
+      /** 成员列表 */
+      members?: ProjectMember[];
+      /** 题目列表 */
+      challenges?: ProjectChallenge[];
+      /** 竞赛文件列表（仅竞赛项目） */
+      contestFiles?: ContestFile[];
+    }>;
+
+    /** project search params */
+    type ProjectSearchParams = CommonType.RecordNullable<
+      Pick<
+        Api.Cch.Project,
+        | 'projectType'
+        | 'name'
+        | 'remark'
+      > &
+      Api.Common.CommonSearchParams
+    >;
+
+    /** project operate params */
+    type ProjectOperateParams = CommonType.RecordNullable<
+      Pick<
+        Api.Cch.Project,
+        | 'id'
+        | 'projectType'
+        | 'name'
+        | 'remark'
+        | 'meta'
+      >
+    >;
+
+    /** project list */
+    type ProjectList = Api.Common.PaginatingQueryRecord<Project>;
+
+    /** project member */
+    type ProjectMember = {
+      /** 主键 */
+      id: CommonType.IdType;
+      /** 项目ID */
+      projectId: CommonType.IdType;
+      /** 用户ID */
+      userId: CommonType.IdType;
+      /** 权限类型（'admin'管理员, 'view_all'仅查看所有题, 'view_own'仅查看自己导入的题目） */
+      permissionType: 'admin' | 'view_all' | 'view_own';
+      /** 用户名（用于显示） */
+      userName?: string;
+      /** 用户昵称（用于显示） */
+      nickName?: string;
+      /** 创建时间 */
+      createTime?: string;
+    };
+
+    /** project challenge */
+    type ProjectChallenge = {
+      /** 主键 */
+      id: CommonType.IdType;
+      /** 项目ID */
+      projectId: CommonType.IdType;
+      /** 题目ID */
+      challengeId: CommonType.IdType;
+      /** 题目版本ID */
+      versionId: CommonType.IdType;
+      /** 题目名称（用于显示） */
+      challengeName?: string;
+      /** 版本号（用于显示） */
+      versionTag?: string;
+      /** 创建时间 */
+      createTime?: string;
+      /** 创建人 */
+      createBy?: CommonType.IdType;
+    };
+
+    /** contest file */
+    type ContestFile = {
+      /** 主键 */
+      id: CommonType.IdType;
+      /** 项目ID（竞赛项目） */
+      projectId: CommonType.IdType;
+      /** OSS文件ID */
+      ossId: CommonType.IdType;
+      /** 文件标签 */
+      fileTag?: string;
+      /** 文件名（用于显示） */
+      fileName?: string;
+      /** 原始文件名（用于显示） */
+      originalName?: string;
+      /** 文件URL（用于显示） */
+      url?: string;
+      /** 创建时间 */
+      createTime?: string;
+    };
   }
 }

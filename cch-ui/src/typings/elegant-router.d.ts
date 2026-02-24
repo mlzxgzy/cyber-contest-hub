@@ -32,6 +32,8 @@ declare module "@elegant-router/types" {
     "cch_challenge-file": "/cch/challenge-file";
     "cch_challenge-version": "/cch/challenge-version";
     "cch_container-config": "/cch/container-config";
+    "cch_project": "/cch/project";
+    "cch_project-detail": "/cch/project-detail";
     "demo": "/demo";
     "demo_demo": "/demo/demo";
     "demo_tree": "/demo/tree";
@@ -140,6 +142,8 @@ declare module "@elegant-router/types" {
     | "cch_challenge-version"
     | "cch_challenge"
     | "cch_container-config"
+    | "cch_project-detail"
+    | "cch_project"
     | "demo_demo"
     | "demo_tree"
     | "home"

@@ -1,0 +1,665 @@
+package com.kdajv.cch.service.impl;
+
+import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.util.ObjectUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.kdajv.cch.domain.*;
+import com.kdajv.cch.domain.bo.ProjectBo;
+import com.kdajv.cch.domain.bo.ProjectChallengeBo;
+import com.kdajv.cch.domain.bo.ProjectMemberBo;
+import com.kdajv.cch.domain.vo.ContestFileVo;
+import com.kdajv.cch.domain.vo.ProjectChallengeVo;
+import com.kdajv.cch.domain.vo.ProjectMemberVo;
+import com.kdajv.cch.domain.vo.ProjectVo;
+import com.kdajv.cch.mapper.*;
+import com.kdajv.cch.service.IProjectService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.dromara.common.core.exception.ServiceException;
+import org.dromara.common.core.utils.MapstructUtils;
+import org.dromara.common.core.utils.StringUtils;
+import org.dromara.common.mybatis.core.page.PageQuery;
+import org.dromara.common.mybatis.core.page.TableDataInfo;
+import org.dromara.common.satoken.utils.LoginHelper;
+import org.dromara.system.domain.vo.SysOssVo;
+import org.dromara.system.domain.vo.SysUserVo;
+import org.dromara.system.service.ISysOssService;
+import org.dromara.system.service.ISysUserService;
+import com.kdajv.cch.service.IChallengeVersionService;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.*;
+import java.util.stream.Collectors;
+
+/**
+ * 项目Service业务层处理
+ *
+ * @author Zyi Guo
+ * @date 2025-12-07
+ */
+@Slf4j
+@RequiredArgsConstructor
+@Service
+public class ProjectServiceImpl implements IProjectService {
+
+    private final ProjectMapper baseMapper;
+    private final ProjectMemberMapper projectMemberMapper;
+    private final ProjectChallengeMapper projectChallengeMapper;
+    private final ContestFileMapper contestFileMapper;
+    private final ISysUserService sysUserService;
+    private final ISysOssService sysOssService;
+    private final IChallengeVersionService challengeVersionService;
+
+    /**
+     * 分页查询项目列表（支持类型筛选）
+     *
+     * @param bo        查询条件
+     * @param pageQuery 分页参数
+     * @return 项目分页列表
+     */
+    @Override
+    public TableDataInfo<ProjectVo> queryPageList(ProjectBo bo, PageQuery pageQuery) {
+        LambdaQueryWrapper<Project> lqw = buildQueryWrapper(bo);
+        Page<ProjectVo> result = baseMapper.selectVoPage(pageQuery.build(), lqw);
+        return TableDataInfo.build(result);
+    }
+
+    /**
+     * 查询项目详情（包含成员、题目、文件）
+     *
+     * @param id 项目ID
+     * @return 项目详情
+     */
+    @Override
+    public ProjectVo queryById(Long id) {
+        ProjectVo projectVo = baseMapper.selectVoById(id);
+        if (ObjectUtil.isNull(projectVo)) {
+            return null;
+        }
+
+        // 查询项目成员
+        List<ProjectMemberVo> members = projectMemberMapper.selectVoList(
+            new LambdaQueryWrapper<ProjectMember>()
+                .eq(ProjectMember::getProjectId, id)
+        );
+        // 填充用户信息
+        fillMemberUserInfo(members);
+        projectVo.setMembers(members);
+
+        // 查询项目题目
+        List<ProjectChallengeVo> challenges = queryProjectChallenges(id);
+        projectVo.setChallenges(challenges);
+
+        // 如果是竞赛项目，查询竞赛文件
+        if ("contest".equals(projectVo.getProjectType())) {
+            List<ContestFileVo> contestFiles = contestFileMapper.selectVoList(
+                new LambdaQueryWrapper<ContestFile>()
+                    .eq(ContestFile::getProjectId, id)
+            );
+            // 填充OSS文件信息
+            fillContestFileOssInfo(contestFiles);
+            projectVo.setContestFiles(contestFiles);
+        }
+
+        return projectVo;
+    }
+
+    /**
+     * 新增项目（普通/竞赛），创建者自动成为管理员
+     *
+     * @param bo 项目信息
+     * @return 是否新增成功
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Boolean insertByBo(ProjectBo bo) {
+        Long currentUserId = LoginHelper.getUserId();
+        if (ObjectUtil.isNull(currentUserId)) {
+            throw new ServiceException("用户未登录");
+        }
+
+        Project project = MapstructUtils.convert(bo, Project.class);
+        boolean result = baseMapper.insert(project) > 0;
+        if (!result) {
+            return false;
+        }
+
+        Long projectId = project.getId();
+
+        // 创建者自动成为管理员
+        ProjectMember adminMember = new ProjectMember();
+        adminMember.setProjectId(projectId);
+        adminMember.setUserId(currentUserId);
+        adminMember.setPermissionType("admin");
+        projectMemberMapper.insert(adminMember);
+
+        // 批量添加成员
+        if (CollUtil.isNotEmpty(bo.getMembers())) {
+            addMembers(projectId, bo.getMembers());
+        }
+
+        // 批量导入题目
+        if (CollUtil.isNotEmpty(bo.getChallenges())) {
+            importChallenges(projectId, bo.getChallenges());
+        }
+
+        return true;
+    }
+
+    /**
+     * 更新项目
+     *
+     * @param bo 项目信息
+     * @return 是否更新成功
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Boolean updateByBo(ProjectBo bo) {
+        // 检查项目是否存在
+        ProjectVo existingProject = baseMapper.selectVoById(bo.getId());
+        if (ObjectUtil.isNull(existingProject)) {
+            throw new ServiceException("项目不存在");
+        }
+
+        // 检查管理员权限
+        checkAdminPermission(bo.getId());
+
+        Project project = MapstructUtils.convert(bo, Project.class);
+        return baseMapper.updateById(project) > 0;
+    }
+
+    /**
+     * 删除项目（只删除项目本身，不级联删除关联数据）
+     *
+     * @param ids     待删除的主键集合
+     * @param isValid 是否进行有效性校验
+     * @return 是否删除成功
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Boolean deleteWithValidByIds(Collection<Long> ids, Boolean isValid) {
+        if (CollUtil.isEmpty(ids)) {
+            return false;
+        }
+
+        // 有效性校验
+        if (Boolean.TRUE.equals(isValid)) {
+            for (Long id : ids) {
+                checkAdminPermission(id);
+            }
+        }
+
+        return baseMapper.deleteBatchIds(ids) > 0;
+    }
+
+    /**
+     * 添加项目成员（需要项目管理员权限）
+     *
+     * @param projectId 项目ID
+     * @param members   成员列表
+     * @return 是否添加成功
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Boolean addMembers(Long projectId, List<ProjectMemberBo> members) {
+        if (CollUtil.isEmpty(members)) {
+            return true;
+        }
+
+        // 检查管理员权限
+        checkAdminPermission(projectId);
+
+        // 检查项目是否存在
+        ProjectVo project = baseMapper.selectVoById(projectId);
+        if (ObjectUtil.isNull(project)) {
+            throw new ServiceException("项目不存在");
+        }
+
+        for (ProjectMemberBo memberBo : members) {
+            // 检查用户是否存在
+            SysUserVo user = sysUserService.selectUserById(memberBo.getUserId());
+            if (ObjectUtil.isNull(user)) {
+                throw new ServiceException("用户不存在，用户ID: " + memberBo.getUserId());
+            }
+
+            // 检查是否已经是成员
+            ProjectMember existingMember = projectMemberMapper.selectOne(
+                new LambdaQueryWrapper<ProjectMember>()
+                    .eq(ProjectMember::getProjectId, projectId)
+                    .eq(ProjectMember::getUserId, memberBo.getUserId())
+            );
+
+            if (ObjectUtil.isNotNull(existingMember)) {
+                // 更新权限类型
+                existingMember.setPermissionType(memberBo.getPermissionType());
+                projectMemberMapper.updateById(existingMember);
+            } else {
+                // 新增成员
+                ProjectMember member = MapstructUtils.convert(memberBo, ProjectMember.class);
+                member.setProjectId(projectId);
+                projectMemberMapper.insert(member);
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * 移除项目成员（需要项目管理员权限）
+     *
+     * @param projectId 项目ID
+     * @param userIds   用户ID列表
+     * @return 是否移除成功
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Boolean removeMembers(Long projectId, List<Long> userIds) {
+        if (CollUtil.isEmpty(userIds)) {
+            return true;
+        }
+
+        // 检查管理员权限
+        checkAdminPermission(projectId);
+
+        // 不能移除最后一个管理员
+        List<ProjectMember> adminMembers = projectMemberMapper.selectList(
+            new LambdaQueryWrapper<ProjectMember>()
+                .eq(ProjectMember::getProjectId, projectId)
+                .eq(ProjectMember::getPermissionType, "admin")
+        );
+
+        // 检查要移除的用户中是否包含管理员
+        Set<Long> userIdSet = new HashSet<>(userIds);
+        long adminCount = adminMembers.stream()
+            .filter(m -> userIdSet.contains(m.getUserId()))
+            .count();
+
+        if (adminCount > 0 && adminMembers.size() <= adminCount) {
+            throw new ServiceException("不能移除最后一个管理员");
+        }
+
+        return projectMemberMapper.delete(
+            new LambdaQueryWrapper<ProjectMember>()
+                .eq(ProjectMember::getProjectId, projectId)
+                .in(ProjectMember::getUserId, userIds)
+        ) > 0;
+    }
+
+    /**
+     * 查询项目题目列表（根据当前用户权限过滤）
+     *
+     * @param projectId 项目ID
+     * @return 题目列表
+     */
+    @Override
+    public List<ProjectChallengeVo> queryProjectChallenges(Long projectId) {
+        Long currentUserId = LoginHelper.getUserId();
+        if (ObjectUtil.isNull(currentUserId)) {
+            throw new ServiceException("用户未登录");
+        }
+
+        // 检查用户是否是项目成员
+        ProjectMember member = projectMemberMapper.selectOne(
+            new LambdaQueryWrapper<ProjectMember>()
+                .eq(ProjectMember::getProjectId, projectId)
+                .eq(ProjectMember::getUserId, currentUserId)
+        );
+
+        if (ObjectUtil.isNull(member)) {
+            throw new ServiceException("您不是该项目的成员");
+        }
+
+        LambdaQueryWrapper<ProjectChallenge> queryWrapper = new LambdaQueryWrapper<ProjectChallenge>()
+            .eq(ProjectChallenge::getProjectId, projectId);
+
+        // 根据权限类型过滤
+        String permissionType = member.getPermissionType();
+        if ("view_own".equals(permissionType)) {
+            // 仅查看自己导入的题目
+            queryWrapper.eq(ProjectChallenge::getCreateBy, currentUserId);
+        }
+        // admin 和 view_all 可以查看所有题目，不需要额外过滤
+
+        List<ProjectChallengeVo> challenges = projectChallengeMapper.selectVoList(queryWrapper);
+
+        // 填充题目名称和版本号信息
+        fillChallengeInfo(challenges);
+
+        return challenges;
+    }
+
+    /**
+     * 导入题目（验证version_id在t_challenge_version表中存在，需要项目管理员权限）
+     *
+     * @param projectId  项目ID
+     * @param challenges 题目列表
+     * @return 是否导入成功
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Boolean importChallenges(Long projectId, List<ProjectChallengeBo> challenges) {
+        if (CollUtil.isEmpty(challenges)) {
+            return true;
+        }
+
+        // 检查管理员权限
+        checkAdminPermission(projectId);
+
+        // 检查项目是否存在
+        ProjectVo project = baseMapper.selectVoById(projectId);
+        if (ObjectUtil.isNull(project)) {
+            throw new ServiceException("项目不存在");
+        }
+
+        Long currentUserId = LoginHelper.getUserId();
+
+        for (ProjectChallengeBo challengeBo : challenges) {
+            // 验证version_id是否存在
+            var versionVo = challengeVersionService.queryById(challengeBo.getVersionId());
+            if (ObjectUtil.isNull(versionVo)) {
+                throw new ServiceException("题目版本不存在，版本ID: " + challengeBo.getVersionId());
+            }
+
+            // 检查是否已经导入
+            ProjectChallenge existingChallenge = projectChallengeMapper.selectOne(
+                new LambdaQueryWrapper<ProjectChallenge>()
+                    .eq(ProjectChallenge::getProjectId, projectId)
+                    .eq(ProjectChallenge::getVersionId, challengeBo.getVersionId())
+            );
+
+            if (ObjectUtil.isNotNull(existingChallenge)) {
+                // 已存在，跳过
+                continue;
+            }
+
+            // 新增项目题目关联
+            ProjectChallenge projectChallenge = MapstructUtils.convert(challengeBo, ProjectChallenge.class);
+            projectChallenge.setProjectId(projectId);
+            projectChallenge.setChallengeId(versionVo.getChallengeId());
+            projectChallengeMapper.insert(projectChallenge);
+        }
+
+        return true;
+    }
+
+    /**
+     * 移除题目（需要项目管理员权限）
+     *
+     * @param projectId    项目ID
+     * @param challengeIds 题目关联ID列表
+     * @return 是否移除成功
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Boolean removeChallenges(Long projectId, List<Long> challengeIds) {
+        if (CollUtil.isEmpty(challengeIds)) {
+            return true;
+        }
+
+        // 检查管理员权限
+        checkAdminPermission(projectId);
+
+        return projectChallengeMapper.delete(
+            new LambdaQueryWrapper<ProjectChallenge>()
+                .eq(ProjectChallenge::getProjectId, projectId)
+                .in(ProjectChallenge::getId, challengeIds)
+        ) > 0;
+    }
+
+    /**
+     * 上传竞赛文件（验证项目类型是contest，需要项目管理员权限）
+     *
+     * @param projectId 项目ID
+     * @param file      文件
+     * @param fileTag   文件标签
+     * @return 文件信息
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ContestFileVo uploadContestFile(Long projectId, MultipartFile file, String fileTag) {
+        // 检查管理员权限
+        checkAdminPermission(projectId);
+
+        // 检查项目是否存在且类型为contest
+        ProjectVo project = baseMapper.selectVoById(projectId);
+        if (ObjectUtil.isNull(project)) {
+            throw new ServiceException("项目不存在");
+        }
+        if (!"contest".equals(project.getProjectType())) {
+            throw new ServiceException("只有竞赛项目才能上传文件");
+        }
+
+        // 上传文件到OSS
+        SysOssVo ossVo = sysOssService.upload(file);
+
+        // 保存文件记录
+        ContestFile contestFile = new ContestFile();
+        contestFile.setProjectId(projectId);
+        contestFile.setOssId(ossVo.getOssId());
+        contestFile.setFileTag(fileTag);
+        contestFileMapper.insert(contestFile);
+
+        // 转换为VO并填充OSS信息
+        ContestFileVo fileVo = MapstructUtils.convert(contestFile, ContestFileVo.class);
+        fileVo.setFileName(ossVo.getFileName());
+        fileVo.setOriginalName(ossVo.getOriginalName());
+        fileVo.setUrl(ossVo.getUrl());
+
+        return fileVo;
+    }
+
+    /**
+     * 下载竞赛文件（需要项目成员权限）
+     *
+     * @param fileId   文件ID
+     * @param response HTTP响应
+     * @throws IOException IO异常
+     */
+    @Override
+    public void downloadContestFile(Long fileId, HttpServletResponse response) throws IOException {
+        Long currentUserId = LoginHelper.getUserId();
+        if (ObjectUtil.isNull(currentUserId)) {
+            throw new ServiceException("用户未登录");
+        }
+
+        // 查询文件信息
+        ContestFileVo fileVo = contestFileMapper.selectVoById(fileId);
+        if (ObjectUtil.isNull(fileVo)) {
+            throw new ServiceException("文件不存在");
+        }
+
+        // 检查用户是否是项目成员
+        ProjectMember member = projectMemberMapper.selectOne(
+            new LambdaQueryWrapper<ProjectMember>()
+                .eq(ProjectMember::getProjectId, fileVo.getProjectId())
+                .eq(ProjectMember::getUserId, currentUserId)
+        );
+
+        if (ObjectUtil.isNull(member)) {
+            throw new ServiceException("您不是该项目的成员，无权下载文件");
+        }
+
+        // 通过OSS服务下载文件
+        sysOssService.download(fileVo.getOssId(), response);
+    }
+
+    /**
+     * 删除竞赛文件（需要项目管理员权限，只删除ContestFile记录，不删除OSS文件）
+     *
+     * @param fileIds 文件ID列表
+     * @return 是否删除成功
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Boolean removeContestFile(List<Long> fileIds) {
+        if (CollUtil.isEmpty(fileIds)) {
+            return true;
+        }
+
+        // 查询文件信息，检查管理员权限
+        List<ContestFileVo> files = contestFileMapper.selectVoList(
+            new LambdaQueryWrapper<ContestFile>()
+                .in(ContestFile::getId, fileIds)
+        );
+
+        if (CollUtil.isEmpty(files)) {
+            return true;
+        }
+
+        // 检查每个文件所属项目的管理员权限
+        Set<Long> projectIds = files.stream()
+            .map(ContestFileVo::getProjectId)
+            .collect(Collectors.toSet());
+
+        for (Long projectId : projectIds) {
+            checkAdminPermission(projectId);
+        }
+
+        // 只删除ContestFile记录，不删除OSS文件
+        return contestFileMapper.deleteBatchIds(fileIds) > 0;
+    }
+
+    /**
+     * 构建查询条件
+     */
+    private LambdaQueryWrapper<Project> buildQueryWrapper(ProjectBo bo) {
+        LambdaQueryWrapper<Project> lqw = new LambdaQueryWrapper<>();
+        lqw.eq(ObjectUtil.isNotNull(bo.getId()), Project::getId, bo.getId());
+        lqw.eq(StringUtils.isNotBlank(bo.getProjectType()), Project::getProjectType, bo.getProjectType());
+        lqw.like(StringUtils.isNotBlank(bo.getName()), Project::getName, bo.getName());
+        lqw.orderByDesc(Project::getCreateTime);
+        return lqw;
+    }
+
+    /**
+     * 检查用户是否是项目管理员
+     */
+    private void checkAdminPermission(Long projectId) {
+        Long currentUserId = LoginHelper.getUserId();
+        if (ObjectUtil.isNull(currentUserId)) {
+            throw new ServiceException("用户未登录");
+        }
+
+        ProjectMember member = projectMemberMapper.selectOne(
+            new LambdaQueryWrapper<ProjectMember>()
+                .eq(ProjectMember::getProjectId, projectId)
+                .eq(ProjectMember::getUserId, currentUserId)
+                .eq(ProjectMember::getPermissionType, "admin")
+        );
+
+        if (ObjectUtil.isNull(member)) {
+            throw new ServiceException("您不是该项目的管理员，无权执行此操作");
+        }
+    }
+
+    /**
+     * 填充成员用户信息
+     */
+    private void fillMemberUserInfo(List<ProjectMemberVo> members) {
+        if (CollUtil.isEmpty(members)) {
+            return;
+        }
+
+        List<Long> userIds = members.stream()
+            .map(ProjectMemberVo::getUserId)
+            .filter(Objects::nonNull)
+            .distinct()
+            .collect(Collectors.toList());
+
+        if (CollUtil.isEmpty(userIds)) {
+            return;
+        }
+
+        Map<Long, SysUserVo> userMap = new HashMap<>();
+        for (Long userId : userIds) {
+            SysUserVo user = sysUserService.selectUserById(userId);
+            if (ObjectUtil.isNotNull(user)) {
+                userMap.put(userId, user);
+            }
+        }
+
+        for (ProjectMemberVo member : members) {
+            SysUserVo user = userMap.get(member.getUserId());
+            if (ObjectUtil.isNotNull(user)) {
+                member.setUserName(user.getUserName());
+                member.setNickName(user.getNickName());
+            }
+        }
+    }
+
+    /**
+     * 填充题目信息（题目名称和版本号）
+     */
+    private void fillChallengeInfo(List<ProjectChallengeVo> challenges) {
+        if (CollUtil.isEmpty(challenges)) {
+            return;
+        }
+
+        List<Long> versionIds = challenges.stream()
+            .map(ProjectChallengeVo::getVersionId)
+            .filter(Objects::nonNull)
+            .distinct()
+            .collect(Collectors.toList());
+
+        if (CollUtil.isEmpty(versionIds)) {
+            return;
+        }
+
+        Map<Long, com.kdajv.cch.domain.vo.ChallengeVersionVo> versionMap = new HashMap<>();
+        for (Long versionId : versionIds) {
+            try {
+                com.kdajv.cch.domain.vo.ChallengeVersionVo version = challengeVersionService.queryById(versionId);
+                if (ObjectUtil.isNotNull(version)) {
+                    versionMap.put(versionId, version);
+                }
+            } catch (Exception e) {
+                log.warn("查询题目版本信息失败，版本ID: {}", versionId, e);
+            }
+        }
+
+        for (ProjectChallengeVo challenge : challenges) {
+            com.kdajv.cch.domain.vo.ChallengeVersionVo version = versionMap.get(challenge.getVersionId());
+            if (ObjectUtil.isNotNull(version)) {
+                challenge.setChallengeName(version.getChallengeName());
+                challenge.setVersionTag(version.getVersionTag());
+            }
+        }
+    }
+
+    /**
+     * 填充竞赛文件OSS信息
+     */
+    private void fillContestFileOssInfo(List<ContestFileVo> files) {
+        if (CollUtil.isEmpty(files)) {
+            return;
+        }
+
+        List<Long> ossIds = files.stream()
+            .map(ContestFileVo::getOssId)
+            .filter(Objects::nonNull)
+            .distinct()
+            .collect(Collectors.toList());
+
+        if (CollUtil.isEmpty(ossIds)) {
+            return;
+        }
+
+        List<SysOssVo> ossList = sysOssService.listByIds(ossIds);
+        Map<Long, SysOssVo> ossMap = ossList.stream()
+            .collect(Collectors.toMap(SysOssVo::getOssId, v -> v));
+
+        for (ContestFileVo file : files) {
+            SysOssVo oss = ossMap.get(file.getOssId());
+            if (ObjectUtil.isNotNull(oss)) {
+                file.setFileName(oss.getFileName());
+                file.setOriginalName(oss.getOriginalName());
+                file.setUrl(oss.getUrl());
+            }
+        }
+    }
+}

@@ -8,7 +8,18 @@ import { transformElegantRoutesToVueRoutes } from '../elegant/transform';
  *
  * @link https://github.com/soybeanjs/elegant-router?tab=readme-ov-file#custom-route
  */
-const customRoutes: CustomRoute[] = [];
+const customRoutes: CustomRoute[] = [
+  {
+    name: 'cch-project-detail',
+    path: '/cch/project/:id',
+    component: 'layout.base$view.cch_project-detail',
+    props: true,
+    meta: {
+      title: '项目详情',
+      hideInMenu: true
+    }
+  }
+];
 
 /** create routes when the auth route mode is static */
 export function createStaticRoutes() {
