@@ -23,22 +23,17 @@ const authStore = useAuthStore();
 const loading = ref(false);
 const project = ref<Api.Cch.Project | null>(null);
 const isProjectAdmin = ref(false);
+const isProjectMember = ref(false);
 const activeTab = ref('basic');
 
 const currentUserId = computed(() => authStore.userInfo.user?.userId);
 
 const tabs = computed(() => {
-  const tabList: Array<{name: string; label: string}> = [
-    {name: 'basic', label: '基本信息'}
+  const tabList: Array<{ name: string; label: string }> = [
+    {name: 'basic', label: '基本信息'},
+    {name: 'members', label: '成员管理'},
+    {name: 'challenges', label: '题目管理'}
   ];
-
-  // 成员管理和题目管理：需要项目管理员权限
-  if (isProjectAdmin.value && hasAuth('cch:project:member')) {
-    tabList.push({name: 'members', label: '成员管理'});
-  }
-  if (isProjectAdmin.value && hasAuth('cch:project:challenge')) {
-    tabList.push({name: 'challenges', label: '题目管理'});
-  }
 
   // 文件管理：仅竞赛项目且需要项目管理员权限
   if (project.value?.projectType === 'contest' && isProjectAdmin.value && hasAuth('cch:project:file')) {
@@ -67,6 +62,9 @@ async function loadProjectDetail() {
       window.$message?.error(joinError.message || '通过邀请加入项目失败');
     } else {
       window.$message?.success('已通过邀请加入项目');
+      // 邀请加入成功后，移除 URL 中的 invite 参数，避免后续重复触发加入逻辑
+      const {invite, ...restQuery} = route.query as Record<string, any>;
+      router.replace({query: restQuery});
     }
   }
 
@@ -86,9 +84,10 @@ async function loadProjectDetail() {
     tabStore.setTabLabel(`项目详情-${data.name}`);
   }
 
-  // 检查当前用户是否为项目管理员
+  // 检查当前用户是否为项目成员及项目管理员
   if (data.members && currentUserId.value) {
     const currentUserMember = data.members.find(m => m.userId === currentUserId.value);
+    isProjectMember.value = !!currentUserMember;
     isProjectAdmin.value = currentUserMember?.permissionType === 'admin';
   }
 
