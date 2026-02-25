@@ -1,11 +1,16 @@
 <script lang="ts" setup>
 import {computed, h, ref, watch} from 'vue';
 import type {DataTableColumns} from 'naive-ui';
-import {NButton} from 'naive-ui';
-import {fetchAddProjectMembers, fetchGetProjectMembers, fetchRemoveProjectMembers} from '@/service/api/cch/project';
+import {NButton, NInput, NSelect} from 'naive-ui';
+import {useRoute, useRouter} from 'vue-router';
+import {
+  fetchAddProjectMembers,
+  fetchGenerateProjectInviteCode,
+  fetchGetProjectMembers,
+  fetchRemoveProjectMembers
+} from '@/service/api/cch/project';
 import {useAuth} from '@/hooks/business/auth';
 import {useAuthStore} from '@/store/modules/auth';
-import UserSelect from '@/components/custom/user-select.vue';
 
 defineOptions({
   name: 'ProjectMemberManage'
@@ -24,6 +29,9 @@ interface Emits {
 
 const emit = defineEmits<Emits>();
 
+const route = useRoute();
+const router = useRouter();
+
 const {hasAuth} = useAuth();
 const authStore = useAuthStore();
 const currentUserId = computed(() => authStore.userInfo.user?.userId);
@@ -37,10 +45,9 @@ const permissionTypeOptions = [
   {label: '仅查看自己导入的题', value: 'view_own'}
 ];
 
-const addMemberForm = ref({
-  userId: null as CommonType.IdType | null,
-  permissionType: 'view_all' as 'admin' | 'view_all' | 'view_own'
-});
+// 邀请链接相关
+const invitePermissionType = ref<'admin' | 'view_all' | 'view_own'>('view_all');
+const inviteLink = ref('');
 
 const canManage = computed(() => {
   return props.isProjectAdmin && hasAuth('cch:project:member');
@@ -64,8 +71,20 @@ const columns = computed<DataTableColumns<Api.Cch.ProjectMember>>(() => {
       key: 'permissionType',
       title: '权限类型',
       align: 'center',
-      minWidth: 150,
-      render: row => getPermissionTypeLabel(row.permissionType)
+      minWidth: 180,
+      render: row => {
+        if (!canManage.value) {
+          return getPermissionTypeLabel(row.permissionType);
+        }
+        return h(NSelect, {
+          value: row.permissionType,
+          options: permissionTypeOptions,
+          size: 'small',
+          style: 'width: 160px',
+          'onUpdate:value': (val: 'admin' | 'view_all' | 'view_own') =>
+            handleChangePermission(row.userId, val)
+        });
+      }
     },
     {
       key: 'createTime',
@@ -113,28 +132,57 @@ async function loadMembers() {
   loading.value = false;
 }
 
-async function handleAddMember() {
-  if (!addMemberForm.value.userId) {
-    window.$message?.warning('请选择用户');
+async function handleGenerateInviteLink() {
+  if (!props.projectId) {
+    window.$message?.error('项目ID不能为空');
     return;
   }
 
-  // 检查用户是否已经是成员
-  if (members.value.some(m => m.userId === addMemberForm.value.userId)) {
-    window.$message?.warning('该用户已经是项目成员');
+  const {
+    error,
+    response: {data: {msg: data}}
+  } = await fetchGenerateProjectInviteCode(props.projectId, invitePermissionType.value);
+  if (error || !data) {
+    window.$message?.warning('生成邀请码时出现问题');
     return;
   }
 
-  const {error} = await fetchAddProjectMembers(props.projectId, [{
-    userId: addMemberForm.value.userId,
-    permissionType: addMemberForm.value.permissionType
-  }]);
+  // 使用当前路由信息拼接前端可访问的邀请链接
+  const resolved = router.resolve({
+    name: 'cch-project-detail',
+    params: {id: props.projectId},
+    query: {invite: data}
+  });
+  const origin = window.location.origin;
+  inviteLink.value = origin + resolved.href;
 
+  window.$message?.success('邀请链接已生成');
+}
+
+async function handleCopyInviteLink() {
+  if (!inviteLink.value) {
+    window.$message?.warning('请先生成邀请链接');
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(inviteLink.value);
+    window.$message?.success('邀请链接已复制到剪贴板');
+  } catch {
+    window.$message?.error('复制失败，请手动复制');
+  }
+}
+
+async function handleChangePermission(userId: CommonType.IdType, permissionType: 'admin' | 'view_all' | 'view_own') {
+  const {error} = await fetchAddProjectMembers(props.projectId, [
+    {
+      userId,
+      permissionType
+    }
+  ]);
   if (error) return;
 
-  window.$message?.success('添加成功');
-  addMemberForm.value.userId = null;
-  addMemberForm.value.permissionType = 'view_all';
+  window.$message?.success('权限已更新');
   await loadMembers();
   emit('refresh');
 }
@@ -143,7 +191,7 @@ async function handleRemoveMember(userId: CommonType.IdType) {
   // 检查是否为最后一个管理员
   const adminMembers = members.value.filter(m => m.permissionType === 'admin');
   const targetMember = members.value.find(m => m.userId === userId);
-  
+
   if (targetMember?.permissionType === 'admin' && adminMembers.length === 1) {
     window.$message?.error('不能移除最后一个管理员');
     return;
@@ -162,31 +210,38 @@ function getPermissionTypeLabel(type: string) {
   return option?.label || type;
 }
 
-watch(() => props.projectId, () => {
-  if (props.projectId) {
-    loadMembers();
-  }
-}, {immediate: true});
+watch(
+  () => props.projectId,
+  () => {
+    if (props.projectId) {
+      loadMembers();
+    }
+  },
+  {immediate: true}
+);
 
 </script>
 
 <template>
   <div class="flex-col-stretch gap-16px">
-    <NCard v-if="canManage" :bordered="false" size="small" title="添加成员">
-      <NForm :model="addMemberForm" label-placement="left" :label-width="100">
+    <NCard v-if="canManage" :bordered="false" size="small" title="邀请成员">
+      <NForm label-placement="left" :label-width="100">
         <NGrid item-responsive responsive="screen">
-          <NFormItemGi span="24 s:12 m:8" label="选择用户">
-            <UserSelect v-model:value="addMemberForm.userId" placeholder="请选择用户"/>
-          </NFormItemGi>
           <NFormItemGi span="24 s:12 m:8" label="权限类型">
             <NSelect
-              v-model:value="addMemberForm.permissionType"
+              v-model:value="invitePermissionType"
               :options="permissionTypeOptions"
               placeholder="请选择权限类型"
             />
           </NFormItemGi>
-          <NFormItemGi span="24 s:12 m:8">
-            <NButton type="primary" @click="handleAddMember">添加</NButton>
+          <NFormItemGi span="24 s:24 m:12" label="邀请链接">
+            <NInput v-model:value="inviteLink" readonly placeholder="点击下方按钮生成邀请链接"/>
+          </NFormItemGi>
+          <NFormItemGi span="24 s:12 m:4">
+            <div class="flex gap-8px">
+              <NButton type="primary" @click="handleGenerateInviteLink">生成邀请链接</NButton>
+              <NButton @click="handleCopyInviteLink">复制链接</NButton>
+            </div>
           </NFormItemGi>
         </NGrid>
       </NForm>

@@ -160,9 +160,6 @@ const {columns, columnChecks, data, getData, getDataByPage, loading, mobilePagin
     ]
   });
 
-console.log(columns);
-console.log(columnChecks);
-
 // 设置 index id 列默认隐藏
 columnChecks.value.forEach(check => {
   if (check.key === 'index') {

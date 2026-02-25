@@ -3,6 +3,8 @@ package com.kdajv.cch.controller;
 import cn.dev33.satoken.annotation.SaCheckPermission;
 import com.kdajv.cch.domain.bo.ProjectBo;
 import com.kdajv.cch.domain.bo.ProjectChallengeBo;
+import com.kdajv.cch.domain.bo.ProjectInviteCodeBo;
+import com.kdajv.cch.domain.bo.ProjectJoinByInviteBo;
 import com.kdajv.cch.domain.bo.ProjectMemberBo;
 import com.kdajv.cch.domain.vo.ContestFileVo;
 import com.kdajv.cch.domain.vo.ProjectChallengeVo;
@@ -139,6 +141,37 @@ public class ProjectController extends BaseController {
         @RequestBody List<Long> userIds
     ) {
         return toAjax(projectService.removeMembers(projectId, userIds));
+    }
+
+    /**
+     * 生成项目成员邀请Code
+     *
+     * @param projectId 项目ID
+     * @param bo        邀请Code请求
+     */
+    @SaCheckPermission("cch:project:edit")
+    @Log(title = "项目成员邀请", businessType = BusinessType.INSERT)
+    @RepeatSubmit()
+    @PostMapping("/{projectId}/members/invite-code")
+    public R<String> generateInviteCode(
+        @NotNull(message = "项目ID不能为空") @PathVariable Long projectId,
+        @Validated @RequestBody ProjectInviteCodeBo bo
+    ) {
+        return R.ok(projectService.generateInviteCode(projectId, bo.getPermissionType()));
+    }
+
+    /**
+     * 通过邀请Code加入项目（仅需登录）
+     *
+     * @param projectId 项目ID
+     * @param bo        加入请求
+     */
+    @PostMapping("/{projectId}/members/join-by-invite")
+    public R<Void> joinByInvite(
+        @NotNull(message = "项目ID不能为空") @PathVariable Long projectId,
+        @Validated @RequestBody ProjectJoinByInviteBo bo
+    ) {
+        return toAjax(projectService.joinByInvite(projectId, bo.getInviteCode()));
     }
 
     /**

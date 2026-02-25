@@ -24,6 +24,7 @@ import org.dromara.common.mybatis.core.page.TableDataInfo;
 import org.dromara.common.satoken.utils.LoginHelper;
 import org.dromara.system.domain.vo.SysOssVo;
 import org.dromara.system.domain.vo.SysUserVo;
+import org.dromara.system.service.ISysConfigService;
 import org.dromara.system.service.ISysOssService;
 import org.dromara.system.service.ISysUserService;
 import com.kdajv.cch.service.IChallengeVersionService;
@@ -32,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.servlet.http.HttpServletResponse;
+
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -51,9 +53,11 @@ public class ProjectServiceImpl implements IProjectService {
     private final ProjectMemberMapper projectMemberMapper;
     private final ProjectChallengeMapper projectChallengeMapper;
     private final ContestFileMapper contestFileMapper;
+    private final ProjectMemberInviteMapper projectMemberInviteMapper;
     private final ISysUserService sysUserService;
     private final ISysOssService sysOssService;
     private final IChallengeVersionService challengeVersionService;
+    private final ISysConfigService sysConfigService;
 
     /**
      * 分页查询项目列表（支持类型筛选）
@@ -288,6 +292,141 @@ public class ProjectServiceImpl implements IProjectService {
                 .eq(ProjectMember::getProjectId, projectId)
                 .in(ProjectMember::getUserId, userIds)
         ) > 0;
+    }
+
+    /**
+     * 生成项目成员邀请Code（需要项目管理员权限）
+     *
+     * @param projectId      项目ID
+     * @param permissionType 权限类型
+     * @return 邀请Code
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public String generateInviteCode(Long projectId, String permissionType) {
+        // 检查管理员权限
+        checkAdminPermission(projectId);
+
+        // 校验项目是否存在
+        ProjectVo project = baseMapper.selectVoById(projectId);
+        if (ObjectUtil.isNull(project)) {
+            throw new ServiceException("项目不存在");
+        }
+
+        // 校验权限类型
+        if (!Objects.equals("admin", permissionType)
+            && !Objects.equals("view_all", permissionType)
+            && !Objects.equals("view_own", permissionType)) {
+            throw new ServiceException("无效的权限类型");
+        }
+
+        // 从sys_config读取有效期（单位：分钟），不存在时使用默认值
+        final String configKey = "cch.project.invite.expireMinutes";
+        String expireMinutesStr = sysConfigService.selectConfigByKey(configKey);
+        long expireMinutes = 60L;
+        if (StringUtils.isNotBlank(expireMinutesStr)) {
+            try {
+                expireMinutes = Long.parseLong(expireMinutesStr);
+            } catch (NumberFormatException e) {
+                log.warn("解析项目成员邀请有效期配置失败，使用默认值60分钟, configKey={}, value={}", configKey, expireMinutesStr);
+            }
+        }
+        if (expireMinutes <= 0) {
+            expireMinutes = 60L;
+        }
+
+        Date expireTime = Date.from(
+            java.time.LocalDateTime.now()
+                .plusMinutes(expireMinutes)
+                .atZone(java.time.ZoneId.systemDefault())
+                .toInstant()
+        );
+
+        // 生成随机邀请Code
+        String inviteCode = java.util.UUID.randomUUID().toString().replace("-", "");
+
+        ProjectMemberInvite invite = new ProjectMemberInvite();
+        invite.setProjectId(projectId);
+        invite.setPermissionType(permissionType);
+        invite.setInviteCode(inviteCode);
+        invite.setExpireTime(expireTime);
+
+        projectMemberInviteMapper.insert(invite);
+
+        return inviteCode;
+    }
+
+    /**
+     * 通过邀请Code加入项目（仅需登录，无需原项目权限）
+     *
+     * @param projectId  项目ID
+     * @param inviteCode 邀请Code
+     * @return 是否加入成功
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Boolean joinByInvite(Long projectId, String inviteCode) {
+        Long currentUserId = LoginHelper.getUserId();
+        if (ObjectUtil.isNull(currentUserId)) {
+            throw new ServiceException("用户未登录");
+        }
+
+        if (StringUtils.isBlank(inviteCode)) {
+            throw new ServiceException("邀请Code不能为空");
+        }
+
+        // 校验项目是否存在
+        ProjectVo project = baseMapper.selectVoById(projectId);
+        if (ObjectUtil.isNull(project)) {
+            throw new ServiceException("项目不存在");
+        }
+
+        // 查询有效的邀请记录
+        ProjectMemberInvite invite = projectMemberInviteMapper.selectOne(
+            new LambdaQueryWrapper<ProjectMemberInvite>()
+                .eq(ProjectMemberInvite::getProjectId, projectId)
+                .eq(ProjectMemberInvite::getInviteCode, inviteCode)
+        );
+
+        if (ObjectUtil.isNull(invite)) {
+            throw new ServiceException("邀请链接无效");
+        }
+
+        if (invite.getExpireTime() != null && invite.getExpireTime().before(new Date())) {
+            throw new ServiceException("邀请链接已过期");
+        }
+
+        // 检查用户是否已经是成员
+        ProjectMember existingMember = projectMemberMapper.selectOne(
+            new LambdaQueryWrapper<ProjectMember>()
+                .eq(ProjectMember::getProjectId, projectId)
+                .eq(ProjectMember::getUserId, currentUserId)
+        );
+
+        if (ObjectUtil.isNotNull(existingMember)) {
+            // 已经是成员，则不重复添加，直接返回成功（不消耗邀请链接）
+            return true;
+        }
+
+        // 校验权限类型
+        String permissionType = invite.getPermissionType();
+        if (!Objects.equals("admin", permissionType)
+            && !Objects.equals("view_all", permissionType)
+            && !Objects.equals("view_own", permissionType)) {
+            throw new ServiceException("邀请链接中的权限类型无效");
+        }
+
+        // 新增成员
+        ProjectMember member = new ProjectMember();
+        member.setProjectId(projectId);
+        member.setUserId(currentUserId);
+        member.setPermissionType(permissionType);
+        projectMemberMapper.insert(member);
+
+        // 单次邀请：成功加入后立即作废该邀请记录
+        projectMemberInviteMapper.deleteById(invite.getId());
+
+        return true;
     }
 
     /**

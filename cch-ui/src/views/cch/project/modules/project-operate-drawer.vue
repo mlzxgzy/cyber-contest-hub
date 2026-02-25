@@ -207,8 +207,8 @@ watch(visible, () => {
           <NFormItem label="开始时间">
             <NDatePicker
               v-model:formatted-value="contestMeta.startTime"
-              type="datetime"
-              value-format="yyyy-MM-dd HH:mm:ss"
+              type="date"
+              value-format="yyyy-MM-dd"
               clearable
               placeholder="请选择开始时间"
             />
@@ -216,8 +216,8 @@ watch(visible, () => {
           <NFormItem label="结束时间">
             <NDatePicker
               v-model:formatted-value="contestMeta.endTime"
-              type="datetime"
-              value-format="yyyy-MM-dd HH:mm:ss"
+              type="date"
+              value-format="yyyy-MM-dd"
               clearable
               placeholder="请选择结束时间"
             />

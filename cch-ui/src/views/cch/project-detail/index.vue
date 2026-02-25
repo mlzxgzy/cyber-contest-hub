@@ -1,13 +1,14 @@
 <script lang="ts" setup>
 import {computed, onMounted, ref} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
-import {fetchGetProjectDetail} from '@/service/api/cch/project';
+import {fetchGetProjectDetail, fetchJoinProjectByInvite} from '@/service/api/cch/project';
 import {useAuth} from '@/hooks/business/auth';
 import {useAuthStore} from '@/store/modules/auth';
 import ProjectMemberManage from './modules/project-member-manage.vue';
 import ProjectChallengeManage from './modules/project-challenge-manage.vue';
 import ProjectFileManage from './modules/project-file-manage.vue';
 import {$t} from '@/locales';
+import {useTabStore} from '@/store/modules/tab';
 
 defineOptions({
   name: 'ProjectDetail'
@@ -15,6 +16,7 @@ defineOptions({
 
 const route = useRoute();
 const router = useRouter();
+const tabStore = useTabStore();
 const {hasAuth} = useAuth();
 const authStore = useAuthStore();
 
@@ -55,6 +57,19 @@ async function loadProjectDetail() {
   }
 
   loading.value = true;
+
+  // 如果存在邀请Code，则先尝试通过邀请加入项目
+  const inviteCode = route.query.invite as string | undefined;
+  if (inviteCode) {
+    const {error: joinError} = await fetchJoinProjectByInvite(projectId, inviteCode);
+    if (joinError) {
+      // 加入失败仅提示，不阻断项目详情加载
+      window.$message?.error(joinError.message || '通过邀请加入项目失败');
+    } else {
+      window.$message?.success('已通过邀请加入项目');
+    }
+  }
+
   // 直接使用字符串类型的 ID，避免大整数精度丢失
   const {data, error} = await fetchGetProjectDetail(projectId);
 
@@ -65,6 +80,11 @@ async function loadProjectDetail() {
   }
 
   project.value = data;
+
+  // 更新当前标签页名称为：项目详情-项目名称
+  if (data.name) {
+    tabStore.setTabLabel(`项目详情-${data.name}`);
+  }
 
   // 检查当前用户是否为项目管理员
   if (data.members && currentUserId.value) {
@@ -86,7 +106,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-500px flex-col-stretch gap-16px overflow-hidden lt-sm:overflow-auto">
+  <div class="min-h-500px flex-col-stretch gap-16px overflow-auto">
     <NSpin :show="loading">
       <NCard v-if="project" :bordered="false" class="card-wrapper sm:flex-1-hidden" size="small">
         <template #header>
@@ -104,20 +124,21 @@ onMounted(() => {
         <NTabs v-model:value="activeTab" type="line" animated>
           <NTabPane name="basic" tab="基本信息">
             <NCard :bordered="false" size="small">
-              <NDescriptions :column="1" bordered>
+              <!-- 调整为两列布局，长文本字段跨两列展示 -->
+              <NDescriptions :column="2" bordered>
                 <NDescriptionsItem label="项目类型">
                   {{ project.projectType === 'contest' ? '竞赛项目' : '普通项目' }}
                 </NDescriptionsItem>
                 <NDescriptionsItem label="项目名称">
                   {{ project.name }}
                 </NDescriptionsItem>
-                <NDescriptionsItem label="备注">
+                <NDescriptionsItem label="备注" :span="2">
                   {{ project.remark || '-' }}
                 </NDescriptionsItem>
                 <NDescriptionsItem v-if="project.projectType === 'contest' && project.meta" label="竞赛名称">
                   {{ project.meta.contestName || '-' }}
                 </NDescriptionsItem>
-                <NDescriptionsItem v-if="project.projectType === 'contest' && project.meta" label="赛事备注">
+                <NDescriptionsItem v-if="project.projectType === 'contest' && project.meta" label="赛事备注" :span="2">
                   {{ project.meta.contestRemark || '-' }}
                 </NDescriptionsItem>
                 <NDescriptionsItem v-if="project.projectType === 'contest' && project.meta" label="开始时间">

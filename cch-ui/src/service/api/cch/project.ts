@@ -69,6 +69,27 @@ export function fetchRemoveProjectMembers(projectId: CommonType.IdType, userIds:
     });
 }
 
+/** 生成项目成员邀请Code */
+export function fetchGenerateProjectInviteCode(
+    projectId: CommonType.IdType,
+    permissionType: 'admin' | 'view_all' | 'view_own'
+) {
+    return request<string>({
+        url: `/cch/project/${projectId}/members/invite-code`,
+        method: 'post',
+        data: { permissionType }
+    });
+}
+
+/** 通过邀请Code加入项目 */
+export function fetchJoinProjectByInvite(projectId: CommonType.IdType, inviteCode: string) {
+    return request<boolean>({
+        url: `/cch/project/${projectId}/members/join-by-invite`,
+        method: 'post',
+        data: { inviteCode }
+    });
+}
+
 /** 查询项目题目列表 */
 export function fetchGetProjectChallenges(projectId: CommonType.IdType) {
     return request<Api.Cch.ProjectChallenge[]>({

@@ -86,6 +86,24 @@ public interface IProjectService {
     Boolean removeMembers(Long projectId, List<Long> userIds);
 
     /**
+     * 生成项目成员邀请Code（需要项目管理员权限）
+     *
+     * @param projectId      项目ID
+     * @param permissionType 权限类型
+     * @return 邀请Code
+     */
+    String generateInviteCode(Long projectId, String permissionType);
+
+    /**
+     * 通过邀请Code加入项目（仅需登录，无需原项目权限）
+     *
+     * @param projectId  项目ID
+     * @param inviteCode 邀请Code
+     * @return 是否加入成功
+     */
+    Boolean joinByInvite(Long projectId, String inviteCode);
+
+    /**
      * 查询项目题目列表（根据当前用户权限过滤）
      *
      * @param projectId 项目ID
