@@ -9,7 +9,6 @@ import {
   fetchGetProjectMembers,
   fetchRemoveProjectMembers
 } from '@/service/api/cch/project';
-import {useAuth} from '@/hooks/business/auth';
 import {useAuthStore} from '@/store/modules/auth';
 
 defineOptions({
@@ -19,6 +18,7 @@ defineOptions({
 interface Props {
   projectId: CommonType.IdType;
   isProjectAdmin?: boolean;
+  canManageMembers?: boolean;
 }
 
 const props = defineProps<Props>();
@@ -32,7 +32,6 @@ const emit = defineEmits<Emits>();
 const route = useRoute();
 const router = useRouter();
 
-const {hasAuth} = useAuth();
 const authStore = useAuthStore();
 const currentUserId = computed(() => authStore.userInfo.user?.userId);
 
@@ -50,7 +49,7 @@ const invitePermissionType = ref<'admin' | 'view_all' | 'view_own'>('view_all');
 const inviteLink = ref('');
 
 const canManage = computed(() => {
-  return props.isProjectAdmin && hasAuth('cch:project:member');
+  return !!props.canManageMembers;
 });
 
 const columns = computed<DataTableColumns<Api.Cch.ProjectMember>>(() => {

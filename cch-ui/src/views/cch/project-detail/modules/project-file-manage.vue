@@ -3,7 +3,6 @@ import {computed, h, ref} from 'vue';
 import type {DataTableColumns, UploadFileInfo} from 'naive-ui';
 import {NButton, NSpace} from 'naive-ui';
 import {fetchDownloadContestFile, fetchRemoveContestFile} from '@/service/api/cch/project';
-import {useAuth} from '@/hooks/business/auth';
 import {AcceptType} from '@/enum/business';
 import FileUpload from '@/components/custom/file-upload.vue';
 
@@ -15,6 +14,7 @@ interface Props {
   projectId: CommonType.IdType;
   projectType: 'normal' | 'contest';
   isProjectAdmin?: boolean;
+  isSuperAdmin?: boolean;
   files?: Api.Cch.ContestFile[];
 }
 
@@ -28,8 +28,6 @@ interface Emits {
 
 const emit = defineEmits<Emits>();
 
-const {hasAuth} = useAuth();
-
 const loading = ref(false);
 const fileList = ref<UploadFileInfo[]>([]);
 const fileTag = ref('');
@@ -37,7 +35,7 @@ const fileTag = ref('');
 const files = computed(() => props.files || []);
 
 const canManage = computed(() => {
-  return props.isProjectAdmin && hasAuth('cch:project:file');
+  return !!(props.isProjectAdmin || props.isSuperAdmin);
 });
 
 const isContestProject = computed(() => props.projectType === 'contest');
