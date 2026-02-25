@@ -684,6 +684,11 @@ public class ProjectServiceImpl implements IProjectService {
             throw new ServiceException("用户未登录");
         }
 
+        // 超管默认允许
+        if (LoginHelper.isSuperAdmin()) {
+            return;
+        }
+
         ProjectMember member = projectMemberMapper.selectOne(
             new LambdaQueryWrapper<ProjectMember>()
                 .eq(ProjectMember::getProjectId, projectId)
