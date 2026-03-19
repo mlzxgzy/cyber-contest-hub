@@ -18,6 +18,16 @@ const customRoutes: CustomRoute[] = [
       title: '项目详情',
       hideInMenu: true
     }
+  },
+  {
+    name: 'cch-project-challenge-import',
+    path: '/cch/project/:id/import-challenges',
+    component: 'layout.base$view.cch_project-challenge-import',
+    props: true,
+    meta: {
+      title: '导入题目',
+      hideInMenu: true
+    }
   }
 ];
 

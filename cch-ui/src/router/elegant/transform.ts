@@ -179,6 +179,7 @@ const routeMap: RouteMap = {
   "cch_challenge-version": "/cch/challenge-version",
   "cch_container-config": "/cch/container-config",
   "cch_project": "/cch/project",
+  "cch_project-challenge-import": "/cch/project-challenge-import",
   "cch_project-detail": "/cch/project-detail",
   "demo": "/demo",
   "demo_demo": "/demo/demo",

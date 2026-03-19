@@ -29,6 +29,7 @@ export const views: Record<LastLevelRouteKey, RouteComponent | (() => Promise<Ro
   "cch_challenge-version": () => import("@/views/cch/challenge-version/index.vue"),
   cch_challenge: () => import("@/views/cch/challenge/index.vue"),
   "cch_container-config": () => import("@/views/cch/container-config/index.vue"),
+  "cch_project-challenge-import": () => import("@/views/cch/project-challenge-import/index.vue"),
   "cch_project-detail": () => import("@/views/cch/project-detail/index.vue"),
   cch_project: () => import("@/views/cch/project/index.vue"),
   demo_demo: () => import("@/views/demo/demo/index.vue"),

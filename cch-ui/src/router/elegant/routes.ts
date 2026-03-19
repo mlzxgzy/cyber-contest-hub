@@ -121,6 +121,15 @@ export const generatedRoutes: GeneratedRoute[] = [
         }
       },
       {
+        name: 'cch_project-challenge-import',
+        path: '/cch/project-challenge-import',
+        component: 'view.cch_project-challenge-import',
+        meta: {
+          title: 'cch_project-challenge-import',
+          i18nKey: 'route.cch_project-challenge-import'
+        }
+      },
+      {
         name: 'cch_project-detail',
         path: '/cch/project-detail',
         component: 'view.cch_project-detail',
