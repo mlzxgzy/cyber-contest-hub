@@ -3,6 +3,7 @@ package com.kdajv.cch.service.impl;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.ObjectUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.kdajv.cch.domain.*;
 import com.kdajv.cch.domain.bo.ProjectBo;
@@ -173,8 +174,32 @@ public class ProjectServiceImpl implements IProjectService {
         // 检查管理员权限
         checkAdminPermission(bo.getId());
 
-        Project project = MapstructUtils.convert(bo, Project.class);
-        return baseMapper.updateById(project) > 0;
+        // 使用 LambdaUpdateWrapper 明确指定要更新的字段，避免数据拼接问题
+        LambdaUpdateWrapper<Project> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(Project::getId, bo.getId());
+        
+        if (StringUtils.isNotBlank(bo.getProjectType())) {
+            updateWrapper.set(Project::getProjectType, bo.getProjectType());
+        }
+        if (StringUtils.isNotBlank(bo.getName())) {
+            updateWrapper.set(Project::getName, bo.getName());
+        }
+        if (StringUtils.isNotBlank(bo.getRemark())) {
+            updateWrapper.set(Project::getRemark, bo.getRemark());
+        }
+        
+        // 处理 meta 字段
+        if (bo.getMeta() != null) {
+            updateWrapper.set(Project::getMeta, bo.getMeta());
+        } else if (bo.getMeta() == null && "contest".equals(bo.getProjectType())) {
+            // 如果是竞赛项目但没有提供 meta，保持原有 meta 不变
+            // 这里不设置 meta 字段，让它保持原值
+        } else if ("normal".equals(bo.getProjectType())) {
+            // 如果是普通项目，清除 meta 字段
+            updateWrapper.set(Project::getMeta, null);
+        }
+
+        return baseMapper.update(null, updateWrapper) > 0;
     }
 
     /**
