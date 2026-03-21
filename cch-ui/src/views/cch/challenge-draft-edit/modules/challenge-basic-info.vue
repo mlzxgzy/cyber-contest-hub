@@ -8,7 +8,8 @@ import {
   NRadioGroup,
   NTag,
   NEmpty,
-  NButton
+  NButton,
+  useDialog
 } from 'naive-ui';
 import type { UploadFileInfo } from 'naive-ui';
 import { useDict } from '@/hooks/business/dict';
@@ -16,6 +17,7 @@ import { useDownload } from '@/hooks/business/download';
 import { useFormRules } from '@/hooks/common/form';
 import FileUpload from '@/components/custom/file-upload.vue';
 import { AcceptType } from '@/enum/business';
+import { fetchBatchDeleteChallengeFile } from '@/service/api/cch/challenge-file';
 
 const props = defineProps<{
   challengeData: Api.Cch.Challenge;
@@ -23,6 +25,7 @@ const props = defineProps<{
 }>();
 
 const { downloadChallengeFile } = useDownload();
+const dialog = useDialog();
 
 const { createRequiredRule } = useFormRules();
 
@@ -74,6 +77,68 @@ function handleWriteupUploadSuccess(data: Api.Cch.ChallengeFile) {
 
 function downloadFile(fileId: CommonType.IdType) {
   downloadChallengeFile(fileId);
+}
+
+function deleteAttachment(fileId: CommonType.IdType, fileName: string) {
+  dialog.warning({
+    title: '确认删除',
+    content: `确定要删除附件「${fileName}」吗？删除后将无法恢复。`,
+    positiveText: '确认删除',
+    negativeText: '取消',
+    onPositiveClick: async () => {
+      try {
+        // 调用后端API删除文件
+        const { error } = await fetchBatchDeleteChallengeFile([fileId]);
+        if (error) {
+          window.$message?.error(`删除失败: ${error}`);
+          return;
+        }
+        
+        // 从前端数据中移除
+        if (props.draftData?.config.attachments) {
+          const index = props.draftData.config.attachments.findIndex(item => item.fileId === fileId);
+          if (index !== -1) {
+            props.draftData.config.attachments.splice(index, 1);
+          }
+        }
+        
+        window.$message?.success('删除成功');
+      } catch (err) {
+        window.$message?.error(`删除异常: ${err}`);
+      }
+    }
+  });
+}
+
+function deleteWriteup(fileId: CommonType.IdType, fileName: string) {
+  dialog.warning({
+    title: '确认删除',
+    content: `确定要删除 Writeup「${fileName}」吗？删除后将无法恢复。`,
+    positiveText: '确认删除',
+    negativeText: '取消',
+    onPositiveClick: async () => {
+      try {
+        // 调用后端API删除文件
+        const { error } = await fetchBatchDeleteChallengeFile([fileId]);
+        if (error) {
+          window.$message?.error(`删除失败: ${error}`);
+          return;
+        }
+        
+        // 从前端数据中移除
+        if (props.draftData?.config.writeups) {
+          const index = props.draftData.config.writeups.findIndex(item => item.fileId === fileId);
+          if (index !== -1) {
+            props.draftData.config.writeups.splice(index, 1);
+          }
+        }
+        
+        window.$message?.success('删除成功');
+      } catch (err) {
+        window.$message?.error(`删除异常: ${err}`);
+      }
+    }
+  });
 }
 </script>
 
@@ -251,6 +316,17 @@ function downloadFile(fileId: CommonType.IdType) {
                   <line x1="12" y1="15" x2="12" y2="3" />
                 </svg>
               </NButton>
+              <NButton
+                text
+                type="error"
+                @click="deleteAttachment(x.fileId, x.fileName)"
+                class="file-action"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                </svg>
+              </NButton>
             </div>
           </div>
           <NEmpty v-else description="暂无附件" size="small" />
@@ -321,6 +397,17 @@ function downloadFile(fileId: CommonType.IdType) {
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                   <polyline points="7 10 12 15 17 10" />
                   <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+              </NButton>
+              <NButton
+                text
+                type="error"
+                @click="deleteWriteup(x.fileId, x.fileName)"
+                class="file-action"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                 </svg>
               </NButton>
             </div>
