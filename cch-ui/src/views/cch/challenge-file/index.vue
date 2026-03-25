@@ -181,7 +181,7 @@ function edit(id: CommonType.IdType) {
 }
 
 function handleExport() {
-  download('/cch/challengeFile/export', searchParams, `题目文件_${new Date().getTime()}.xlsx`);
+  download('/cch/challengeFile/export', searchParams.value, `题目文件_${new Date().getTime()}.xlsx`);
 }
 
 const {bool: uploadVisible, setTrue: showFUploadModal} = useBoolean(false);

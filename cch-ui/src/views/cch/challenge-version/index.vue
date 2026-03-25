@@ -173,7 +173,7 @@ const activeTab = ref<string>('version-list');
 function handleExport() {
   // 如果没有选中，使用原有的同步导出方式（向后兼容）
   if (checkedRowKeys.value.length === 0) {
-    download('/cch/challengeVersion/export', searchParams, `题目版本_${new Date().getTime()}.xlsx`);
+    download('/cch/challengeVersion/export', searchParams.value, `题目版本_${new Date().getTime()}.xlsx`);
     return;
   }
 

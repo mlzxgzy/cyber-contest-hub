@@ -151,7 +151,7 @@ function edit(id: CommonType.IdType) {
 }
 
 function handleExport() {
-  download('/cch/challengeDraft/export', searchParams, `题目草稿_${new Date().getTime()}.xlsx`);
+  download('/cch/challengeDraft/export', searchParams.value, `题目草稿_${new Date().getTime()}.xlsx`);
 }
 </script>
 

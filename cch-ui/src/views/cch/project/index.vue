@@ -185,7 +185,7 @@ function handleViewDetail(id: CommonType.IdType) {
 }
 
 function handleExport() {
-  download('/cch/project/export', searchParams, `项目列表_${new Date().getTime()}.xlsx`);
+  download('/cch/project/export', searchParams.value, `项目列表_${new Date().getTime()}.xlsx`);
 }
 </script>
 
