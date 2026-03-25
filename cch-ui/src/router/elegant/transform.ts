@@ -170,6 +170,7 @@ const routeMap: RouteMap = {
   "403": "/403",
   "404": "/404",
   "500": "/500",
+  "about": "/about",
   "cch": "/cch",
   "cch_challenge": "/cch/challenge",
   "cch_challenge-container-image": "/cch/challenge-container-image",

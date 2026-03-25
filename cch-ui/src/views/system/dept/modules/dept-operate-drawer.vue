@@ -142,7 +142,8 @@ async function getDeptData() {
   }
 
   if (data) {
-    deptData.value = handleTree(data, { idField: 'deptId' });
+    const { tree } = handleTree(data, { idField: 'deptId' });
+    deptData.value = tree;
     if (deptData.value?.length) {
       expandedKeys.value = [deptData.value[0].deptId];
     }

@@ -183,7 +183,7 @@ public class ChallengeVersionExportExecutor {
             String downloadUrl = uploadResult.getUrl();
             if (AccessPolicyType.PRIVATE == ossClient.getAccessPolicy()) {
                 // 如果是私有桶，生成临时URL，有效期设置为保留时间
-                downloadUrl = ossClient.getPrivateUrl(uploadResult.getFilename(), Duration.ofHours(retentionHours));
+                downloadUrl = ossClient.createPresignedGetUrl(uploadResult.getFilename(), Duration.ofHours(retentionHours));
             }
 
             // 计算过期时间

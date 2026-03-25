@@ -1,6 +1,6 @@
 export enum AcceptType {
-    Image = '.jpg,.jpeg,.png,.gif,.bmp,.webp',
-    File = '.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.pdf,.zip,.rar,.7z',
-    ChallengeAttachment = '.zip,.rar,.7z,.txt',
-    ChallengeWriteup = ChallengeAttachment + ',.md,.docx,.doc,.pdf',
+  Image = '.jpg,.jpeg,.png,.gif,.bmp,.webp',
+  File = '.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.pdf,.zip,.rar,.7z',
+  ChallengeAttachment = '.zip,.rar,.7z,.txt',
+  ChallengeWriteup = ChallengeAttachment + ',.md,.docx,.doc,.pdf',
 }

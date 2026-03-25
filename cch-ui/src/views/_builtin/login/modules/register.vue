@@ -4,7 +4,6 @@ import type { SelectOption } from 'naive-ui';
 import { useLoading } from '@sa/hooks';
 import { fetchCaptchaCode, fetchRegister, fetchTenantList } from '@/service/api';
 import { useRouterPush } from '@/hooks/common/router';
-import { useAuthStore } from '@/store/modules/auth';
 import { useFormRules, useNaiveForm } from '@/hooks/common/form';
 import { $t } from '@/locales';
 
@@ -12,8 +11,7 @@ defineOptions({
   name: 'Register'
 });
 
-const authStore = useAuthStore();
-const { toggleLoginModule, redirectFromLogin } = useRouterPush();
+const { toggleLoginModule } = useRouterPush();
 const { formRef, validate } = useNaiveForm();
 const { loading: codeLoading, startLoading: startCodeLoading, endLoading: endCodeLoading } = useLoading();
 const { loading: registerLoading, startLoading: startRegisterLoading, endLoading: endRegisterLoading } = useLoading();
@@ -50,7 +48,7 @@ async function handleSubmit() {
   try {
     await validate();
     startRegisterLoading();
-    const { data, error } = await fetchRegister({
+    const { error } = await fetchRegister({
       tenantId: model.tenantId,
       username: model.username,
       password: model.password,
@@ -64,17 +62,8 @@ async function handleSubmit() {
       handleFetchCaptchaCode();
       return;
     }
-    if (data) {
-      // 注册成功后直接使用返回的登录令牌完成自动登录，并按 redirect 参数跳转
-      const pass = await authStore.loginByToken(data);
-      if (pass) {
-        window.$message?.success('注册成功，正在为您跳转...');
-        await redirectFromLogin(true);
-        return;
-      }
-    }
-    // 兜底：如果未能自动登录，则切回登录模块
-    window.$message?.success('注册成功，请登录');
+    window.$message?.success('注册成功');
+    // 注册成功后跳转到登录页
     toggleLoginModule('pwd-login');
   } catch {
     handleFetchCaptchaCode();

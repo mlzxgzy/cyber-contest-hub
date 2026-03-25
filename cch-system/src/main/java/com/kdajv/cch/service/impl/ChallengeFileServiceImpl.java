@@ -220,7 +220,7 @@ public class ChallengeFileServiceImpl implements IChallengeFileService {
         OssClient storage = OssFactory.instance(challengeFileVo.getService());
         // 仅修改桶类型为 private 的URL，临时URL时长为120s
         if (AccessPolicyType.PRIVATE == storage.getAccessPolicy()) {
-            challengeFileVo.setUrl(storage.getPrivateUrl(challengeFileVo.getFileName(), Duration.ofSeconds(120)));
+            challengeFileVo.setUrl(storage.createPresignedGetUrl(challengeFileVo.getFileName(), Duration.ofSeconds(120)));
         }
         return challengeFileVo;
     }

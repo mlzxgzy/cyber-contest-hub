@@ -24,6 +24,7 @@ declare module "@elegant-router/types" {
     "403": "/403";
     "404": "/404";
     "500": "/500";
+    "about": "/about";
     "cch": "/cch";
     "cch_challenge": "/cch/challenge";
     "cch_challenge-container-image": "/cch/challenge-container-image";
@@ -102,6 +103,7 @@ declare module "@elegant-router/types" {
     | "403"
     | "404"
     | "500"
+    | "about"
     | "cch"
     | "demo"
     | "home"
@@ -136,6 +138,7 @@ declare module "@elegant-router/types" {
     | "login"
     | "social-callback"
     | "user-center"
+    | "about"
     | "cch_challenge-container-image"
     | "cch_challenge-draft-edit"
     | "cch_challenge-draft"
