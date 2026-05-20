@@ -31,6 +31,7 @@ import ContainerTargetConfig from "@/views/cch/challenge-draft-edit/modules/cont
 import ChallengeBasicInfo from "@/views/cch/challenge-draft-edit/modules/challenge-basic-info.vue";
 import ChallengeContainerMockTest from "@/views/cch/challenge-draft-edit/modules/challenge-container-mock-test.vue";
 import ChallengeVersionPublishModal from "@/views/cch/challenge-draft-edit/modules/challenge-version-publish-modal.vue";
+import VmConfig from "@/views/cch/challenge-draft-edit/modules/vm-config.vue";
 import {useTabQuerySync} from './useTabQuerySync';
 
 defineOptions({
@@ -640,17 +641,7 @@ async function loadImageList() {
                       虚拟机
                     </template>
                     <div class="pane-content">
-                      <div class="vm-placeholder">
-                        <div class="placeholder-icon">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
-                            <line x1="8" y1="21" x2="16" y2="21"/>
-                            <line x1="12" y1="17" x2="12" y2="21"/>
-                          </svg>
-                        </div>
-                        <h3>虚拟机管理</h3>
-                        <p>功能开发中...</p>
-                      </div>
+                      <VmConfig v-model="draftData.config" />
                     </div>
                   </NTabPane>
                 </NTabs>

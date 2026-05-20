@@ -111,7 +111,7 @@ function resolveImageName(imageId?: CommonType.IdType | null) {
 </script>
 
 <template>
-  <div class="p-4">
+  <div class="container-target-config p-4">
     <div class="mb-12px flex items-center justify-between">
       <div class="text-16px font-600">容器靶机配置</div>
       <NSpace>
@@ -122,7 +122,13 @@ function resolveImageName(imageId?: CommonType.IdType | null) {
 
     <NSpace vertical class="w-full">
       <template v-if="targets.length">
-        <NCard v-for="(t, idx) in targets" :key="idx" size="small">
+        <NCard
+          v-for="(t, idx) in targets"
+          :key="idx"
+          size="small"
+          :content-style="{ padding: '12px' }"
+          :header-style="{ padding: '10px 12px' }"
+        >
           <template #header>
             <div class="flex items-center justify-between">
               <div class="font-600">靶机 {{ idx + 1 }}</div>
@@ -130,66 +136,84 @@ function resolveImageName(imageId?: CommonType.IdType | null) {
             </div>
           </template>
 
-          <NGrid cols="1 900:2" x-gap="12" y-gap="12">
-            <NGi>
-              <NFormItem label="名称">
-                <NInput v-model:value="t.name" placeholder="例如：web / pwn / db"/>
-              </NFormItem>
-            </NGi>
-            <NGi>
-              <NFormItem label="镜像">
-                <NSelect
-                  v-model:value="t.imageId"
-                  :options="imageOptions"
-                  clearable
-                  placeholder="请选择本题已上传的镜像"
-                  @update:value="() => (t.imageName = resolveImageName(t.imageId))"
-                />
-              </NFormItem>
-            </NGi>
-          </NGrid>
+          <NForm size="small" label-placement="left" label-width="120">
+            <NGrid cols="1 900:2" x-gap="8" y-gap="8">
+              <NGi>
+                <NFormItem label="名称">
+                  <NInput v-model:value="t.name" placeholder="例如：web / pwn / db"/>
+                </NFormItem>
+              </NGi>
+              <NGi>
+                <NFormItem label="镜像">
+                  <NSelect
+                    v-model:value="t.imageId"
+                    :options="imageOptions"
+                    clearable
+                    placeholder="请选择本题已上传的镜像"
+                    @update:value="() => (t.imageName = resolveImageName(t.imageId))"
+                  />
+                </NFormItem>
+              </NGi>
+            </NGrid>
 
-          <NDivider/>
+            <NDivider class="compact-divider"/>
 
-          <NGrid cols="1 900:2" x-gap="12" y-gap="12">
-            <NGi>
-              <NFormItem label="资源限制 - CPU (millicores)">
-                <NInputNumber
-                  v-model:value="t.resources!.cpuLimit"
-                  :min="0"
-                  :precision="0"
-                  placeholder="例如：500 表示 0.5 核"
-                  class="w-full"
-                />
-              </NFormItem>
-            </NGi>
-            <NGi>
-              <NFormItem label="资源限制 - 内存 (MB)">
-                <NInputNumber
-                  v-model:value="t.resources!.memoryLimit"
-                  :min="0"
-                  :precision="0"
-                  placeholder="例如：256"
-                  class="w-full"
-                />
-              </NFormItem>
-            </NGi>
-          </NGrid>
+            <NGrid cols="1 900:2" x-gap="8" y-gap="8">
+              <NGi>
+                <NFormItem label="CPU">
+                  <NInputNumber
+                    v-model:value="t.resources!.cpuLimit"
+                    :min="0"
+                    :precision="0"
+                    placeholder="例如：500 表示 0.5 核"
+                    class="w-full"
+                  />
+                </NFormItem>
+              </NGi>
+              <NGi>
+                <NFormItem label="内存">
+                  <NInputNumber
+                    v-model:value="t.resources!.memoryLimit"
+                    :min="0"
+                    :precision="0"
+                    placeholder="例如：256 单位MB"
+                    class="w-full"
+                  />
+                </NFormItem>
+              </NGi>
+            </NGrid>
 
-          <NDivider/>
+            <NDivider class="compact-divider"/>
 
-          <NFormItem label="环境变量 (Map&lt;string,string&gt;)">
-            <EnvMapEditor v-model="t.env"/>
-          </NFormItem>
+            <NFormItem label="环境变量">
+              <EnvMapEditor v-model="t.env"/>
+            </NFormItem>
 
-          <NDivider/>
+            <NDivider class="compact-divider"/>
 
-          <NFormItem label="开放端口 (Map&lt;name,entity&gt;)">
-            <PortsMapEditor v-model="t.ports"/>
-          </NFormItem>
+            <NFormItem label="开放端口">
+              <PortsMapEditor v-model="t.ports"/>
+            </NFormItem>
+          </NForm>
         </NCard>
       </template>
       <NEmpty v-else description="暂无靶机配置，点击“新增靶机”开始配置"/>
     </NSpace>
   </div>
 </template>
+
+<style scoped lang="scss">
+.container-target-config {
+  :deep(.n-form-item) {
+    margin-bottom: 8px;
+  }
+
+  :deep(.n-form-item:last-child) {
+    margin-bottom: 0;
+  }
+
+  :deep(.compact-divider) {
+    margin: 8px 0;
+  }
+}
+</style>
