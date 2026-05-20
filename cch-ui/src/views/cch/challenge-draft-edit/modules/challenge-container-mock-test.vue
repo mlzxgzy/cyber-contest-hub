@@ -312,15 +312,17 @@ function getAccessUrl(container: ContainerMockTest.ContainerInfo): string {
 
   // 根据协议决定 URL 格式
   const protocol = container.protocol?.toLowerCase() || 'tcp';
-  if (protocol === 'tcp') {
-    // TCP 协议通常使用 http，但也可以根据端口判断（443 用 https）
-    const useHttps = container.externalPort === 443;
-    return `${useHttps ? 'https' : 'http'}://${container.host}:${container.externalPort}`;
+  if (protocol === 'http') {
+    // HTTP 协议使用浏览器可访问的URL格式
+    return `http://${container.host}:${container.externalPort}`;
+  } else if (protocol === 'tcp') {
+    // TCP 协议使用netcat命令格式，方便用户直接复制到终端使用
+    return `nc ${container.host} ${container.externalPort}`;
   } else if (protocol === 'udp') {
-    // UDP 协议显示为 udp://
-    return `udp://${container.host}:${container.externalPort}`;
+    // UDP 协议使用netcat UDP命令格式，同样方便终端使用
+    return `nc -u ${container.host} ${container.externalPort}`;
   } else {
-    // 其他协议
+    // 其他协议保持原有逻辑
     return `${protocol}://${container.host}:${container.externalPort}`;
   }
 }
@@ -577,9 +579,20 @@ onUnmounted(() => {
 }
 
 .test-card {
+  border-radius: 4px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    border-color: #d1d5db;
+  }
+
   :deep(.n-card__header) {
     padding: 12px;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid #e5e7eb;
+    background: #f9fafb;
   }
 
   :deep(.n-card__content) {
@@ -625,8 +638,8 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 0;
-  border-bottom: 1px solid #f5f5f5;
+  padding: 10px 0;
+  border-bottom: 1px solid #e5e7eb;
 
   &:last-child {
     border-bottom: none;
@@ -671,9 +684,10 @@ onUnmounted(() => {
     color: #3b82f6;
     background: #f0f7ff;
     padding: 4px 8px;
-    border-radius: 4px;
+    border-radius: 2px;
     word-break: break-all;
     max-width: 300px;
+    border: 1px solid #dbeafe;
   }
 
   .port-mapping {

@@ -159,6 +159,21 @@ public class ChallengeDraftServiceImpl implements IChallengeDraftService {
      */
     private void validEntityBeforeSave(ChallengeDraft entity) {
         //TODO 做一些数据校验,如唯一约束
+        
+        // 校验容器靶机配置
+        if (entity.getConfig() != null && "container".equals(entity.getConfig().getRunType())) {
+            var containerTargets = entity.getConfig().getContainerTargets();
+            if (containerTargets != null) {
+                for (int i = 0; i < containerTargets.size(); i++) {
+                    var target = containerTargets.get(i);
+                    if (target != null) {
+                        if (StringUtils.isBlank(target.getName())) {
+                            throw new ServiceException(String.format("靶机 %d：名称不能为空", i + 1));
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /**

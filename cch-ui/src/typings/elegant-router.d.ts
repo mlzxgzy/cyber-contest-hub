@@ -24,6 +24,7 @@ declare module "@elegant-router/types" {
     "403": "/403";
     "404": "/404";
     "500": "/500";
+    "about": "/about";
     "cch": "/cch";
     "cch_challenge": "/cch/challenge";
     "cch_challenge-container-image": "/cch/challenge-container-image";
@@ -32,6 +33,9 @@ declare module "@elegant-router/types" {
     "cch_challenge-file": "/cch/challenge-file";
     "cch_challenge-version": "/cch/challenge-version";
     "cch_container-config": "/cch/container-config";
+    "cch_project": "/cch/project";
+    "cch_project-challenge-import": "/cch/project-challenge-import";
+    "cch_project-detail": "/cch/project-detail";
     "demo": "/demo";
     "demo_demo": "/demo/demo";
     "demo_tree": "/demo/tree";
@@ -99,6 +103,7 @@ declare module "@elegant-router/types" {
     | "403"
     | "404"
     | "500"
+    | "about"
     | "cch"
     | "demo"
     | "home"
@@ -133,6 +138,7 @@ declare module "@elegant-router/types" {
     | "login"
     | "social-callback"
     | "user-center"
+    | "about"
     | "cch_challenge-container-image"
     | "cch_challenge-draft-edit"
     | "cch_challenge-draft"
@@ -140,6 +146,9 @@ declare module "@elegant-router/types" {
     | "cch_challenge-version"
     | "cch_challenge"
     | "cch_container-config"
+    | "cch_project-challenge-import"
+    | "cch_project-detail"
+    | "cch_project"
     | "demo_demo"
     | "demo_tree"
     | "home"

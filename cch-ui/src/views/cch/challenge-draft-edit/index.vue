@@ -256,6 +256,11 @@ async function saveDraft() {
       for (let i = 0; i < targets.length; i += 1) {
         const t = targets[i];
         if (!t) continue;
+        // 校验靶机名称必填
+        if (!t.name || !t.name.trim()) {
+          window.$message?.error(`靶机 ${i + 1}：名称不能为空`);
+          return;
+        }
         if (!t.imageId) {
           window.$message?.error(`靶机 ${i + 1}：请选择镜像`);
           return;
@@ -625,7 +630,11 @@ async function loadImageList() {
                       容器靶机
                     </template>
                     <div class="pane-content">
-                      <ContainerTargetConfig v-model="draftData.config.containerTargets" :challenge-id="challengeId"/>
+                      <ContainerTargetConfig 
+                        v-model="draftData.config.containerTargets" 
+                        :challenge-id="challengeId"
+                        :challenge-name="challengeData.name"
+                      />
                     </div>
                   </NTabPane>
 
@@ -707,10 +716,11 @@ $info-color: #06b6d4;
 $info-light: rgba(6, 182, 212, 0.1);
 
 $border-color: #e5e7eb;
-$border-radius: 8px;
+$border-radius-sm: 2px;
+$border-radius: 4px;
 $shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-$shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-$shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+$shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+$shadow-lg: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 
 $text-primary: #1f2937;
 $text-secondary: #6b7280;
@@ -719,6 +729,7 @@ $text-muted: #9ca3af;
 $bg-primary: #ffffff;
 $bg-secondary: #f9fafb;
 $bg-tertiary: #f3f4f6;
+$bg-hover: #f3f4f6;
 
 // 容器样式
 .draft-container {
@@ -751,8 +762,8 @@ $bg-tertiary: #f3f4f6;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, $primary-color 0%, #8b5cf6 100%);
-    border-radius: $border-radius;
+    background: $primary-color;
+    border-radius: $border-radius-sm;
     color: white;
 
     svg {
@@ -776,11 +787,11 @@ $bg-tertiary: #f3f4f6;
 
   .header-badge {
     padding: 4px 12px;
-    background: linear-gradient(135deg, $warning-color 0%, #f97316 100%);
+    background: $warning-color;
     color: white;
     font-size: 12px;
     font-weight: 500;
-    border-radius: 20px;
+    border-radius: $border-radius-sm;
   }
 
   .header-actions {
@@ -829,7 +840,7 @@ $bg-tertiary: #f3f4f6;
   min-height: 0;
 }
 
-// 科技风格标签页
+// 扁平化标签页
 .cyber-tabs {
   height: 100%;
   display: flex;
@@ -839,35 +850,38 @@ $bg-tertiary: #f3f4f6;
 
   :deep(.n-tabs-nav) {
     background: $bg-primary;
-    border-radius: $border-radius;
-    padding: 8px 8px 0 8px;
+    border-radius: $border-radius-sm;
+    padding: 6px 6px 0 6px;
     box-shadow: $shadow-sm;
     flex-shrink: 0;
+    border-bottom: 1px solid $border-color;
   }
 
   :deep(.n-tabs-tab-wrapper) {
-    margin-right: 4px;
+    margin-right: 2px;
   }
 
   :deep(.n-tabs-tab) {
-    padding: 10px 20px;
-    border-radius: $border-radius $border-radius 0 0;
+    padding: 10px 18px;
+    border-radius: $border-radius-sm $border-radius-sm 0 0;
     background: $bg-secondary;
     color: $text-secondary;
     font-weight: 500;
-    transition: all 0.3s ease;
+    font-size: 13px;
+    transition: all 0.2s ease;
     border: 1px solid transparent;
     border-bottom: none;
 
     &:hover {
       color: $primary-color;
-      background: $primary-light;
+      background: $bg-hover;
     }
 
     &.n-tabs-tab--active {
       color: $primary-color;
       background: $bg-primary;
       border-color: $border-color;
+      border-bottom-color: $bg-primary;
       position: relative;
 
       &::after {
@@ -877,7 +891,7 @@ $bg-tertiary: #f3f4f6;
         left: 0;
         right: 0;
         height: 2px;
-        background: linear-gradient(90deg, $primary-color, #8b5cf6);
+        background: $primary-color;
       }
     }
   }
@@ -922,7 +936,8 @@ $bg-tertiary: #f3f4f6;
 
 .loading-card {
   border-radius: $border-radius;
-  box-shadow: $shadow;
+  border: 1px solid $border-color;
+  box-shadow: $shadow-sm;
 }
 
 .skeleton-grid {
@@ -958,67 +973,71 @@ $bg-tertiary: #f3f4f6;
   box-sizing: border-box;
 }
 
-// 信息卡片
+// 信息卡片（扁平化）
 .info-card {
   background: $bg-primary;
   border-radius: $border-radius;
-  box-shadow: $shadow;
+  border: 1px solid $border-color;
+  box-shadow: $shadow-sm;
   overflow: hidden;
-  transition: box-shadow 0.3s ease;
+  transition: all 0.2s ease;
 
   &:hover {
-    box-shadow: $shadow-lg;
+    box-shadow: $shadow;
+    border-color: #d1d5db;
   }
 
   .card-header {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 16px;
-    background: linear-gradient(135deg, $bg-secondary 0%, $bg-tertiary 100%);
+    padding: 14px 16px;
+    background: $bg-secondary;
     border-bottom: 1px solid $border-color;
   }
 
   .card-icon {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 8px;
+    border-radius: $border-radius-sm;
     color: white;
+    flex-shrink: 0;
 
     svg {
-      width: 20px;
-      height: 20px;
+      width: 18px;
+      height: 18px;
     }
 
     &.basic {
-      background: linear-gradient(135deg, $primary-color, #3b82f6);
+      background: $primary-color;
     }
 
     &.config {
-      background: linear-gradient(135deg, $info-color, #0891b2);
+      background: $info-color;
     }
 
     &.stem {
-      background: linear-gradient(135deg, #8b5cf6, #a855f7);
+      background: #8b5cf6;
     }
 
     &.attachment {
-      background: linear-gradient(135deg, $success-color, #34d399);
+      background: $success-color;
     }
 
     &.writeup {
-      background: linear-gradient(135deg, $warning-color, #fbbf24);
+      background: $warning-color;
     }
   }
 
   .card-title {
     margin: 0;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
     color: $text-primary;
+    letter-spacing: 0.01em;
   }
 
   .card-body {
@@ -1051,8 +1070,8 @@ $bg-tertiary: #f3f4f6;
   width: 100%;
 
   :deep(.n-input) {
-    border-radius: 6px;
-    background: $bg-secondary;
+    border-radius: $border-radius-sm;
+    background: $bg-primary;
     border: 1px solid $border-color;
     transition: all 0.2s ease;
 
@@ -1062,7 +1081,7 @@ $bg-tertiary: #f3f4f6;
 
     &:focus {
       border-color: $primary-color;
-      box-shadow: 0 0 0 3px $primary-light;
+      box-shadow: 0 0 0 2px $primary-light;
     }
   }
 }
@@ -1071,7 +1090,7 @@ $bg-tertiary: #f3f4f6;
   width: 100%;
 
   :deep(.n-base-select) {
-    border-radius: 6px;
+    border-radius: $border-radius-sm;
   }
 }
 
@@ -1080,7 +1099,7 @@ $bg-tertiary: #f3f4f6;
   gap: 8px;
 
   :deep(.n-radio-button) {
-    border-radius: 6px;
+    border-radius: $border-radius-sm;
     padding: 6px 16px;
     background: $bg-secondary;
     border: 1px solid $border-color;
@@ -1109,28 +1128,30 @@ $bg-tertiary: #f3f4f6;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px;
+  padding: 10px 12px;
   background: $bg-secondary;
-  border-radius: 6px;
+  border: 1px solid $border-color;
+  border-radius: $border-radius-sm;
   margin-bottom: 8px;
-  transition: background 0.2s ease;
+  transition: all 0.2s ease;
 
   &:last-child {
     margin-bottom: 0;
   }
 
   &:hover {
-    background: $bg-tertiary;
+    background: $bg-hover;
+    border-color: #d1d5db;
   }
 }
 
 .file-icon {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
+  border-radius: $border-radius-sm;
   flex-shrink: 0;
 
   svg {
@@ -1211,8 +1232,15 @@ $bg-tertiary: #f3f4f6;
 .flag-item {
   background: $bg-primary;
   border-radius: $border-radius;
-  box-shadow: $shadow;
+  border: 1px solid $border-color;
+  box-shadow: $shadow-sm;
   overflow: hidden;
+  transition: all 0.2s ease;
+
+  &:hover {
+    box-shadow: $shadow;
+    border-color: #d1d5db;
+  }
 }
 
 .flag-header-row {
@@ -1220,7 +1248,7 @@ $bg-tertiary: #f3f4f6;
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  background: linear-gradient(135deg, $bg-secondary 0%, $bg-tertiary 100%);
+  background: $bg-secondary;
   border-bottom: 1px solid $border-color;
 }
 
@@ -1259,7 +1287,8 @@ $bg-tertiary: #f3f4f6;
 // 错误卡片
 .error-card {
   border-radius: $border-radius;
-  box-shadow: $shadow;
+  border: 1px solid $border-color;
+  box-shadow: $shadow-sm;
 
   :deep(.n-card__content) {
     display: flex;
@@ -1278,7 +1307,8 @@ $bg-tertiary: #f3f4f6;
   padding: 64px 24px;
   background: $bg-primary;
   border-radius: $border-radius;
-  box-shadow: $shadow;
+  border: 1px solid $border-color;
+  box-shadow: $shadow-sm;
   text-align: center;
 
   .placeholder-icon {

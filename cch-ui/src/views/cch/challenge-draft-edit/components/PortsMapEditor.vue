@@ -105,6 +105,7 @@ function removeRow(i: number) {
 }
 
 const protocolOptions = [
+  {label: 'http', value: 'http'},
   {label: 'tcp', value: 'tcp'},
   {label: 'udp', value: 'udp'}
 ];

@@ -82,6 +82,23 @@ public interface ContainerClient extends Closeable {
     void pushImage(String imageName, String tag) throws Exception;
 
     /**
+     * 从Registry拉取镜像到本地
+     *
+     * @param imageNameWithTag 镜像名称（含标签，例如 registry.example.com/repo/image:tag）
+     * @throws Exception 拉取失败时抛出
+     */
+    void pullImage(String imageNameWithTag) throws Exception;
+
+    /**
+     * 将本地镜像导出为 tar 格式的输入流（调用方负责关闭流）
+     *
+     * @param imageNameWithTag 镜像名称（含标签）
+     * @return 镜像 tar 格式的输入流
+     * @throws Exception 导出失败时抛出
+     */
+    InputStream saveImage(String imageNameWithTag) throws Exception;
+
+    /**
      * 获取集群节点列表
      *
      * @return 节点列表

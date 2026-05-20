@@ -3,18 +3,17 @@ package org.dromara.generator.util;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.convert.Convert;
 import cn.hutool.core.lang.Dict;
-import cn.hutool.core.util.StrUtil;
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
-import org.apache.velocity.VelocityContext;
+import org.dromara.common.mybatis.enums.DataBaseType;
+import org.dromara.generator.constant.GenConstants;
 import org.dromara.common.core.utils.DateUtils;
 import org.dromara.common.core.utils.StringUtils;
 import org.dromara.common.json.utils.JsonUtils;
-import org.dromara.common.mybatis.enums.DataBaseType;
 import org.dromara.common.mybatis.helper.DataBaseHelper;
-import org.dromara.generator.constant.GenConstants;
 import org.dromara.generator.domain.GenTable;
 import org.dromara.generator.domain.GenTableColumn;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+import org.apache.velocity.VelocityContext;
 
 import java.util.*;
 
@@ -59,12 +58,9 @@ public class VelocityUtils {
         velocityContext.put("functionName", StringUtils.isNotEmpty(functionName) ? functionName : "【请填写功能名称】");
         velocityContext.put("ClassName", genTable.getClassName());
         velocityContext.put("className", StringUtils.uncapitalize(genTable.getClassName()));
-        velocityContext.put("moduleName", StrUtil.toSymbolCase(genTable.getModuleName(), '-'));
+        velocityContext.put("moduleName", genTable.getModuleName());
         velocityContext.put("BusinessName", StringUtils.capitalize(genTable.getBusinessName()));
         velocityContext.put("businessName", genTable.getBusinessName());
-        velocityContext.put("business_name", StrUtil.toUnderlineCase(genTable.getBusinessName()));
-        velocityContext.put("business__name", StrUtil.toSymbolCase(genTable.getBusinessName(), '-'));
-        velocityContext.put("businessname", StrUtil.toSymbolCase(genTable.getBusinessName(), ' '));
         velocityContext.put("basePackage", getPackagePrefix(packageName));
         velocityContext.put("packageName", packageName);
         velocityContext.put("author", genTable.getFunctionAuthor());
@@ -72,12 +68,9 @@ public class VelocityUtils {
         velocityContext.put("pkColumn", genTable.getPkColumn());
         velocityContext.put("importList", getImportList(genTable));
         velocityContext.put("permissionPrefix", getPermissionPrefix(moduleName, businessName));
-        velocityContext.put("dicts", getDicts(genTable));
-        velocityContext.put("dictList", getDictList(genTable));
-        velocityContext.put("pkColumn", genTable.getPkColumn());
         velocityContext.put("columns", genTable.getColumns());
         velocityContext.put("table", genTable);
-        velocityContext.put("StrUtil", new StrUtil());
+        velocityContext.put("dicts", getDicts(genTable));
         setMenuVelocityContext(velocityContext, genTable);
         if (GenConstants.TPL_TREE.equals(tplCategory)) {
             setTreeVelocityContext(velocityContext, genTable);
@@ -136,14 +129,12 @@ public class VelocityUtils {
         } else {
             templates.add("vm/sql/sql.vm");
         }
-        templates.add("vm/soy/typings/api.d.ts.vm");
-        templates.add("vm/soy/api/api.ts.vm");
-        templates.add("vm/soy/modules/search.vue.vm");
-        templates.add("vm/soy/modules/operate-drawer.vue.vm");
+        templates.add("vm/ts/api.ts.vm");
+        templates.add("vm/ts/types.ts.vm");
         if (GenConstants.TPL_CRUD.equals(tplCategory)) {
-            templates.add("vm/soy/index.vue.vm");
+            templates.add("vm/vue/index.vue.vm");
         } else if (GenConstants.TPL_TREE.equals(tplCategory)) {
-            templates.add("vm/soy/index-tree.vue.vm");
+            templates.add("vm/vue/index-tree.vue.vm");
         }
         return templates;
     }
@@ -165,8 +156,8 @@ public class VelocityUtils {
 
         String javaPath = PROJECT_PATH + "/" + StringUtils.replace(packageName, ".", "/");
         String mybatisPath = MYBATIS_PATH + "/" + moduleName;
-        String soybeanPath = "soy";
-        String soybeanModuleName = StrUtil.toSymbolCase(moduleName, '-');
+        String vuePath = "vue";
+
         if (template.contains("domain.java.vm")) {
             fileName = StringUtils.format("{}/domain/{}.java", javaPath, className);
         }
@@ -188,18 +179,14 @@ public class VelocityUtils {
             fileName = StringUtils.format("{}/{}Mapper.xml", mybatisPath, className);
         } else if (template.contains("sql.vm")) {
             fileName = businessName + "Menu.sql";
-        } else if (template.contains("index.vue.vm")) {
-            fileName = StringUtils.format("{}/views/{}/{}/index.vue", soybeanPath, soybeanModuleName, StrUtil.toSymbolCase(businessName, '-'));
-        } else if (template.contains("index-tree.vue.vm")) {
-            fileName = StringUtils.format("{}/views/{}/{}/index.vue", soybeanPath, soybeanModuleName, StrUtil.toSymbolCase(businessName, '-'));
-        } else if (template.contains("api.d.ts.vm")) {
-            fileName = StringUtils.format("{}/typings/api/{}.{}.api.d.ts", soybeanPath, soybeanModuleName, StrUtil.toSymbolCase(businessName, '-'));
         } else if (template.contains("api.ts.vm")) {
-            fileName = StringUtils.format("{}/service/api/{}/{}.ts", soybeanPath, soybeanModuleName, StrUtil.toSymbolCase(businessName, '-'));
-        } else if (template.contains("search.vue.vm")) {
-            fileName = StringUtils.format("{}/views/{}/{}/modules/{}-search.vue", soybeanPath, soybeanModuleName, StrUtil.toSymbolCase(businessName, '-'), StrUtil.toSymbolCase(businessName, '-'));
-        } else if (template.contains("operate-drawer.vue.vm")) {
-            fileName = StringUtils.format("{}/views/{}/{}/modules/{}-operate-drawer.vue", soybeanPath, soybeanModuleName, StrUtil.toSymbolCase(businessName, '-'), StrUtil.toSymbolCase(businessName, '-'));
+            fileName = StringUtils.format("{}/api/{}/{}/index.ts", vuePath, moduleName, businessName);
+        } else if (template.contains("types.ts.vm")) {
+            fileName = StringUtils.format("{}/api/{}/{}/types.ts", vuePath, moduleName, businessName);
+        } else if (template.contains("index.vue.vm")) {
+            fileName = StringUtils.format("{}/views/{}/{}/index.vue", vuePath, moduleName, businessName);
+        } else if (template.contains("index-tree.vue.vm")) {
+            fileName = StringUtils.format("{}/views/{}/{}/index.vue", vuePath, moduleName, businessName);
         }
         return fileName;
     }
@@ -254,44 +241,15 @@ public class VelocityUtils {
     /**
      * 添加字典列表
      *
-     * @param dicts   字典列表
+     * @param dicts 字典列表
      * @param columns 列集合
      */
     public static void addDicts(Set<String> dicts, List<GenTableColumn> columns) {
         for (GenTableColumn column : columns) {
-            if (!column.isSuperColumn() && StringUtils.isNotEmpty(column.getDictType()) && StringUtils.equalsAny(column.getHtmlType(), new String[]{GenConstants.HTML_SELECT, GenConstants.HTML_RADIO, GenConstants.HTML_CHECKBOX})) {
+            if (!column.isSuperColumn() && StringUtils.isNotEmpty(column.getDictType()) && StringUtils.equalsAny(
+                column.getHtmlType(),
+                new String[] { GenConstants.HTML_SELECT, GenConstants.HTML_RADIO, GenConstants.HTML_CHECKBOX })) {
                 dicts.add("'" + column.getDictType() + "'");
-            }
-        }
-    }
-
-    /**
-     * 根据列类型获取字典组
-     *
-     * @param genTable 业务表对象
-     * @return 返回字典组
-     */
-    public static Set<Map<String, Object>> getDictList(GenTable genTable) {
-        List<GenTableColumn> columns = genTable.getColumns();
-        Set<Map<String, Object>> dicts = new HashSet<>();
-        addDictList(dicts, columns);
-        return dicts;
-    }
-
-    /**
-     * 添加字典列表
-     *
-     * @param dicts   字典列表
-     * @param columns 列集合
-     */
-    public static void addDictList(Set<Map<String, Object>> dicts, List<GenTableColumn> columns) {
-        for (GenTableColumn column : columns) {
-            if (!column.isSuperColumn() && StringUtils.isNotEmpty(column.getDictType()) && StringUtils.equalsAny(column.getHtmlType(), new String[]{GenConstants.HTML_SELECT, GenConstants.HTML_RADIO, GenConstants.HTML_CHECKBOX})) {
-                Map<String, Object> dict = new HashMap<>();
-                dict.put("type", column.getDictType());
-                dict.put("name", StringUtils.toCamelCase(column.getDictType()));
-                dict.put("immediate", !column.isList());
-                dicts.add(dict);
             }
         }
     }
@@ -314,7 +272,8 @@ public class VelocityUtils {
      * @return 上级菜单ID字段
      */
     public static String getParentMenuId(Dict paramsObj) {
-        if (CollUtil.isNotEmpty(paramsObj) && paramsObj.containsKey(GenConstants.PARENT_MENU_ID) && StringUtils.isNotEmpty(paramsObj.getStr(GenConstants.PARENT_MENU_ID))) {
+        if (CollUtil.isNotEmpty(paramsObj) && paramsObj.containsKey(GenConstants.PARENT_MENU_ID)
+            && StringUtils.isNotEmpty(paramsObj.getStr(GenConstants.PARENT_MENU_ID))) {
             return paramsObj.getStr(GenConstants.PARENT_MENU_ID);
         }
         return DEFAULT_PARENT_MENU_ID;

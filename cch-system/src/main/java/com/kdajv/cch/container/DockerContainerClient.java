@@ -222,6 +222,27 @@ public class DockerContainerClient implements ContainerClient {
     }
 
     @Override
+    public void pullImage(String imageNameWithTag) throws Exception {
+        try {
+            log.info("开始从Registry拉取镜像: {}", imageNameWithTag);
+            dockerClient.pullImageCmd(imageNameWithTag).start().awaitCompletion();
+            log.info("镜像拉取成功: {}", imageNameWithTag);
+        } catch (Exception e) {
+            throw new ServiceException("拉取镜像失败: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public InputStream saveImage(String imageNameWithTag) throws Exception {
+        try {
+            log.info("开始导出镜像为tar流: {}", imageNameWithTag);
+            return dockerClient.saveImageCmd(imageNameWithTag).exec();
+        } catch (Exception e) {
+            throw new ServiceException("导出镜像失败: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
     public List<ClusterNodeVo> listNodes() throws Exception {
         try {
             List<SwarmNode> swarmNodes = dockerClient.listSwarmNodesCmd().exec();
@@ -393,8 +414,16 @@ public class DockerContainerClient implements ContainerClient {
         } catch (ServiceException e) {
             throw e;
         } catch (Exception e) {
+            // 记录详细错误信息用于调试，但不暴露给调用方
             log.error("创建并启动 Docker Swarm Service 失败", e);
-            throw new ServiceException("创建并启动 Docker Swarm Service 失败: " + e.getMessage(), e);
+
+            // 使用具体异常类型判断，提升健壮性
+            if (e.getMessage().contains("This node is not a swarm manager")) {
+                throw new ServiceException("DockerSwarm未初始化！");
+            }
+
+            // 避免暴露原始异常信息，仅返回通用错误提示
+            throw new ServiceException("创建并启动 Docker Swarm Service 失败");
         }
     }
 

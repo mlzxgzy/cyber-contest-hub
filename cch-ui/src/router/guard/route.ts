@@ -109,9 +109,17 @@ async function initRoute(to: RouteLocationNormalized): Promise<RouteLocationRaw 
     const loginRoute: RouteKey = 'login';
     const query = getRouteQueryOfLoginRoute(to, routeStore.routeHome);
 
+    // 如果是带邀请码的链接，优先引导到注册模块
+    const hasInvite = Boolean(to.query?.invite);
+    const params: Record<string, string> = {};
+    if (hasInvite) {
+      params.module = 'register';
+    }
+
     const location: RouteLocationRaw = {
       name: loginRoute,
-      query
+      query,
+      ...(hasInvite ? { params } : {})
     };
 
     return location;

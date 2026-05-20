@@ -54,7 +54,7 @@ public class ChallengeServiceImpl implements IChallengeService {
     @Override
     public TableDataInfo<ChallengeVo> queryPageList(ChallengeBo bo, PageQuery pageQuery) {
         LambdaQueryWrapper<Challenge> lqw = buildQueryWrapper(bo);
-        Page<ChallengeVo> result = baseMapper.selectVoPage(pageQuery.build(), lqw);
+        Page<ChallengeVo> result = baseMapper.selectPageChallengeList(pageQuery.build(), lqw);
         return TableDataInfo.build(result);
     }
 
@@ -67,7 +67,7 @@ public class ChallengeServiceImpl implements IChallengeService {
     @Override
     public List<ChallengeVo> queryList(ChallengeBo bo) {
         LambdaQueryWrapper<Challenge> lqw = buildQueryWrapper(bo);
-        return baseMapper.selectVoList(lqw);
+        return baseMapper.selectChallengeList(lqw);
     }
 
     private LambdaQueryWrapper<Challenge> buildQueryWrapper(ChallengeBo bo) {

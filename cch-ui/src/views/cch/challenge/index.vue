@@ -160,9 +160,6 @@ const {columns, columnChecks, data, getData, getDataByPage, loading, mobilePagin
     ]
   });
 
-console.log(columns);
-console.log(columnChecks);
-
 // 设置 index id 列默认隐藏
 columnChecks.value.forEach(check => {
   if (check.key === 'index') {
@@ -206,7 +203,7 @@ async function handleEditContent(id: CommonType.IdType) {
 }
 
 function handleExport() {
-  download('/cch/challenge/export', searchParams, `题目列表_${new Date().getTime()}.xlsx`);
+  download('/cch/challenge/export', searchParams.value, `题目列表_${new Date().getTime()}.xlsx`);
 }
 </script>
 

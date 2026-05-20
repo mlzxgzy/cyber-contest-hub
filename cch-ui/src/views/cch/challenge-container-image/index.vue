@@ -195,7 +195,7 @@ async function handleDelete(id: CommonType.IdType) {
 }
 
 function handleExport() {
-  download('/cch/challengeContainerImage/export', searchParams, `容器镜像列表_${new Date().getTime()}.xlsx`);
+  download('/cch/challengeContainerImage/export', searchParams.value, `容器镜像列表_${new Date().getTime()}.xlsx`);
 }
 </script>
 

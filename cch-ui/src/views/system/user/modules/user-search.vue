@@ -20,8 +20,6 @@ const { formRef, validate, restoreValidation } = useNaiveForm();
 
 const dateRangeCreateTime = ref<[string, string] | null>(null);
 
-const datePickerRef = ref<InstanceType<typeof NDatePicker>>();
-
 const model = defineModel<Api.System.UserSearchParams>('model', { required: true });
 
 const defaultModel = jsonClone(toRaw(model.value));
@@ -91,7 +89,6 @@ async function search() {
               class="pr-24px"
             >
               <NDatePicker
-                ref="datePickerRef"
                 v-model:formatted-value="dateRangeCreateTime"
                 type="datetimerange"
                 value-format="yyyy-MM-dd HH:mm:ss"

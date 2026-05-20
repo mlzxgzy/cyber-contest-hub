@@ -8,7 +8,8 @@ import {
   NRadioGroup,
   NTag,
   NEmpty,
-  NButton
+  NButton,
+  useDialog
 } from 'naive-ui';
 import type { UploadFileInfo } from 'naive-ui';
 import { useDict } from '@/hooks/business/dict';
@@ -16,6 +17,7 @@ import { useDownload } from '@/hooks/business/download';
 import { useFormRules } from '@/hooks/common/form';
 import FileUpload from '@/components/custom/file-upload.vue';
 import { AcceptType } from '@/enum/business';
+import { fetchBatchDeleteChallengeFile } from '@/service/api/cch/challenge-file';
 
 const props = defineProps<{
   challengeData: Api.Cch.Challenge;
@@ -23,6 +25,7 @@ const props = defineProps<{
 }>();
 
 const { downloadChallengeFile } = useDownload();
+const dialog = useDialog();
 
 const { createRequiredRule } = useFormRules();
 
@@ -74,6 +77,68 @@ function handleWriteupUploadSuccess(data: Api.Cch.ChallengeFile) {
 
 function downloadFile(fileId: CommonType.IdType) {
   downloadChallengeFile(fileId);
+}
+
+function deleteAttachment(fileId: CommonType.IdType, fileName: string) {
+  dialog.warning({
+    title: '确认删除',
+    content: `确定要删除附件「${fileName}」吗？删除后将无法恢复。`,
+    positiveText: '确认删除',
+    negativeText: '取消',
+    onPositiveClick: async () => {
+      try {
+        // 调用后端API删除文件
+        const { error } = await fetchBatchDeleteChallengeFile([fileId]);
+        if (error) {
+          window.$message?.error(`删除失败: ${error}`);
+          return;
+        }
+        
+        // 从前端数据中移除
+        if (props.draftData?.config.attachments) {
+          const index = props.draftData.config.attachments.findIndex(item => item.fileId === fileId);
+          if (index !== -1) {
+            props.draftData.config.attachments.splice(index, 1);
+          }
+        }
+        
+        window.$message?.success('删除成功');
+      } catch (err) {
+        window.$message?.error(`删除异常: ${err}`);
+      }
+    }
+  });
+}
+
+function deleteWriteup(fileId: CommonType.IdType, fileName: string) {
+  dialog.warning({
+    title: '确认删除',
+    content: `确定要删除 Writeup「${fileName}」吗？删除后将无法恢复。`,
+    positiveText: '确认删除',
+    negativeText: '取消',
+    onPositiveClick: async () => {
+      try {
+        // 调用后端API删除文件
+        const { error } = await fetchBatchDeleteChallengeFile([fileId]);
+        if (error) {
+          window.$message?.error(`删除失败: ${error}`);
+          return;
+        }
+        
+        // 从前端数据中移除
+        if (props.draftData?.config.writeups) {
+          const index = props.draftData.config.writeups.findIndex(item => item.fileId === fileId);
+          if (index !== -1) {
+            props.draftData.config.writeups.splice(index, 1);
+          }
+        }
+        
+        window.$message?.success('删除成功');
+      } catch (err) {
+        window.$message?.error(`删除异常: ${err}`);
+      }
+    }
+  });
 }
 </script>
 
@@ -251,6 +316,17 @@ function downloadFile(fileId: CommonType.IdType) {
                   <line x1="12" y1="15" x2="12" y2="3" />
                 </svg>
               </NButton>
+              <NButton
+                text
+                type="error"
+                @click="deleteAttachment(x.fileId, x.fileName)"
+                class="file-action"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                </svg>
+              </NButton>
             </div>
           </div>
           <NEmpty v-else description="暂无附件" size="small" />
@@ -323,6 +399,17 @@ function downloadFile(fileId: CommonType.IdType) {
                   <line x1="12" y1="15" x2="12" y2="3" />
                 </svg>
               </NButton>
+              <NButton
+                text
+                type="error"
+                @click="deleteWriteup(x.fileId, x.fileName)"
+                class="file-action"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                </svg>
+              </NButton>
             </div>
           </div>
           <NEmpty v-else description="暂无 Writeup" size="small" />
@@ -333,6 +420,16 @@ function downloadFile(fileId: CommonType.IdType) {
 </template>
 
 <style scoped lang="scss">
+// 扁平化设计变量
+$border-radius-sm: 2px;
+$border-radius: 4px;
+$border-color: #e5e7eb;
+$bg-primary: #ffffff;
+$bg-secondary: #f9fafb;
+$bg-hover: #f3f4f6;
+$shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+$shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+
 .info-masonry {
   column-count: 1;
   column-gap: 16px;
@@ -347,67 +444,94 @@ function downloadFile(fileId: CommonType.IdType) {
   margin-bottom: 16px;
 }
 
-/* 复用 index.vue 中的卡片与图标样式，保证大小一致 */
 .info-card {
-  background: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  background: $bg-primary;
+  border-radius: $border-radius;
+  border: 1px solid $border-color;
+  box-shadow: $shadow-sm;
   overflow: hidden;
-  transition: box-shadow 0.3s ease;
+  transition: all 0.2s ease;
 
   &:hover {
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    box-shadow: $shadow;
+    border-color: #d1d5db;
   }
 
   .card-header {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 16px;
-    background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
-    border-bottom: 1px solid #e5e7eb;
+    padding: 14px 16px;
+    background: $bg-secondary;
+    border-bottom: 1px solid $border-color;
   }
 
   .card-icon {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 8px;
+    border-radius: $border-radius-sm;
     color: #ffffff;
+    flex-shrink: 0;
 
     svg {
-      width: 20px;
-      height: 20px;
+      width: 18px;
+      height: 18px;
     }
 
     &.basic {
-      background: linear-gradient(135deg, #3b82f6, #3b82f6);
+      background: #3b82f6;
     }
 
     &.config {
-      background: linear-gradient(135deg, #06b6d4, #0891b2);
+      background: #06b6d4;
     }
 
     &.attachment {
-      background: linear-gradient(135deg, #10b981, #34d399);
+      background: #10b981;
     }
 
     &.writeup {
-      background: linear-gradient(135deg, #f59e0b, #fbbf24);
+      background: #f59e0b;
     }
   }
 
   .card-title {
     margin: 0;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
     color: #1f2937;
+    letter-spacing: 0.01em;
   }
 
   .card-body {
     padding: 16px;
+  }
+}
+
+.form-group {
+  margin-bottom: 16px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  .form-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 8px;
+  }
+
+  .cyber-input,
+  .cyber-select {
+    :deep(.n-input),
+    :deep(.n-select) {
+      border-radius: $border-radius-sm;
+    }
   }
 }
 
@@ -419,33 +543,35 @@ function downloadFile(fileId: CommonType.IdType) {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px;
-  background: #f9fafb;
-  border-radius: 6px;
+  padding: 10px 12px;
+  background: $bg-secondary;
+  border: 1px solid $border-color;
+  border-radius: $border-radius-sm;
   margin-bottom: 8px;
-  transition: background 0.2s ease;
+  transition: all 0.2s ease;
 
   &:last-child {
     margin-bottom: 0;
   }
 
   &:hover {
-    background: #f3f4f6;
+    background: $bg-hover;
+    border-color: #d1d5db;
   }
 }
 
 .file-icon {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
+  border-radius: $border-radius-sm;
   flex-shrink: 0;
 
   svg {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
   }
 
   &.attachment {
@@ -481,6 +607,7 @@ function downloadFile(fileId: CommonType.IdType) {
     background: transparent;
     border: none;
     font-size: 12px;
+    border-radius: $border-radius-sm;
 
     .n-input__input-el {
       text-overflow: ellipsis;
@@ -492,8 +619,8 @@ function downloadFile(fileId: CommonType.IdType) {
   flex-shrink: 0;
 
   svg {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
   }
 }
 </style>
