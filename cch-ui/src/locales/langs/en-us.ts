@@ -1,6 +1,6 @@
 const local: App.I18n.Schema = {
   system: {
-    title: 'RuoYi Plus Soybean',
+    title: 'Cyber Contest Hub',
     updateTitle: 'System Version Update Notification',
     updateContent: 'A new version of the system has been detected. Do you want to refresh the page immediately?',
     updateConfirm: 'Refresh immediately',
@@ -395,8 +395,9 @@ const local: App.I18n.Schema = {
   page: {
     login: {
       common: {
-        title: 'Modern enterprise-level multi-tenant management system',
-        subTitle: 'Provides developers with a complete enterprise management solution',
+        title: 'Challenges, images, flags & contests — in one place',
+        subTitle:
+          'End-to-end management for CTF & attack-defense contests — challenge authoring, environment builds, and event operations.',
         loginOrRegister: 'Login / Register',
         register: 'Register',
         userNamePlaceholder: 'Please enter user name',
@@ -409,7 +410,10 @@ const local: App.I18n.Schema = {
         back: 'Back',
         validateSuccess: 'Verification passed',
         loginSuccess: 'Login successfully',
-        welcomeBack: 'Welcome back, {userName} !'
+        welcomeBack: 'Welcome back, {userName} !',
+        signInTitle: 'Sign in to Cyber Contest Hub',
+        signInDesc: 'Welcome back! Enter your account details.',
+        noAccount: 'No account yet?'
       },
       pwdLogin: {
         title: 'Password Login',
@@ -1217,7 +1221,7 @@ const local: App.I18n.Schema = {
     },
     about: {
       title: 'About',
-      introduction: `RuoYi-Plus-Soybean is a modern, enterprise-level multi-tenant management system. It combines the powerful backend capabilities of RuoYi-Vue-Plus with the modern frontend features of Soybean Admin, providing developers with a complete enterprise management solution.`,
+      introduction: `Cyber Contest Hub is an end-to-end management platform for CTF and attack-defense contests, covering project management, challenge authoring, challenge versioning, container images, flag management, and event operations.`,
       projectInfo: {
         title: 'Project Info',
         version: 'Version',

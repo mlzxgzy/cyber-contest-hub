@@ -133,8 +133,8 @@ async function handleSocialLogin(type: Api.System.SocialSource) {
 
 <template>
   <div>
-    <div class="mb-5px text-32px text-black font-600 dark:text-white">登录到您的账户</div>
-    <div class="pb-18px text-16px text-#858585">欢迎回来！请输入您的账户信息</div>
+    <div class="mb-5px text-32px text-black font-600 dark:text-white">{{ $t('page.login.common.signInTitle') }}</div>
+    <div class="pb-18px text-16px text-#858585">{{ $t('page.login.common.signInDesc') }}</div>
     <NForm
       ref="formRef"
       :model="model"
@@ -209,7 +209,7 @@ async function handleSocialLogin(type: Api.System.SocialSource) {
     </div>
 
     <div class="mt-24px w-full text-center text-18px text-#858585">
-      您还没有账户？
+      {{ $t('page.login.common.noAccount') }}
       <NA type="primary" class="text-18px" @click="toggleLoginModule('register')">
         {{ $t('page.login.common.register') }}
       </NA>

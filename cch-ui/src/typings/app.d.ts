@@ -557,6 +557,9 @@ declare namespace App {
             validateSuccess: string;
             loginSuccess: string;
             welcomeBack: string;
+            signInTitle: string;
+            signInDesc: string;
+            noAccount: string;
           };
           pwdLogin: {
             title: string;

@@ -1,6 +1,6 @@
 const local: App.I18n.Schema = {
   system: {
-    title: 'RuoYi Plus Soybean',
+    title: 'Cyber Contest Hub',
     updateTitle: '系统版本更新通知',
     updateContent: '检测到系统有新版本发布，是否立即刷新页面？',
     updateConfirm: '立即刷新',
@@ -391,8 +391,8 @@ const local: App.I18n.Schema = {
   page: {
     login: {
       common: {
-        title: '现代化的企业级多租户管理系统',
-        subTitle: '为开发者提供了完整的企业管理解决方案',
+        title: '题目 · 镜像 · Flag · 赛事，一站式管理',
+        subTitle: '面向 CTF / 攻防竞赛的题目入库、环境构建与赛事组织全流程管理',
         loginOrRegister: '登录 / 注册',
         register: '注册',
         userNamePlaceholder: '请输入用户名',
@@ -405,7 +405,10 @@ const local: App.I18n.Schema = {
         back: '返回',
         validateSuccess: '验证成功',
         loginSuccess: '登录成功',
-        welcomeBack: '欢迎回来，{userName} ！'
+        welcomeBack: '欢迎回来，{userName} ！',
+        signInTitle: '登录 Cyber Contest Hub',
+        signInDesc: '欢迎回来，请输入您的账户信息',
+        noAccount: '还没有账户？'
       },
       pwdLogin: {
         title: '密码登录',
@@ -1209,7 +1212,7 @@ const local: App.I18n.Schema = {
     },
     about: {
       title: '关于',
-      introduction: `RuoYi-Plus-Soybean 是一个现代化的企业级多租户管理系统，它结合了 RuoYi-Vue-Plus 的强大后端功能和 Soybean Admin 的现代化前端特性，为开发者提供了完整的企业管理解决方案。`,
+      introduction: `Cyber Contest Hub（网络安全竞赛平台）是一个面向 CTF / 攻防竞赛的全流程管理平台，覆盖项目管理、题目入库、题目版本、容器镜像、Flag 管理与赛事组织等环节。`,
       projectInfo: {
         title: '项目信息',
         version: '版本',
