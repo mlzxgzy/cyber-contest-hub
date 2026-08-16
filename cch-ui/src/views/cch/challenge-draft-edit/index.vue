@@ -921,6 +921,7 @@ async function loadImageList() {
       :challenge-id="challengeData.id"
       :challenge-name="challengeData.name"
       :draft-id="draftId"
+      :latest-version-tag="challengeData.latestVersionTag"
       @submitted="handlePublishSubmitted"
     />
   </div>

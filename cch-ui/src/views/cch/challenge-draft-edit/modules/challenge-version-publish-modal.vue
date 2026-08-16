@@ -1,15 +1,10 @@
 <script lang="ts" setup>
 import { ref, watch } from 'vue';
-import {
-  NModal,
-  NForm,
-  NFormItem,
-  NInput,
-  NButton,
-  NSpace
-} from 'naive-ui';
+import { NButton, NForm, NFormItem, NInput, NModal, NSpace } from 'naive-ui';
 import { fetchCreateChallengeVersion } from '@/service/api/cch/challenge-version';
 import { useFormRules, useNaiveForm } from '@/hooks/common/form';
+import VersionTagInput from '@/views/cch/challenge-draft-edit/components/VersionTagInput.vue';
+import { nextVersionTag } from '@/views/cch/challenge-draft-edit/version-tag';
 
 defineOptions({
   name: 'ChallengeVersionPublishModal'
@@ -19,6 +14,8 @@ interface Props {
   challengeId: CommonType.IdType | null;
   challengeName: string;
   draftId: CommonType.IdType | null;
+  /** 上一版本号，用于打开对话框时自动生成下一版本 */
+  latestVersionTag?: string;
 }
 
 const props = defineProps<Props>();
@@ -61,7 +58,8 @@ function resetModel() {
     challengeId: props.challengeId,
     challengeName: props.challengeName,
     draftId: props.draftId,
-    versionTag: '',
+    // 打开时根据上一版本号自动加一；无上一版本时默认 v1.0.0
+    versionTag: nextVersionTag(props.latestVersionTag),
     versionDescription: ''
   };
 }
@@ -106,7 +104,7 @@ watch(visible, () => {
 });
 
 watch(
-  () => [props.challengeId, props.challengeName, props.draftId],
+  () => [props.challengeId, props.challengeName, props.draftId, props.latestVersionTag],
   () => {
     if (visible.value) {
       resetModel();
@@ -130,19 +128,10 @@ watch(
         <NInput v-model:value="model.challengeName" disabled placeholder="题目名称" />
       </NFormItem>
       <NFormItem label="版本号" path="versionTag">
-        <NInput
-          v-model:value="model.versionTag"
-          placeholder="请输入版本号，例如：v1.0.0"
-          clearable
-        />
+        <VersionTagInput v-model="model.versionTag" />
       </NFormItem>
       <NFormItem label="版本描述" path="versionDescription">
-        <NInput
-          v-model:value="model.versionDescription"
-          :rows="4"
-          placeholder="请输入版本描述"
-          type="textarea"
-        />
+        <NInput v-model:value="model.versionDescription" :rows="4" placeholder="请输入版本描述" type="textarea" />
       </NFormItem>
     </NForm>
     <template #footer>
