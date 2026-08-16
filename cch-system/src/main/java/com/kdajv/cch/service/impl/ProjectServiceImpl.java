@@ -98,7 +98,39 @@ public class ProjectServiceImpl implements IProjectService {
     }
 
     /**
+     * 校验项目可见性：超管可见全部；普通用户仅可见自己创建或作为成员（含邀请加入）的项目
+     *
+     * @param projectVo 项目信息
+     */
+    private void checkProjectVisible(ProjectVo projectVo) {
+        Long currentUserId = LoginHelper.getUserId();
+        if (ObjectUtil.isNull(currentUserId)) {
+            throw new ServiceException("用户未登录");
+        }
+        // 超管可见全部
+        if (LoginHelper.isSuperAdmin()) {
+            return;
+        }
+        // 创建者可见
+        Project project = baseMapper.selectById(projectVo.getId());
+        if (ObjectUtil.isNotNull(project) && Objects.equals(project.getCreateBy(), currentUserId)) {
+            return;
+        }
+        // 成员可见（含邀请加入）
+        ProjectMember member = projectMemberMapper.selectOne(
+            new LambdaQueryWrapper<ProjectMember>()
+                .eq(ProjectMember::getProjectId, projectVo.getId())
+                .eq(ProjectMember::getUserId, currentUserId)
+        );
+        if (ObjectUtil.isNull(member)) {
+            throw new ServiceException("您不是该项目的成员，无权查看该项目");
+        }
+    }
+
+    /**
      * 查询项目详情（包含成员、题目、文件）
+     * <p>
+     * 可见性校验：超管可见全部；普通用户仅可见自己创建或作为成员（含邀请加入）的项目。
      *
      * @param id 项目ID
      * @return 项目详情
@@ -109,6 +141,9 @@ public class ProjectServiceImpl implements IProjectService {
         if (ObjectUtil.isNull(projectVo)) {
             return null;
         }
+
+        // 可见性校验：超管可见全部；普通用户仅可见自己创建或作为成员的项目
+        checkProjectVisible(projectVo);
 
         // 查询项目成员
         List<ProjectMemberVo> members = projectMemberMapper.selectVoList(
@@ -490,27 +525,32 @@ public class ProjectServiceImpl implements IProjectService {
             throw new ServiceException("用户未登录");
         }
 
-        // 检查用户是否是项目成员
-        ProjectMember member = projectMemberMapper.selectOne(
-            new LambdaQueryWrapper<ProjectMember>()
-                .eq(ProjectMember::getProjectId, projectId)
-                .eq(ProjectMember::getUserId, currentUserId)
-        );
+        // 检查用户是否是项目成员（超管默认放行）
+        ProjectMember member = null;
+        if (!LoginHelper.isSuperAdmin()) {
+            member = projectMemberMapper.selectOne(
+                new LambdaQueryWrapper<ProjectMember>()
+                    .eq(ProjectMember::getProjectId, projectId)
+                    .eq(ProjectMember::getUserId, currentUserId)
+            );
 
-        if (ObjectUtil.isNull(member)) {
-            throw new ServiceException("您不是该项目的成员");
+            if (ObjectUtil.isNull(member)) {
+                throw new ServiceException("您不是该项目的成员");
+            }
         }
 
         LambdaQueryWrapper<ProjectChallenge> queryWrapper = new LambdaQueryWrapper<ProjectChallenge>()
             .eq(ProjectChallenge::getProjectId, projectId);
 
-        // 根据权限类型过滤
-        String permissionType = member.getPermissionType();
-        if ("view_own".equals(permissionType)) {
-            // 仅查看自己导入的题目
-            queryWrapper.eq(ProjectChallenge::getCreateBy, currentUserId);
+        // 根据权限类型过滤（超管查看全部，无需过滤）
+        if (member != null) {
+            String permissionType = member.getPermissionType();
+            if ("view_own".equals(permissionType)) {
+                // 仅查看自己导入的题目
+                queryWrapper.eq(ProjectChallenge::getCreateBy, currentUserId);
+            }
+            // admin 和 view_all 可以查看所有题目，不需要额外过滤
         }
-        // admin 和 view_all 可以查看所有题目，不需要额外过滤
 
         List<ProjectChallengeVo> challenges = projectChallengeMapper.selectVoList(queryWrapper);
 
