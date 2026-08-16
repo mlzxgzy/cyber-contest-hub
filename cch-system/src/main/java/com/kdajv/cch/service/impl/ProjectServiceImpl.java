@@ -93,7 +93,7 @@ public class ProjectServiceImpl implements IProjectService {
         lqw.and(w -> w
             .eq(Project::getCreateBy, currentUserId)
             .or()
-            .apply("id in (select project_id from t_project_member where user_id = {0})", currentUserId)
+            .apply("id in (select project_id from t_project_member where user_id = {0} and del_flag = 0)", currentUserId)
         );
     }
 
@@ -112,8 +112,7 @@ public class ProjectServiceImpl implements IProjectService {
             return;
         }
         // 创建者可见
-        Project project = baseMapper.selectById(projectVo.getId());
-        if (ObjectUtil.isNotNull(project) && Objects.equals(project.getCreateBy(), currentUserId)) {
+        if (Objects.equals(projectVo.getCreateBy(), currentUserId)) {
             return;
         }
         // 成员可见（含邀请加入）
@@ -562,6 +561,9 @@ public class ProjectServiceImpl implements IProjectService {
 
     /**
      * 查询题目附加到的项目列表（挑战侧反向查看，按题目查所有版本的附加记录）
+     * <p>
+     * 可见性过滤：超管返回全部附加记录；普通用户仅返回自己创建或作为成员（含邀请加入）的项目中的附加记录，
+     * 避免通过该接口越权探测非可见项目的关联信息。
      *
      * @param challengeId 题目ID
      * @return 附加记录列表（含项目名称）
@@ -572,10 +574,25 @@ public class ProjectServiceImpl implements IProjectService {
             throw new ServiceException("题目ID不能为空");
         }
 
-        List<ProjectChallengeVo> challenges = projectChallengeMapper.selectVoList(
-            new LambdaQueryWrapper<ProjectChallenge>()
-                .eq(ProjectChallenge::getChallengeId, challengeId)
-        );
+        Long currentUserId = LoginHelper.getUserId();
+        if (ObjectUtil.isNull(currentUserId)) {
+            throw new ServiceException("用户未登录");
+        }
+
+        LambdaQueryWrapper<ProjectChallenge> queryWrapper = new LambdaQueryWrapper<ProjectChallenge>()
+            .eq(ProjectChallenge::getChallengeId, challengeId)
+            .orderByDesc(ProjectChallenge::getCreateTime);
+
+        // 超管返回全部；普通用户仅返回自己创建或作为成员的项目中的附加记录
+        if (!LoginHelper.isSuperAdmin()) {
+            queryWrapper.and(w -> w
+                .apply("project_id in (select id from t_project where create_by = {0})", currentUserId)
+                .or()
+                .apply("project_id in (select project_id from t_project_member where user_id = {0} and del_flag = 0)", currentUserId)
+            );
+        }
+
+        List<ProjectChallengeVo> challenges = projectChallengeMapper.selectVoList(queryWrapper);
 
         // 填充项目名称信息
         fillProjectInfo(challenges);
@@ -870,10 +887,12 @@ public class ProjectServiceImpl implements IProjectService {
         }
 
         Map<Long, String> projectNameMap = new HashMap<>();
-        for (Long projectId : projectIds) {
-            ProjectVo project = baseMapper.selectVoById(projectId);
-            if (ObjectUtil.isNotNull(project)) {
-                projectNameMap.put(projectId, project.getName());
+        List<ProjectVo> projects = baseMapper.selectVoByIds(projectIds);
+        if (CollUtil.isNotEmpty(projects)) {
+            for (ProjectVo project : projects) {
+                if (ObjectUtil.isNotNull(project) && ObjectUtil.isNotNull(project.getId())) {
+                    projectNameMap.put(project.getId(), project.getName());
+                }
             }
         }
 
@@ -940,14 +959,12 @@ public class ProjectServiceImpl implements IProjectService {
         }
 
         Map<Long, SysUserVo> userMap = new HashMap<>();
-        for (Long userId : createByIds) {
-            try {
-                SysUserVo user = sysUserService.selectUserById(userId);
-                if (ObjectUtil.isNotNull(user)) {
-                    userMap.put(userId, user);
+        List<SysUserVo> users = sysUserService.selectUserByIds(createByIds, null);
+        if (CollUtil.isNotEmpty(users)) {
+            for (SysUserVo user : users) {
+                if (ObjectUtil.isNotNull(user) && ObjectUtil.isNotNull(user.getUserId())) {
+                    userMap.put(user.getUserId(), user);
                 }
-            } catch (Exception e) {
-                log.warn("查询用户信息失败，用户ID: {}", userId, e);
             }
         }
 

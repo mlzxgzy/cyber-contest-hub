@@ -68,6 +68,11 @@ public class ProjectVo implements Serializable {
     private List<ContestFileVo> contestFiles;
 
     /**
+     * 创建人（用于可见性判断）
+     */
+    private Long createBy;
+
+    /**
      * 创建时间
      */
     @ExcelProperty(value = "创建时间")

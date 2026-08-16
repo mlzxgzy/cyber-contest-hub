@@ -4,7 +4,7 @@ import type {DataTableColumns} from 'naive-ui';
 import {NButton, NCard, NDataTable, NSelect, NSpace, NTag, useDialog} from 'naive-ui';
 import {fetchGetChallengeProjects} from '@/service/api/cch/challenge';
 import {fetchGetProjectList, fetchImportProjectChallenges, fetchRemoveProjectChallenges} from '@/service/api/cch/project';
-import {useAuthStore} from '@/store/modules/auth';
+import {useAuth} from '@/hooks/business/auth';
 
 defineOptions({
   name: 'ChallengeProjectAttach'
@@ -19,8 +19,10 @@ interface Props {
 const props = defineProps<Props>();
 
 const dialog = useDialog();
-const authStore = useAuthStore();
-const currentUserId = computed(() => authStore.userInfo.user?.userId);
+const {hasAuth} = useAuth();
+
+// 是否有项目编辑权限（附加/移除需要 cch:project:edit 菜单权限 + 目标项目管理员权限）
+const canOperate = computed(() => hasAuth('cch:project:edit'));
 
 const loading = ref(false);
 const attachedProjects = ref<Api.Cch.ProjectChallenge[]>([]);
@@ -29,8 +31,16 @@ const attachedProjects = ref<Api.Cch.ProjectChallenge[]>([]);
 const projectOptions = ref<Array<{label: string; value: CommonType.IdType}>>([]);
 const projectsLoading = ref(false);
 
-// 已附加的项目ID集合（用于过滤/去重）
-const attachedProjectIds = computed(() => new Set(attachedProjects.value.map(item => item.projectId)));
+// 已附加当前发版版本的项目ID集合（用于过滤：同一项目已附加旧版本时仍可附加新版本）
+const attachedCurrentVersionProjectIds = computed(() => {
+  const latest = props.latestVersionId;
+  if (!latest) return new Set<CommonType.IdType>();
+  return new Set(
+    attachedProjects.value
+      .filter(item => item.versionId === latest)
+      .map(item => item.projectId)
+  );
+});
 
 // 附加选择
 const selectedProjectIds = ref<CommonType.IdType[]>([]);
@@ -68,6 +78,9 @@ const columns = computed<DataTableColumns<Api.Cch.ProjectChallenge>>(() => [
     align: 'center',
     width: 100,
     render: row => {
+      if (!canOperate.value) {
+        return null;
+      }
       return h(
         NButton,
         {
@@ -82,9 +95,9 @@ const columns = computed<DataTableColumns<Api.Cch.ProjectChallenge>>(() => [
   }
 ]);
 
-// 附加下拉选项：过滤掉已附加的项目
+// 附加下拉选项：过滤掉已附加当前发版版本的项目（已附加旧版本的项目仍可附加新版本）
 const availableProjectOptions = computed(() => {
-  return projectOptions.value.filter(option => !attachedProjectIds.value.has(option.value));
+  return projectOptions.value.filter(option => !attachedCurrentVersionProjectIds.value.has(option.value));
 });
 
 // 加载已附加项目列表
@@ -111,8 +124,6 @@ async function loadProjects() {
       pageNum: 1,
       pageSize: 100,
       projectType: null,
-      name: null,
-      remark: null,
       params: {}
     });
     if (error) {
@@ -140,32 +151,33 @@ async function handleAttach() {
   }
 
   attaching.value = true;
+  let successCount = 0;
+  let failCount = 0;
   try {
-    let successCount = 0;
-    let failCount = 0;
     for (const projectId of selectedProjectIds.value) {
-      const {error} = await fetchImportProjectChallenges(projectId, [{versionId: props.latestVersionId}]);
-      if (error) {
+      try {
+        const {error} = await fetchImportProjectChallenges(projectId, [{versionId: props.latestVersionId}]);
+        if (error) {
+          failCount += 1;
+          console.warn(`附加到项目 ${projectId} 失败:`, error);
+        } else {
+          successCount += 1;
+        }
+      } catch (err) {
         failCount += 1;
-        console.warn(`附加到项目 ${projectId} 失败:`, error);
-      } else {
-        successCount += 1;
+        console.warn(`附加到项目 ${projectId} 异常:`, err);
       }
     }
-
+  } finally {
     if (successCount > 0) {
       window.$message?.success(`成功附加到 ${successCount} 个项目`);
     }
     if (failCount > 0) {
       window.$message?.error(`${failCount} 个项目附加失败（可能需要项目管理员权限）`);
     }
-
     selectedProjectIds.value = [];
-    await loadAttachedProjects();
-  } catch (err) {
-    window.$message?.error(`附加异常: ${err}`);
-  } finally {
     attaching.value = false;
+    await loadAttachedProjects();
   }
 }
 
@@ -173,16 +185,20 @@ async function handleAttach() {
 function handleRemove(row: Api.Cch.ProjectChallenge) {
   dialog.warning({
     title: '确认移除',
-    content: `确定要将该题目从项目「${row.projectName || row.projectId}」中移除吗？`,
+    content: `确定要将该项目下的「${row.versionTag || row.versionId}」版本从项目「${row.projectName || row.projectId}」中移除吗？`,
     positiveText: '移除',
     negativeText: '取消',
     onPositiveClick: async () => {
-      const {error} = await fetchRemoveProjectChallenges(row.projectId, [row.id]);
+      const {data, error} = await fetchRemoveProjectChallenges(row.projectId, [row.id]);
       if (error) {
         window.$message?.error(`移除失败: ${error}`);
         return;
       }
-      window.$message?.success('移除成功');
+      if (data) {
+        window.$message?.success('移除成功');
+      } else {
+        window.$message?.warning('未找到可移除的关联记录');
+      }
       await loadAttachedProjects();
     }
   });
@@ -225,7 +241,7 @@ onMounted(() => {
     </NCard>
 
     <!-- 附加操作 -->
-    <NCard size="small" class="attach-card">
+    <NCard v-if="canOperate" size="small" class="attach-card">
       <template #header>
         <span class="section-title">附加到项目</span>
       </template>
@@ -237,7 +253,7 @@ onMounted(() => {
           multiple
           clearable
           filterable
-          placeholder="选择要附加到的项目（已附加的项目不显示）"
+          placeholder="选择要附加到的项目（已附加当前版本的项目不显示）"
           class="project-select"
         />
         <NButton
