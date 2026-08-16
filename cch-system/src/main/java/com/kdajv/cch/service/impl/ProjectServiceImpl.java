@@ -62,6 +62,8 @@ public class ProjectServiceImpl implements IProjectService {
 
     /**
      * 分页查询项目列表（支持类型筛选）
+     * <p>
+     * 可见性过滤：超管可见全部项目；普通用户仅可见自己创建或作为成员（含邀请加入）的项目。
      *
      * @param bo        查询条件
      * @param pageQuery 分页参数
@@ -70,8 +72,29 @@ public class ProjectServiceImpl implements IProjectService {
     @Override
     public TableDataInfo<ProjectVo> queryPageList(ProjectBo bo, PageQuery pageQuery) {
         LambdaQueryWrapper<Project> lqw = buildQueryWrapper(bo);
+        applyVisibleFilter(lqw);
         Page<ProjectVo> result = baseMapper.selectVoPage(pageQuery.build(), lqw);
         return TableDataInfo.build(result);
+    }
+
+    /**
+     * 应用项目可见性过滤：超管可见全部；普通用户仅可见自己创建或作为成员的项目
+     */
+    private void applyVisibleFilter(LambdaQueryWrapper<Project> lqw) {
+        Long currentUserId = LoginHelper.getUserId();
+        if (ObjectUtil.isNull(currentUserId)) {
+            throw new ServiceException("用户未登录");
+        }
+        // 超管可见全部
+        if (LoginHelper.isSuperAdmin()) {
+            return;
+        }
+        // 创建者 或 项目成员（含邀请加入）
+        lqw.and(w -> w
+            .eq(Project::getCreateBy, currentUserId)
+            .or()
+            .apply("id in (select project_id from t_project_member where user_id = {0})", currentUserId)
+        );
     }
 
     /**
