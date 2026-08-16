@@ -18,7 +18,7 @@ import {
   NTabPane,
   NSkeleton
 } from 'naive-ui';
-import {fetchChallengeDraftByChallengeId, fetchGetChallengeById} from '@/service/api/cch/challenge';
+import {fetchChallengeDraftByChallengeId, fetchGetChallengeById, fetchInitChallenge} from '@/service/api/cch/challenge';
 import {
   fetchGetChallengeDraftById,
   fetchUpdateChallengeDraft
@@ -30,6 +30,7 @@ import ChallengeImageManagement from "@/views/cch/challenge-draft-edit/modules/c
 import ContainerTargetConfig from "@/views/cch/challenge-draft-edit/modules/container-target-config.vue";
 import ChallengeBasicInfo from "@/views/cch/challenge-draft-edit/modules/challenge-basic-info.vue";
 import ChallengeContainerMockTest from "@/views/cch/challenge-draft-edit/modules/challenge-container-mock-test.vue";
+import ChallengePublishCheck from "@/views/cch/challenge-draft-edit/modules/challenge-publish-check.vue";
 import ChallengeVersionPublishModal from "@/views/cch/challenge-draft-edit/modules/challenge-version-publish-modal.vue";
 import VmConfig from "@/views/cch/challenge-draft-edit/modules/vm-config.vue";
 import {useTabQuerySync} from './useTabQuerySync';
@@ -67,6 +68,54 @@ const historyRef = ref<InstanceType<typeof ChallengeDraftHistory> | null>(null);
 
 // 发版对话框显示状态
 const publishModalVisible = ref(false);
+
+// 是否为"新增题目入库"创建模式（无 challengeId/draftId，第一步先创建题目+草稿）
+const isCreateMode = computed(() => {
+  return !parseQueryId(route.query.challengeId) && !parseQueryId(route.query.draftId) && !route.query.forkFrom;
+});
+
+// 入库步骤条定义（对应 CTF 入库流程：基本信息 -> 题目内容 -> Flag -> 环境 -> 入库）
+const intakeSteps = computed(() => {
+  const cfg = draftData.value?.config;
+  const runType = cfg?.runType;
+  const name = (challengeData.value?.name || '').trim();
+  const category = challengeData.value?.category;
+  const basicDone = !!name && !!category;
+  const contentDone = !!(cfg?.stem || '').trim();
+  const flags = cfg?.flags ?? [];
+  const flagDone = flags.length > 0 && flags.every(f => {
+    if (!f) return true;
+    if ((f as Api.Cch.ChallengeDraftConfigStaticFlag).type === 'static') {
+      return !!((f as Api.Cch.ChallengeDraftConfigStaticFlag).content || '').trim();
+    }
+    return true;
+  });
+  const containerTargets = cfg?.containerTargets ?? [];
+  const envDone = runType === 'container'
+    ? containerTargets.length > 0 && containerTargets.every(t => !!t && !!t.imageId)
+    : true;
+  const published = !!challengeData.value?.latestVersionId;
+  return [
+    {key: 'basic', title: '基本信息', desc: '分类 / 名称 / 难度', done: basicDone, tab: 'info'},
+    {key: 'content', title: '题目内容', desc: '题干 / 附件 / Writeup', done: contentDone, tab: 'info'},
+    {key: 'flag', title: 'Flag配置', desc: '静态 / 动态', done: flagDone, tab: 'flag'},
+    {key: 'env', title: '环境配置', desc: runType === 'container' ? '镜像 / 靶机' : runType === 'vm' ? '虚拟机' : '静态题目', done: envDone, tab: runType === 'container' ? 'container-target' : runType === 'vm' ? 'vm' : 'info'},
+    {key: 'publish', title: '检查与入库', desc: '完整性检查 / 发版', done: published, tab: 'publish'}
+  ];
+});
+
+// 当前步骤（根据激活的tab反推，用于步骤条高亮）
+const currentStepIndex = computed(() => {
+  const idx = intakeSteps.value.findIndex(s => s.tab === activeMainTab.value);
+  return idx === -1 ? 0 : idx;
+});
+
+// 点击步骤跳转到对应tab
+function handleStepJump(index: number) {
+  const step = intakeSteps.value[index];
+  if (!step) return;
+  activeMainTab.value = step.tab;
+}
 
 watch(
   draftData,
@@ -172,9 +221,8 @@ async function loadData(queryParams = route.query) {
     await loadChallengeData(currentChallengeId);
     await loadDraftDataByChallengeId(currentChallengeId);
   } else {
-    window.$message?.error('缺少必要的参数');
-    router.back();
-    return;
+    // 无 challengeId/draftId：进入"新增题目入库"创建模式，第一步先创建题目+草稿
+    enterCreateMode();
   }
 
   // 加载版本历史
@@ -184,6 +232,96 @@ async function loadData(queryParams = route.query) {
   }
 
   loading.value = false;
+}
+
+// 进入"新增题目入库"创建模式：初始化空壳数据，等待用户填写基本信息后创建
+function enterCreateMode() {
+  challengeInitialized.value = false;
+  challengeData.value = {
+    id: null,
+    category: '',
+    name: '',
+    remark: '',
+    latestVersionId: null,
+    published: false,
+    latestVersionTag: '',
+    delFlag: 0
+  } as unknown as Api.Cch.Challenge;
+  challengeInitialized.value = true;
+
+  const emptyDraft: Api.Cch.ChallengeDraft = {
+    id: null,
+    challengeId: null,
+    challengeName: '',
+    challengeDescription: '',
+    config: {
+      stem: '',
+      difficulty: null,
+      runType: 'static',
+      knowledge: [],
+      attachments: [],
+      writeups: [],
+      flags: [],
+      containerTargets: []
+    },
+    delFlag: 0
+  } as unknown as Api.Cch.ChallengeDraft;
+  applyDraftData(emptyDraft);
+  activeMainTab.value = 'info';
+}
+
+// 创建模式下：校验基本信息并创建题目+草稿（一个事务内完成），随后进入编辑模式继续完善
+async function createChallengeAndEnter() {
+  const name = (challengeData.value?.name || '').trim();
+  const category = challengeData.value?.category;
+  if (!name) {
+    window.$message?.warning('请先填写题目名称');
+    return;
+  }
+  if (!category) {
+    window.$message?.warning('请先选择题目类型');
+    return;
+  }
+
+  saving.value = true;
+  try {
+    const requestData: Api.Cch.ChallengeDraftOperateParams = {
+      challengeName: name,
+      challengeCategory: category,
+      challengeRemark: challengeData.value.remark || '',
+      challengeDescription: draftData.value?.challengeDescription,
+      config: draftData.value?.config
+    };
+    const {data, error} = await fetchInitChallenge(requestData);
+    if (error) {
+      window.$message?.error(`创建题目失败: ${error}`);
+      return;
+    }
+    if (!data) return;
+
+    // 创建成功：应用草稿数据并切换到编辑模式（URL 携带 challengeId + draftId）
+    applyDraftData(data);
+    draftId.value = data.id;
+    challengeId.value = data.challengeId;
+    await loadChallengeData(data.challengeId);
+    router.replace({
+      path: route.path,
+      query: {
+        ...route.query,
+        challengeId: data.challengeId,
+        draftId: data.id,
+        tab: activeMainTab.value,
+        side: activeSideTab.value
+      }
+    });
+    await nextTick();
+    historyRef.value?.refresh();
+    window.$message?.success('题目已创建，请继续完善内容后发版入库');
+  } catch (err) {
+    window.$message?.error(`创建题目异常: ${err}`);
+  } finally {
+    saving.value = false;
+  }
 }
 
 // 处理refresh参数的函数
@@ -247,6 +385,12 @@ async function loadDraftDataById(id: CommonType.IdType) {
 
 async function saveDraft() {
   if (!draftData.value) return;
+
+  // 创建模式下"保存草稿"即"创建并进入编辑"
+  if (isCreateMode.value) {
+    await createChallengeAndEnter();
+    return;
+  }
 
   saving.value = true;
   try {
@@ -354,10 +498,18 @@ function handlePublish() {
 }
 
 async function handlePublishSubmitted() {
-  // 发版成功后刷新历史记录
+  // 发版成功后刷新题目数据（更新入库状态徽标与步骤条）与历史记录
+  if (challengeId.value) {
+    await loadChallengeData(challengeId.value);
+  }
   if (historyRef.value) {
     await historyRef.value.refresh();
   }
+}
+
+// 跳转到右侧"容器模拟测试"侧栏（从入库检查页发起）
+function handleGoMockTest() {
+  activeSideTab.value = 'containerMockTest';
 }
 
 // 加载镜像列表
@@ -380,34 +532,50 @@ async function loadImageList() {
           </svg>
         </div>
         <div class="header-content">
-          <h1 class="header-title">题目草稿编辑</h1>
-          <span v-if="isForkMode" class="header-badge">派生编辑</span>
+          <h1 class="header-title">{{ isCreateMode ? '新增题目入库' : '题目草稿编辑' }}</h1>
+          <span v-if="isCreateMode" class="header-badge create-badge">新建</span>
+          <span v-else-if="isForkMode" class="header-badge">派生编辑</span>
+          <span v-if="challengeData.latestVersionId" class="header-badge published-badge">已入库 {{ challengeData.latestVersionTag || '' }}</span>
         </div>
       </div>
       <div class="header-actions">
-        <NButton :loading="saving" :disabled="!hasEdited || saving" type="primary" size="large" @click="saveDraft">
-          <template #icon>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-              <polyline points="17 21 17 13 7 13 7 21"/>
-              <polyline points="7 3 7 8 15 8"/>
-            </svg>
-          </template>
-          保存草稿
-        </NButton>
-        <NButton
-          :disabled="!draftData || !challengeData.id"
-          type="info"
-          size="large"
-          @click="handlePublish"
-        >
-          <template #icon>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M5 12h14M12 5l7 7-7 7"/>
-            </svg>
-          </template>
-          发版
-        </NButton>
+        <template v-if="isCreateMode">
+          <NButton :loading="saving" type="primary" size="large" @click="createChallengeAndEnter">
+            <template #icon>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                <polyline points="17 21 17 13 7 13 7 21"/>
+                <polyline points="7 3 7 8 15 8"/>
+              </svg>
+            </template>
+            创建并保存草稿
+          </NButton>
+        </template>
+        <template v-else>
+          <NButton :loading="saving" :disabled="!hasEdited || saving" type="primary" size="large" @click="saveDraft">
+            <template #icon>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                <polyline points="17 21 17 13 7 13 7 21"/>
+                <polyline points="7 3 7 8 15 8"/>
+              </svg>
+            </template>
+            保存草稿
+          </NButton>
+          <NButton
+            :disabled="!draftData || !challengeData.id"
+            type="info"
+            size="large"
+            @click="handlePublish"
+          >
+            <template #icon>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </template>
+            发版
+          </NButton>
+        </template>
         <NButton size="large" @click="goBack">
           <template #icon>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -438,6 +606,33 @@ async function loadImageList() {
 
             <!-- 数据加载完成 -->
             <template v-else-if="draftData">
+              <!-- 入库流程步骤条（对应 CTF 入库流程） -->
+              <div class="intake-steps">
+                <div
+                  v-for="(step, index) in intakeSteps"
+                  :key="step.key"
+                  class="intake-step"
+                  :class="{
+                    'is-done': step.done,
+                    'is-current': index === currentStepIndex && !step.done,
+                    'is-current-done': index === currentStepIndex && step.done
+                  }"
+                  @click="handleStepJump(index)"
+                >
+                  <div class="step-indicator">
+                    <svg v-if="step.done" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    <span v-else>{{ index + 1 }}</span>
+                  </div>
+                  <div class="step-text">
+                    <span class="step-title">{{ step.title }}</span>
+                    <span class="step-desc">{{ step.desc }}</span>
+                  </div>
+                  <div v-if="index < intakeSteps.length - 1" class="step-line"></div>
+                </div>
+              </div>
+
               <!-- 标签页导航 -->
               <div class="tab-nav-wrapper">
                 <NTabs v-model:value="activeMainTab" type="card" animated class="cyber-tabs">
@@ -454,6 +649,14 @@ async function loadImageList() {
                       题目信息
                     </template>
                     <div class="pane-content">
+                      <div v-if="isCreateMode" class="create-tip">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <circle cx="12" cy="12" r="10"/>
+                          <line x1="12" y1="16" x2="12" y2="12"/>
+                          <line x1="12" y1="8" x2="12.01" y2="8"/>
+                        </svg>
+                        <span>填写题目基本信息后点击右上角「创建并保存草稿」，系统将一次性创建题目与首个草稿，随后可继续完善内容并入库。</span>
+                      </div>
                       <ChallengeBasicInfo :challenge-data="challengeData" :draft-data="draftData"/>
                     </div>
                   </NTabPane>
@@ -594,6 +797,28 @@ async function loadImageList() {
                         </div>
                       </div>
                       <NEmpty v-else description="暂无Flag，点击上方按钮添加" class="empty-state"/>
+                    </div>
+                  </NTabPane>
+
+                  <NTabPane name="publish" tab="入库检查" tab-class="cyber-tab">
+                    <template #tab>
+                      <span class="tab-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M9 12l2 2 4-4"/>
+                          <path d="M12 2L3 7v5c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"/>
+                        </svg>
+                      </span>
+                      入库检查
+                    </template>
+                    <div class="pane-content">
+                      <ChallengePublishCheck
+                        :challenge-data="challengeData"
+                        :draft-data="draftData"
+                        :is-create-mode="isCreateMode"
+                        @save="saveDraft"
+                        @publish="handlePublish"
+                        @mock-test="handleGoMockTest"
+                      />
                     </div>
                   </NTabPane>
 
@@ -792,11 +1017,159 @@ $bg-hover: #f3f4f6;
     font-size: 12px;
     font-weight: 500;
     border-radius: $border-radius-sm;
+
+    &.create-badge {
+      background: $primary-color;
+    }
+
+    &.published-badge {
+      background: $success-color;
+    }
   }
 
   .header-actions {
     display: flex;
     gap: 12px;
+  }
+}
+
+// 入库流程步骤条
+.intake-steps {
+  display: flex;
+  align-items: flex-start;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  background: $bg-primary;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  box-shadow: $shadow-sm;
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+
+.intake-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: $border-radius-sm;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  min-width: 0;
+
+  &:hover {
+    background: $bg-hover;
+  }
+
+  &.is-done {
+    .step-indicator {
+      background: $success-color;
+      border-color: $success-color;
+      color: white;
+    }
+
+    .step-title {
+      color: $text-primary;
+    }
+  }
+
+  &.is-current,
+  &.is-current-done {
+    .step-indicator {
+      box-shadow: 0 0 0 3px $primary-light;
+    }
+  }
+
+  &.is-current:not(.is-done) {
+    .step-indicator {
+      background: $primary-color;
+      border-color: $primary-color;
+      color: white;
+    }
+
+    .step-title {
+      color: $primary-color;
+      font-weight: 600;
+    }
+  }
+
+  &.is-current-done {
+    .step-indicator {
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+    }
+  }
+}
+
+.step-indicator {
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  border-radius: 50%;
+  border: 2px solid $border-color;
+  background: $bg-secondary;
+  color: $text-muted;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+.step-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.step-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: $text-secondary;
+  white-space: nowrap;
+  transition: color 0.2s ease;
+}
+
+.step-desc {
+  font-size: 11px;
+  color: $text-muted;
+  white-space: nowrap;
+}
+
+.step-line {
+  width: 32px;
+  height: 2px;
+  background: $border-color;
+  margin: 0 6px;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+// 创建模式引导提示
+.create-tip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  background: $primary-light;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: $border-radius;
+  color: $primary-color;
+  font-size: 13px;
+  line-height: 1.5;
+
+  svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
   }
 }
 

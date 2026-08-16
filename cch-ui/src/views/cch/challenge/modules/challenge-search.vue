@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {toRaw} from 'vue';
+import {ref, toRaw, watch} from 'vue';
 import {jsonClone} from '@sa/utils';
 import {useNaiveForm} from '@/hooks/common/form';
 import {$t} from '@/locales';
@@ -22,8 +22,21 @@ const {options: cchQuestionCategroyOptions} = useDict('cch_question_categroy');
 
 const defaultModel = jsonClone(toRaw(model.value));
 
+// NSelect 不支持 boolean 值，用字符串中转（'1'=已入库，'0'=草稿中）
+const publishedSelect = ref<'1' | '0' | null>(null);
+watch(publishedSelect, val => {
+  model.value.published = val === '1' ? true : val === '0' ? false : null;
+});
+watch(
+  () => model.value.published,
+  val => {
+    publishedSelect.value = val === true ? '1' : val === false ? '0' : null;
+  }
+);
+
 function resetModel() {
   Object.assign(model.value, defaultModel);
+  publishedSelect.value = null;
 }
 
 async function reset() {
@@ -58,6 +71,17 @@ async function search() {
             </NFormItemGi>
             <NFormItemGi class="pr-24px" label="题目备注" label-width="auto" path="remark" span="24 s:12 m:6">
               <NInput v-model:value="model.remark" placeholder="请输入题目备注"/>
+            </NFormItemGi>
+            <NFormItemGi class="pr-24px" label="入库状态" label-width="auto" path="published" span="24 s:12 m:6">
+              <NSelect
+                v-model:value="publishedSelect"
+                :options="[
+                  {label: '已入库', value: '1'},
+                  {label: '草稿中', value: '0'}
+                ]"
+                clearable
+                placeholder="全部"
+              />
             </NFormItemGi>
             <NFormItemGi :show-feedback="false" class="pr-24px" span="24">
               <NSpace class="w-full" justify="end">

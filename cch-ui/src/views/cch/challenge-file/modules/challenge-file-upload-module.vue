@@ -67,7 +67,7 @@ watch(visible, () => {
       <n-input v-model:value="localChallengeId" type="text" placeholder="请输入赛题ID"/>
     </n-form-item>
     <FileUpload v-model:file-list="fileList" upload-type="file" :accept="accept"
-                :data="{challengeId: localChallengeId}" action="/cch/challengeFile/upload"/>
+                :data="localChallengeId ? {challengeId: localChallengeId} : undefined" action="/cch/challengeFile/upload"/>
   </NModal>
 </template>
 

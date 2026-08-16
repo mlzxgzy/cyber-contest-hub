@@ -1,5 +1,7 @@
 package com.kdajv.cch.domain;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -86,7 +88,15 @@ public class DraftConfig implements Serializable {
     /**
      * Flag基类
      * 使用策略模式，为静态和动态flag提供解耦设计
+     * <p>
+     * 通过 @JsonTypeInfo/@JsonSubTypes 实现多态反序列化（按 JSON 中的 type 字段还原为
+     * StaticFlag/DynamicFlag 子类），保证静态 Flag 的 content 等子类字段在草稿存取过程中不丢失。
      */
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXISTING_PROPERTY, property = "type", visible = true)
+    @JsonSubTypes({
+        @JsonSubTypes.Type(value = StaticFlag.class, name = "static"),
+        @JsonSubTypes.Type(value = DynamicFlag.class, name = "dynamic")
+    })
     @Data
     public static class Flag implements Serializable {
         @Serial

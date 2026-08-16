@@ -1,7 +1,7 @@
 <script lang="tsx" setup>
 import {ref} from 'vue';
 import {useRouter} from 'vue-router';
-import {NDivider} from 'naive-ui';
+import {NDivider, NTag} from 'naive-ui';
 import {fetchBatchDeleteChallenge, fetchGetChallengeList} from '@/service/api/cch/challenge';
 import {useAppStore} from '@/store/modules/app';
 import {useAuth} from '@/hooks/business/auth';
@@ -27,6 +27,7 @@ const searchParams = ref<Api.Cch.ChallengeSearchParams>({
   category: null,
   name: null,
   remark: null,
+  published: null,
   params: {}
 });
 
@@ -80,6 +81,25 @@ const {columns, columnChecks, data, getData, getDataByPage, loading, mobilePagin
         title: '题目最新版ID',
         align: 'center',
         minWidth: 120
+      },
+      {
+        key: 'status',
+        title: '入库状态',
+        align: 'center',
+        minWidth: 130,
+        render: row => {
+          if (!row.latestVersionId) {
+            return <NTag type="warning" size="small" bordered={false}>草稿</NTag>;
+          }
+          return (
+            <div class="flex-center gap-8px">
+              <NTag type="success" size="small" bordered={false}>已入库</NTag>
+              {row.latestVersionTag ? (
+                <span class="text-12px text-gray-500">{row.latestVersionTag}</span>
+              ) : null}
+            </div>
+          );
+        }
       },
       {
         key: 'updateTime',
@@ -168,10 +188,23 @@ columnChecks.value.forEach(check => {
   if (check.key === 'id') {
     check.checked = false;
   }
+  if (check.key === 'latestVersionId') {
+    check.checked = false;
+  }
 });
 
-const {drawerVisible, operateType, editingData, handleAdd, handleEdit, checkedRowKeys, onBatchDeleted, onDeleted} =
+const {drawerVisible, operateType, editingData, handleEdit, checkedRowKeys, onBatchDeleted, onDeleted} =
     useTableOperate(data, 'id', getData);
+
+// 新增题目：直接进入"新增题目入库"页面（草稿编辑页 create 模式），不再走三步抽屉
+function handleAddChallenge() {
+  router.push({
+    path: '/cch/challenge/edit',
+    query: {
+      mode: 'create'
+    }
+  });
+}
 
 async function handleBatchDelete() {
   // request
@@ -219,7 +252,7 @@ function handleExport() {
             :show-add="hasAuth('cch:challenge:add')"
             :show-delete="hasAuth('cch:challenge:remove')"
             :show-export="hasAuth('cch:challenge:export')"
-            @add="handleAdd"
+            @add="handleAddChallenge"
             @delete="handleBatchDelete"
             @export="handleExport"
             @refresh="getData"

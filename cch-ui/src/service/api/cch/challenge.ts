@@ -26,6 +26,15 @@ export function fetchCreateChallenge(data: Api.Cch.ChallengeOperateParams) {
     });
 }
 
+/** 初始化一道新题目（含首个草稿），返回草稿信息 */
+export function fetchInitChallenge(data: Api.Cch.ChallengeDraftOperateParams) {
+    return request<Api.Cch.ChallengeDraft>({
+        url: '/cch/challenge/init',
+        method: 'post',
+        data
+    });
+}
+
 /** 修改题目列表 */
 export function fetchUpdateChallenge(data: Api.Cch.ChallengeOperateParams) {
     return request<boolean>({

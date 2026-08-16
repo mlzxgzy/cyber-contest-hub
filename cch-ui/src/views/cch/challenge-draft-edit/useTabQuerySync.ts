@@ -25,7 +25,7 @@ export function useTabQuerySync(options: {
 
   function getAvailableMainTabs() {
     const runType = draftData.value?.config?.runType;
-    const tabs = ['info', 'flag'] as string[];
+    const tabs = ['info', 'flag', 'publish'] as string[];
     if (runType === 'container') {
       tabs.push('container', 'container-target');
     } else if (runType === 'vm') {

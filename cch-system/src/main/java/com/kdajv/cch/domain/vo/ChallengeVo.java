@@ -59,6 +59,16 @@ public class ChallengeVo implements Serializable {
     private Long latestVersionId;
 
     /**
+     * 是否已入库（latestVersionId 非空即已发版入库）
+     */
+    private Boolean published;
+
+    /**
+     * 最新版本号（关联版本表补充）
+     */
+    private String latestVersionTag;
+
+    /**
      * 更新时间
      */
     @ExcelProperty(value = "更新时间")

@@ -22,6 +22,10 @@ declare namespace Api {
       remark: string;
       /** 题目最新版ID */
       latestVersionId: CommonType.IdType;
+      /** 是否已入库（latestVersionId 非空即已发版入库） */
+      published: boolean;
+      /** 最新版本号（关联版本表补充） */
+      latestVersionTag: string;
       /** 删除标志 */
       delFlag: number;
     }>;
@@ -33,6 +37,7 @@ declare namespace Api {
         | 'category'
         | 'name'
         | 'remark'
+        | 'published'
       > &
       Api.Common.CommonSearchParams
     >;

@@ -116,6 +116,22 @@ public class ChallengeController extends BaseController {
     }
 
     /**
+     * 初始化一道新题目（含首个草稿）
+     * <p>
+     * 供"新增题目入库"一体化流程使用：一步完成 t_challenge 与首个 t_challenge_draft 的创建，
+     * 返回草稿信息后前端直接进入草稿编辑页继续完善内容。
+     *
+     * @param bo 题目基础信息 + 初始草稿配置
+     */
+    @SaCheckPermission("cch:challenge:add")
+    @Log(title = "题目列表", businessType = BusinessType.INSERT)
+    @RepeatSubmit()
+    @PostMapping("/init")
+    public R<ChallengeDraftVo> init(@RequestBody ChallengeDraftBo bo) {
+        return R.ok(challengeService.initChallengeWithDraft(bo));
+    }
+
+    /**
      * 修改题目列表
      */
     @SaCheckPermission("cch:challenge:edit")

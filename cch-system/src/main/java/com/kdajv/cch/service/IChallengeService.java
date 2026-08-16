@@ -1,6 +1,8 @@
 package com.kdajv.cch.service;
 
 import com.kdajv.cch.domain.bo.ChallengeBo;
+import com.kdajv.cch.domain.bo.ChallengeDraftBo;
+import com.kdajv.cch.domain.vo.ChallengeDraftVo;
 import com.kdajv.cch.domain.vo.ChallengeVo;
 import org.dromara.common.mybatis.core.page.PageQuery;
 import org.dromara.common.mybatis.core.page.TableDataInfo;
@@ -65,4 +67,15 @@ public interface IChallengeService {
      * @return 是否删除成功
      */
     Boolean deleteWithValidByIds(Collection<Long> ids, Boolean isValid);
+
+    /**
+     * 初始化一道新题目（含首个草稿），用于"新增题目入库"一体化流程
+     * <p>
+     * 在一个事务内创建 t_challenge 与 t_challenge_draft，
+     * 避免传统"先建骨架、再进编辑页填内容"的两步式操作。
+     *
+     * @param bo 题目基础信息 + 初始草稿配置
+     * @return 初始化的草稿信息（含新题目ID）
+     */
+    ChallengeDraftVo initChallengeWithDraft(ChallengeDraftBo bo);
 }

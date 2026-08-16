@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import {
   NForm,
   NSelect,
@@ -43,6 +43,12 @@ const draftRules: Record<string, App.Global.FormRule> = {};
 
 const draftAttachmentList = ref<UploadFileInfo[]>([]);
 const draftWriteupList = ref<UploadFileInfo[]>([]);
+
+// 上传时必须携带已创建的题目ID；创建模式下 challengeId 为空，不发送该字段（避免 "null" 字符串导致后端类型转换报错）
+const uploadData = computed(() => {
+  const cid = props.draftData?.challengeId;
+  return cid ? { challengeId: cid } : undefined;
+});
 
 const { options: cchQuestionCategroyOptions } = useDict('cch_question_categroy');
 const { options: cchQuestionDifficultyOptions } = useDict('cch_question_difficulty');
@@ -270,14 +276,23 @@ function deleteWriteup(fileId: CommonType.IdType, fileName: string) {
         </div>
         <div class="card-body">
           <FileUpload
+            v-if="draftData.challengeId"
             v-model:file-list="draftAttachmentList"
             upload-type="file"
             :show-file-list="true"
             :accept="AcceptType.ChallengeAttachment"
-            :data="{ challengeId: draftData && draftData.challengeId }"
+            :data="uploadData"
             action="/cch/challengeFile/upload"
             :on-success="handleAttachmentUploadSuccess"
           />
+          <div v-else class="upload-disabled-tip">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="16" x2="12" y2="12"/>
+              <line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+            请先点击「创建并保存草稿」创建题目后，再上传附件
+          </div>
           <div v-if="draftData.config.attachments?.length" class="file-list">
             <div
               v-for="x of draftData.config.attachments"
@@ -351,14 +366,23 @@ function deleteWriteup(fileId: CommonType.IdType, fileName: string) {
         </div>
         <div class="card-body">
           <FileUpload
+            v-if="draftData.challengeId"
             v-model:file-list="draftWriteupList"
             upload-type="file"
             :show-file-list="true"
             :accept="AcceptType.ChallengeWriteup"
-            :data="{ challengeId: draftData && draftData.challengeId }"
+            :data="uploadData"
             action="/cch/challengeFile/upload"
             :on-success="handleWriteupUploadSuccess"
           />
+          <div v-else class="upload-disabled-tip">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="16" x2="12" y2="12"/>
+              <line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+            请先点击「创建并保存草稿」创建题目后，再上传 Writeup
+          </div>
           <div v-if="draftData.config.writeups?.length" class="file-list">
             <div
               v-for="x of draftData.config.writeups"
@@ -537,6 +561,25 @@ $shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
 
 .file-list {
   margin-top: 16px;
+}
+
+.upload-disabled-tip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px;
+  background: #f9fafb;
+  border: 1px dashed #d1d5db;
+  border-radius: 4px;
+  color: #6b7280;
+  font-size: 13px;
+
+  svg {
+    width: 16px;
+    height: 16px;
+    color: #3b82f6;
+    flex-shrink: 0;
+  }
 }
 
 .file-item {

@@ -45,5 +45,10 @@ public class ChallengeBo extends BaseEntity {
     @NotBlank(message = "题目备注不能为空", groups = {AddGroup.class, EditGroup.class})
     private String remark;
 
+    /**
+     * 入库状态筛选（查询用）：true=已入库（有最新版本），false=草稿中（未发版），null=全部
+     */
+    private Boolean published;
+
 
 }

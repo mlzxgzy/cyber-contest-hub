@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.constraints.*;
 import cn.dev33.satoken.annotation.SaCheckPermission;
 import org.dromara.common.core.service.OssService;
+import org.dromara.common.core.utils.StringUtils;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.validation.annotation.Validated;
@@ -117,15 +118,37 @@ public class ChallengeFileController extends BaseController {
     @Log(title = "题目文件", businessType = BusinessType.INSERT)
     @RepeatSubmit()
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public R<ChallengeFileVo> upload(Long challengeId, @RequestPart("file") MultipartFile file) {
+    public R<ChallengeFileVo> upload(String challengeId, @RequestPart("file") MultipartFile file) {
         if (ObjectUtil.isNull(file)) {
             return R.fail("上传文件不能为空");
         }
-        if (ObjectUtil.isNull(challengeService.queryById(challengeId))) {
+        // multipart 表单中空值会被序列化为字符串 "null"，这里统一兜底处理，避免类型转换 500
+        Long challengeIdLong = parseChallengeId(challengeId);
+        if (challengeIdLong == null) {
+            return R.fail("题目ID不能为空，请先创建题目后再上传");
+        }
+        if (ObjectUtil.isNull(challengeService.queryById(challengeIdLong))) {
             return R.fail("题目不存在");
         }
-        ChallengeFileVo vo = challengeFileService.upload(challengeId, file);
+        ChallengeFileVo vo = challengeFileService.upload(challengeIdLong, file);
         return R.ok(vo);
+    }
+
+    /**
+     * 解析题目ID，兼容 multipart 表单中的 null 字符串
+     *
+     * @param challengeId 原始参数
+     * @return 解析后的题目ID，缺失或非法时返回 null
+     */
+    private Long parseChallengeId(String challengeId) {
+        if (StringUtils.isBlank(challengeId) || "null".equalsIgnoreCase(challengeId.trim())) {
+            return null;
+        }
+        try {
+            return Long.valueOf(challengeId.trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     /**
