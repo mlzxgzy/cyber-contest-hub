@@ -59,3 +59,11 @@ export function fetchChallengeDraftByChallengeId(challengeId: CommonType.IdType)
         method: 'get'
     });
 }
+
+/** 获取题目附加到的项目列表（挑战侧反向查看） */
+export function fetchGetChallengeProjects(challengeId: CommonType.IdType) {
+    return request<Api.Cch.ProjectChallenge[]>({
+        url: `/cch/challenge/${challengeId}/projects`,
+        method: 'get'
+    });
+}

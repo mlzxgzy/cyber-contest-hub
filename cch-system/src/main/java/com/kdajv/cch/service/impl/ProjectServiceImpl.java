@@ -498,6 +498,33 @@ public class ProjectServiceImpl implements IProjectService {
     }
 
     /**
+     * 查询题目附加到的项目列表（挑战侧反向查看，按题目查所有版本的附加记录）
+     *
+     * @param challengeId 题目ID
+     * @return 附加记录列表（含项目名称）
+     */
+    @Override
+    public List<ProjectChallengeVo> queryProjectChallengesByChallengeId(Long challengeId) {
+        if (ObjectUtil.isNull(challengeId)) {
+            throw new ServiceException("题目ID不能为空");
+        }
+
+        List<ProjectChallengeVo> challenges = projectChallengeMapper.selectVoList(
+            new LambdaQueryWrapper<ProjectChallenge>()
+                .eq(ProjectChallenge::getChallengeId, challengeId)
+        );
+
+        // 填充项目名称信息
+        fillProjectInfo(challenges);
+        // 填充题目名称和版本号信息
+        fillChallengeInfo(challenges);
+        // 填充创建人名称信息
+        fillChallengeCreatorInfo(challenges);
+
+        return challenges;
+    }
+
+    /**
      * 导入题目（验证version_id在t_challenge_version表中存在，需要项目管理员权限）
      *
      * @param projectId  项目ID
@@ -762,6 +789,37 @@ public class ProjectServiceImpl implements IProjectService {
     }
 
     /**
+     * 填充项目名称信息
+     */
+    private void fillProjectInfo(List<ProjectChallengeVo> challenges) {
+        if (CollUtil.isEmpty(challenges)) {
+            return;
+        }
+
+        List<Long> projectIds = challenges.stream()
+            .map(ProjectChallengeVo::getProjectId)
+            .filter(Objects::nonNull)
+            .distinct()
+            .collect(Collectors.toList());
+
+        if (CollUtil.isEmpty(projectIds)) {
+            return;
+        }
+
+        Map<Long, String> projectNameMap = new HashMap<>();
+        for (Long projectId : projectIds) {
+            ProjectVo project = baseMapper.selectVoById(projectId);
+            if (ObjectUtil.isNotNull(project)) {
+                projectNameMap.put(projectId, project.getName());
+            }
+        }
+
+        for (ProjectChallengeVo challenge : challenges) {
+            challenge.setProjectName(projectNameMap.get(challenge.getProjectId()));
+        }
+    }
+
+    /**
      * 填充题目信息（题目名称和版本号）
      */
     private void fillChallengeInfo(List<ProjectChallengeVo> challenges) {
@@ -796,6 +854,44 @@ public class ProjectServiceImpl implements IProjectService {
             if (ObjectUtil.isNotNull(version)) {
                 challenge.setChallengeName(version.getChallengeName());
                 challenge.setVersionTag(version.getVersionTag());
+            }
+        }
+    }
+
+    /**
+     * 填充创建人名称信息
+     */
+    private void fillChallengeCreatorInfo(List<ProjectChallengeVo> challenges) {
+        if (CollUtil.isEmpty(challenges)) {
+            return;
+        }
+
+        List<Long> createByIds = challenges.stream()
+            .map(ProjectChallengeVo::getCreateBy)
+            .filter(Objects::nonNull)
+            .distinct()
+            .collect(Collectors.toList());
+
+        if (CollUtil.isEmpty(createByIds)) {
+            return;
+        }
+
+        Map<Long, SysUserVo> userMap = new HashMap<>();
+        for (Long userId : createByIds) {
+            try {
+                SysUserVo user = sysUserService.selectUserById(userId);
+                if (ObjectUtil.isNotNull(user)) {
+                    userMap.put(userId, user);
+                }
+            } catch (Exception e) {
+                log.warn("查询用户信息失败，用户ID: {}", userId, e);
+            }
+        }
+
+        for (ProjectChallengeVo challenge : challenges) {
+            SysUserVo user = userMap.get(challenge.getCreateBy());
+            if (ObjectUtil.isNotNull(user)) {
+                challenge.setCreateByName(user.getNickName() != null ? user.getNickName() : user.getUserName());
             }
         }
     }

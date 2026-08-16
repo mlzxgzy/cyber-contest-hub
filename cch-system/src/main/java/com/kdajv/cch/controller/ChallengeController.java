@@ -6,8 +6,10 @@ import com.kdajv.cch.domain.bo.ChallengeBo;
 import com.kdajv.cch.domain.bo.ChallengeDraftBo;
 import com.kdajv.cch.domain.vo.ChallengeDraftVo;
 import com.kdajv.cch.domain.vo.ChallengeVo;
+import com.kdajv.cch.domain.vo.ProjectChallengeVo;
 import com.kdajv.cch.service.IChallengeDraftService;
 import com.kdajv.cch.service.IChallengeService;
+import com.kdajv.cch.service.IProjectService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -41,6 +43,7 @@ public class ChallengeController extends BaseController {
 
     private final IChallengeService challengeService;
     private final IChallengeDraftService challengeDraftService;
+    private final IProjectService projectService;
 
     /**
      * 查询题目列表列表
@@ -102,6 +105,17 @@ public class ChallengeController extends BaseController {
             // 返回找到的草稿
             return R.ok(latestDraft);
         }
+    }
+
+    /**
+     * 获取题目附加到的项目列表（挑战侧反向查看，按题目查所有版本的附加记录）
+     *
+     * @param id 题目ID
+     */
+    @SaCheckPermission("cch:challenge:query")
+    @GetMapping("/{id}/projects")
+    public R<List<ProjectChallengeVo>> projects(@NotNull(message = "主键不能为空") @PathVariable Long id) {
+        return R.ok(projectService.queryProjectChallengesByChallengeId(id));
     }
 
     /**

@@ -32,6 +32,7 @@ import ChallengeBasicInfo from "@/views/cch/challenge-draft-edit/modules/challen
 import ChallengeContainerMockTest from "@/views/cch/challenge-draft-edit/modules/challenge-container-mock-test.vue";
 import ChallengePublishCheck from "@/views/cch/challenge-draft-edit/modules/challenge-publish-check.vue";
 import ChallengeVersionPublishModal from "@/views/cch/challenge-draft-edit/modules/challenge-version-publish-modal.vue";
+import ChallengeProjectAttach from "@/views/cch/challenge-draft-edit/modules/challenge-project-attach.vue";
 import VmConfig from "@/views/cch/challenge-draft-edit/modules/vm-config.vue";
 import {useTabQuerySync} from './useTabQuerySync';
 
@@ -55,7 +56,7 @@ const challengeInitialized = ref(false);
 const split = ref(0.75);
 
 // Tab状态同步到URL（刷新后可定位）
-const {activeMainTab, activeSideTab} = useTabQuerySync({route, router, draftData});
+const {activeMainTab, activeSideTab} = useTabQuerySync({route, router, draftData, latestVersionId: computed(() => challengeData.value.latestVersionId)});
 
 // 是否为派生模式（从历史版本派生，保存时新增版本）
 const isForkMode = computed(() => !!route.query.forkFrom);
@@ -818,6 +819,24 @@ async function loadImageList() {
                         @save="saveDraft"
                         @publish="handlePublish"
                         @mock-test="handleGoMockTest"
+                      />
+                    </div>
+                  </NTabPane>
+
+                  <NTabPane v-if="challengeData.latestVersionId" name="attach" tab="附加到项目" tab-class="cyber-tab">
+                    <template #tab>
+                      <span class="tab-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                        </svg>
+                      </span>
+                      附加到项目
+                    </template>
+                    <div class="pane-content">
+                      <ChallengeProjectAttach
+                        :challenge-id="challengeId"
+                        :latest-version-id="challengeData.latestVersionId"
                       />
                     </div>
                   </NTabPane>

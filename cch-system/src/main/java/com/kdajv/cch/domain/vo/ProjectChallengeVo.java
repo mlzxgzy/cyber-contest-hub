@@ -39,6 +39,11 @@ public class ProjectChallengeVo implements Serializable {
     private Long versionId;
 
     /**
+     * 项目名称（用于显示）
+     */
+    private String projectName;
+
+    /**
      * 题目名称（用于显示）
      */
     private String challengeName;
@@ -57,4 +62,9 @@ public class ProjectChallengeVo implements Serializable {
      * 创建人
      */
     private Long createBy;
+
+    /**
+     * 创建人名称（用于显示）
+     */
+    private String createByName;
 }

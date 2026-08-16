@@ -633,6 +633,8 @@ declare namespace Api {
       challengeId: CommonType.IdType;
       /** 题目版本ID */
       versionId: CommonType.IdType;
+      /** 项目名称（用于显示） */
+      projectName?: string;
       /** 题目名称（用于显示） */
       challengeName?: string;
       /** 版本号（用于显示） */
@@ -641,6 +643,8 @@ declare namespace Api {
       createTime?: string;
       /** 创建人 */
       createBy?: CommonType.IdType;
+      /** 创建人名称（用于显示） */
+      createByName?: string;
     };
 
     /** contest file */

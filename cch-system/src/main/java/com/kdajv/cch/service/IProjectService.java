@@ -112,6 +112,14 @@ public interface IProjectService {
     List<ProjectChallengeVo> queryProjectChallenges(Long projectId);
 
     /**
+     * 查询题目附加到的项目列表（挑战侧反向查看，按题目查所有版本的附加记录）
+     *
+     * @param challengeId 题目ID
+     * @return 附加记录列表（含项目名称）
+     */
+    List<ProjectChallengeVo> queryProjectChallengesByChallengeId(Long challengeId);
+
+    /**
      * 导入题目（验证version_id在t_challenge_version表中存在，需要项目管理员权限）
      *
      * @param projectId  项目ID
