@@ -9,6 +9,10 @@ defineOptions({
   name: 'HeaderBanner'
 });
 
+const props = defineProps<{
+  overview: Api.Cch.DashboardOverview;
+}>();
+
 const appStore = useAppStore();
 const authStore = useAuthStore();
 
@@ -17,24 +21,24 @@ const gap = computed(() => (appStore.isMobile ? 0 : 16));
 interface StatisticData {
   id: number;
   label: string;
-  value: string;
+  value: number;
 }
 
 const statisticData = computed<StatisticData[]>(() => [
   {
     id: 0,
     label: $t('page.home.projectCount'),
-    value: '25'
+    value: props.overview.projectCount
   },
   {
     id: 1,
-    label: $t('page.home.todo'),
-    value: '4/16'
+    label: $t('page.home.challengeCount'),
+    value: props.overview.challengeCount
   },
   {
     id: 2,
-    label: $t('page.home.message'),
-    value: '12'
+    label: $t('page.home.versionCount'),
+    value: props.overview.versionCount
   }
 ]);
 </script>

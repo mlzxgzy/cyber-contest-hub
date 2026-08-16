@@ -1,14 +1,35 @@
 <script setup lang="ts">
-import { watch } from 'vue';
-import { useAppStore } from '@/store/modules/app';
+import { computed, watch } from 'vue';
 import { useEcharts } from '@/hooks/common/echarts';
-import { $t } from '@/locales';
+import { useDict } from '@/hooks/business/dict';
 
 defineOptions({
   name: 'PieChart'
 });
 
-const appStore = useAppStore();
+const props = withDefaults(
+  defineProps<{
+    distribution: Api.Cch.DashboardNameValue[];
+    isDoughnut?: boolean;
+  }>(),
+  {
+    isDoughnut: true
+  }
+);
+
+const { record } = useDict('cch_question_categroy');
+
+const projectTypeLabelMap: Record<string, string> = {
+  normal: '普通项目',
+  contest: '竞赛项目'
+};
+
+const chartData = computed(() =>
+  props.distribution.map(item => ({
+    name: record.value[item.name] || projectTypeLabelMap[item.name] || item.name,
+    value: item.value
+  }))
+);
 
 const { domRef, updateOptions } = useEcharts(() => ({
   tooltip: {
@@ -23,10 +44,10 @@ const { domRef, updateOptions } = useEcharts(() => ({
   },
   series: [
     {
-      color: ['#5da8ff', '#8e9dff', '#fedc69', '#26deca'],
-      name: $t('page.home.schedule'),
+      color: ['#5da8ff', '#8e9dff', '#fedc69', '#26deca', '#ec4786', '#56cdf3'],
+      name: '数据分布',
       type: 'pie',
-      radius: ['45%', '75%'],
+      radius: props.isDoughnut ? ['45%', '75%'] : '55%',
       avoidLabelOverlap: false,
       itemStyle: {
         borderRadius: 10,
@@ -51,59 +72,27 @@ const { domRef, updateOptions } = useEcharts(() => ({
   ]
 }));
 
-async function mockData() {
-  await new Promise(resolve => {
-    setTimeout(resolve, 1000);
-  });
-
+function renderChart() {
   updateOptions(opts => {
-    opts.series[0].data = [
-      { name: $t('page.home.study'), value: 20 },
-      { name: $t('page.home.entertainment'), value: 10 },
-      { name: $t('page.home.work'), value: 40 },
-      { name: $t('page.home.rest'), value: 30 }
-    ];
+    opts.series[0].data = chartData.value;
+    opts.series[0].radius = props.isDoughnut ? ['45%', '75%'] : '55%';
+    opts.series[0].label.show = false;
 
     return opts;
   });
-}
-
-function updateLocale() {
-  updateOptions((opts, factory) => {
-    const originOpts = factory();
-
-    opts.series[0].name = originOpts.series[0].name;
-
-    opts.series[0].data = [
-      { name: $t('page.home.study'), value: 20 },
-      { name: $t('page.home.entertainment'), value: 10 },
-      { name: $t('page.home.work'), value: 40 },
-      { name: $t('page.home.rest'), value: 30 }
-    ];
-
-    return opts;
-  });
-}
-
-async function init() {
-  mockData();
 }
 
 watch(
-  () => appStore.locale,
+  () => [props.distribution, record.value],
   () => {
-    updateLocale();
-  }
+    renderChart();
+  },
+  { immediate: true, deep: true }
 );
-
-// init
-init();
 </script>
 
 <template>
-  <NCard :bordered="false" class="card-wrapper">
-    <div ref="domRef" class="h-360px overflow-hidden"></div>
-  </NCard>
+  <div ref="domRef" class="h-360px overflow-hidden"></div>
 </template>
 
 <style scoped></style>

@@ -594,6 +594,13 @@ declare namespace App {
           greeting: string;
           weatherDesc: string;
           projectCount: string;
+          challengeCount: string;
+          versionCount: string;
+          draftCount: string;
+          fileCount: string;
+          imageCount: string;
+          mockTestCount: string;
+          exportTaskCount: string;
           todo: string;
           message: string;
           downloadCount: string;

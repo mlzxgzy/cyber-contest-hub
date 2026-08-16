@@ -657,5 +657,45 @@ declare namespace Api {
       /** 创建时间 */
       createTime?: string;
     };
+
+    /** dashboard name value */
+    type DashboardNameValue = {
+      name: string;
+      value: number;
+    };
+
+    /** dashboard overview */
+    type DashboardOverview = {
+      projectCount: number;
+      challengeCount: number;
+      versionCount: number;
+      draftCount: number;
+      fileCount: number;
+      imageCount: number;
+      mockTestCount: number;
+      exportTaskCount: number;
+      projectChallengeCount: number;
+      projectMemberCount: number;
+      contestFileCount: number;
+    };
+
+    /** dashboard trend item */
+    type DashboardTrendItem = {
+      month: string;
+      challengeCount: number;
+      versionCount: number;
+      projectCount: number;
+    };
+
+    /** dashboard statistics */
+    type DashboardStatistics = {
+      overview: DashboardOverview;
+      categoryDistribution: DashboardNameValue[];
+      projectTypeDistribution: DashboardNameValue[];
+      imageStatusDistribution: DashboardNameValue[];
+      exportTaskStatusDistribution: DashboardNameValue[];
+      trend: DashboardTrendItem[];
+      recentProjects: Project[];
+    };
   }
 }

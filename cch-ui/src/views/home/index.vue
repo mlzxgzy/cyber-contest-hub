@@ -1,59 +1,66 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onMounted, ref } from 'vue';
+import { fetchDashboardStatistics } from '@/service/api/cch/dashboard';
 import { useAppStore } from '@/store/modules/app';
 import HeaderBanner from './modules/header-banner.vue';
 import CardData from './modules/card-data.vue';
 import LineChart from './modules/line-chart.vue';
 import PieChart from './modules/pie-chart.vue';
 import ProjectNews from './modules/project-news.vue';
-import CreativityBanner from './modules/creativity-banner.vue';
 
 const appStore = useAppStore();
 
 const gap = computed(() => (appStore.isMobile ? 0 : 16));
+const loading = ref(true);
+const dashboard = ref<Api.Cch.DashboardStatistics | null>(null);
+
+async function loadDashboard() {
+  loading.value = true;
+  try {
+    const { data, error } = await fetchDashboardStatistics();
+    if (!error) {
+      dashboard.value = data;
+    }
+  } catch {
+    dashboard.value = null;
+  } finally {
+    loading.value = false;
+  }
+}
+
+onMounted(loadDashboard);
 </script>
 
 <template>
-  <NSpace vertical :size="16">
-    <NAlert title="如遇问题请先看这里" type="warning">
-      <div class="text-18px">
-        <div>
-          开发前请先查看 ReadMe.md 文件中的
-          <NA
-            href="https://gitee.com/xlsea/ruoyi-plus-soybean#%E5%BC%80%E5%8F%91%E5%89%8D%E5%BF%85%E7%9C%8B"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            开发前必看
-          </NA>
-        </div>
-        <div>如遇菜单无法点击，请检查是否已替换菜单 SQL</div>
-        <div>如遇代码无法生成，请检查是否已替换代码生成模板</div>
-      </div>
-    </NAlert>
-    <HeaderBanner />
-    <CardData />
-    <NGrid :x-gap="gap" :y-gap="16" responsive="screen" item-responsive>
-      <NGi span="24 s:24 m:14">
-        <NCard :bordered="false" class="card-wrapper">
-          <LineChart />
-        </NCard>
-      </NGi>
-      <NGi span="24 s:24 m:10">
-        <NCard :bordered="false" class="card-wrapper">
-          <PieChart />
-        </NCard>
-      </NGi>
-    </NGrid>
-    <NGrid :x-gap="gap" :y-gap="16" responsive="screen" item-responsive>
-      <NGi span="24 s:24 m:14">
-        <ProjectNews />
-      </NGi>
-      <NGi span="24 s:24 m:10">
-        <CreativityBanner />
-      </NGi>
-    </NGrid>
-  </NSpace>
+  <NSpin :show="loading" class="w-full">
+    <NSpace v-if="dashboard" vertical :size="16">
+      <HeaderBanner :overview="dashboard.overview" />
+      <CardData :overview="dashboard.overview" />
+      <NGrid :x-gap="gap" :y-gap="16" responsive="screen" item-responsive>
+        <NGi span="24 s:24 m:14">
+          <NCard title="近6个月创建趋势" :bordered="false" class="card-wrapper">
+            <LineChart :trend="dashboard.trend" />
+          </NCard>
+        </NGi>
+        <NGi span="24 s:24 m:10">
+          <NCard title="题目类型分布" :bordered="false" class="card-wrapper">
+            <PieChart :distribution="dashboard.categoryDistribution" />
+          </NCard>
+        </NGi>
+      </NGrid>
+      <NGrid :x-gap="gap" :y-gap="16" responsive="screen" item-responsive>
+        <NGi span="24 s:24 m:14">
+          <ProjectNews :projects="dashboard.recentProjects" />
+        </NGi>
+        <NGi span="24 s:24 m:10">
+          <NCard title="项目类型分布" :bordered="false" size="small" class="card-wrapper">
+            <PieChart :distribution="dashboard.projectTypeDistribution" :is-doughnut="false" class="h-full" />
+          </NCard>
+        </NGi>
+      </NGrid>
+    </NSpace>
+    <NEmpty v-else-if="!loading" description="暂无统计数据或加载失败" />
+  </NSpin>
 </template>
 
 <style scoped></style>

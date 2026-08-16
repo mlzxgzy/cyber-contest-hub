@@ -8,6 +8,10 @@ defineOptions({
   name: 'LineChart'
 });
 
+const props = defineProps<{
+  trend: Api.Cch.DashboardTrendItem[];
+}>();
+
 const appStore = useAppStore();
 
 const { domRef, updateOptions } = useEcharts(() => ({
@@ -21,7 +25,7 @@ const { domRef, updateOptions } = useEcharts(() => ({
     }
   },
   legend: {
-    data: [$t('page.home.downloadCount'), $t('page.home.registerCount')],
+    data: [$t('page.home.challengeCount'), $t('page.home.versionCount'), $t('page.home.projectCount')],
     top: '0'
   },
   grid: {
@@ -36,12 +40,13 @@ const { domRef, updateOptions } = useEcharts(() => ({
     data: [] as string[]
   },
   yAxis: {
-    type: 'value'
+    type: 'value',
+    minInterval: 1
   },
   series: [
     {
       color: '#8e9dff',
-      name: $t('page.home.downloadCount'),
+      name: $t('page.home.challengeCount'),
       type: 'line',
       smooth: true,
       stack: 'Total',
@@ -71,7 +76,7 @@ const { domRef, updateOptions } = useEcharts(() => ({
     },
     {
       color: '#26deca',
-      name: $t('page.home.registerCount'),
+      name: $t('page.home.versionCount'),
       type: 'line',
       smooth: true,
       stack: 'Total',
@@ -97,20 +102,47 @@ const { domRef, updateOptions } = useEcharts(() => ({
       emphasis: {
         focus: 'series'
       },
-      data: []
+      data: [] as number[]
+    },
+    {
+      color: '#fedc69',
+      name: $t('page.home.projectCount'),
+      type: 'line',
+      smooth: true,
+      stack: 'Total',
+      areaStyle: {
+        color: {
+          type: 'linear',
+          x: 0,
+          y: 0,
+          x2: 0,
+          y2: 1,
+          colorStops: [
+            {
+              offset: 0.25,
+              color: '#fedc69'
+            },
+            {
+              offset: 1,
+              color: '#fff'
+            }
+          ]
+        }
+      },
+      emphasis: {
+        focus: 'series'
+      },
+      data: [] as number[]
     }
   ]
 }));
 
-async function mockData() {
-  await new Promise(resolve => {
-    setTimeout(resolve, 1000);
-  });
-
+function renderTrend() {
   updateOptions(opts => {
-    opts.xAxis.data = ['06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00', '24:00'];
-    opts.series[0].data = [4623, 6145, 6268, 6411, 1890, 4251, 2978, 3880, 3606, 4311];
-    opts.series[1].data = [2208, 2016, 2916, 4512, 8281, 2008, 1963, 2367, 2956, 678];
+    opts.xAxis.data = props.trend.map(item => item.month);
+    opts.series[0].data = props.trend.map(item => item.challengeCount);
+    opts.series[1].data = props.trend.map(item => item.versionCount);
+    opts.series[2].data = props.trend.map(item => item.projectCount);
 
     return opts;
   });
@@ -123,14 +155,19 @@ function updateLocale() {
     opts.legend.data = originOpts.legend.data;
     opts.series[0].name = originOpts.series[0].name;
     opts.series[1].name = originOpts.series[1].name;
+    opts.series[2].name = originOpts.series[2].name;
 
     return opts;
   });
 }
 
-async function init() {
-  mockData();
-}
+watch(
+  () => props.trend,
+  () => {
+    renderTrend();
+  },
+  { immediate: true, deep: true }
+);
 
 watch(
   () => appStore.locale,
@@ -138,15 +175,10 @@ watch(
     updateLocale();
   }
 );
-
-// init
-init();
 </script>
 
 <template>
-  <NCard :bordered="false" class="card-wrapper">
-    <div ref="domRef" class="h-360px overflow-hidden"></div>
-  </NCard>
+  <div ref="domRef" class="h-360px overflow-hidden"></div>
 </template>
 
 <style scoped></style>

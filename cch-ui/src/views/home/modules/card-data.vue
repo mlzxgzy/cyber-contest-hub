@@ -8,6 +8,10 @@ defineOptions({
   name: 'CardData'
 });
 
+const props = defineProps<{
+  overview: Api.Cch.DashboardOverview;
+}>();
+
 interface CardData {
   key: string;
   title: string;
@@ -22,48 +26,92 @@ interface CardData {
 
 const cardData = computed<CardData[]>(() => [
   {
-    key: 'visitCount',
-    title: $t('page.home.visitCount'),
-    value: 9725,
+    key: 'projectCount',
+    title: $t('page.home.projectCount'),
+    value: props.overview.projectCount,
     unit: '',
     color: {
       start: '#ec4786',
       end: '#b955a4'
     },
-    icon: 'ant-design:bar-chart-outlined'
+    icon: 'ant-design:project-outlined'
   },
   {
-    key: 'turnover',
-    title: $t('page.home.turnover'),
-    value: 1026,
-    unit: '$',
+    key: 'challengeCount',
+    title: $t('page.home.challengeCount'),
+    value: props.overview.challengeCount,
+    unit: '',
     color: {
       start: '#865ec0',
       end: '#5144b4'
     },
-    icon: 'ant-design:money-collect-outlined'
+    icon: 'ant-design:code-outlined'
   },
   {
-    key: 'downloadCount',
-    title: $t('page.home.downloadCount'),
-    value: 970925,
+    key: 'versionCount',
+    title: $t('page.home.versionCount'),
+    value: props.overview.versionCount,
     unit: '',
     color: {
       start: '#56cdf3',
       end: '#719de3'
     },
-    icon: 'carbon:document-download'
+    icon: 'ant-design:branches-outlined'
   },
   {
-    key: 'dealCount',
-    title: $t('page.home.dealCount'),
-    value: 9527,
+    key: 'draftCount',
+    title: $t('page.home.draftCount'),
+    value: props.overview.draftCount,
     unit: '',
     color: {
       start: '#fcbc25',
       end: '#f68057'
     },
-    icon: 'ant-design:trademark-circle-outlined'
+    icon: 'ant-design:file-text-outlined'
+  },
+  {
+    key: 'fileCount',
+    title: $t('page.home.fileCount'),
+    value: props.overview.fileCount,
+    unit: '',
+    color: {
+      start: '#5da8ff',
+      end: '#8e9dff'
+    },
+    icon: 'ant-design:paper-clip-outlined'
+  },
+  {
+    key: 'imageCount',
+    title: $t('page.home.imageCount'),
+    value: props.overview.imageCount,
+    unit: '',
+    color: {
+      start: '#26deca',
+      end: '#1ba99b'
+    },
+    icon: 'ant-design:container-outlined'
+  },
+  {
+    key: 'mockTestCount',
+    title: $t('page.home.mockTestCount'),
+    value: props.overview.mockTestCount,
+    unit: '',
+    color: {
+      start: '#fedc69',
+      end: '#f2a93b'
+    },
+    icon: 'ant-design:bug-outlined'
+  },
+  {
+    key: 'exportTaskCount',
+    title: $t('page.home.exportTaskCount'),
+    value: props.overview.exportTaskCount,
+    unit: '',
+    color: {
+      start: '#8e9dff',
+      end: '#5b6cd9'
+    },
+    icon: 'ant-design:export-outlined'
   }
 ]);
 
