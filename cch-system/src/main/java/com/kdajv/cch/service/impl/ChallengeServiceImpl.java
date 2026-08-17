@@ -3,6 +3,8 @@ package com.kdajv.cch.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kdajv.cch.domain.Challenge;
 import com.kdajv.cch.domain.ChallengeDraft;
 import com.kdajv.cch.domain.ChallengeVersion;
@@ -29,6 +31,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 /**
@@ -45,6 +48,69 @@ public class ChallengeServiceImpl implements IChallengeService {
     private final ChallengeMapper baseMapper;
     private final ChallengeDraftMapper challengeDraftMapper;
     private final ChallengeVersionMapper challengeVersionMapper;
+    private final ObjectMapper objectMapper;
+
+    /**
+     * 知识点标签缓存（去重排序），启动/定时任务维护
+     */
+    private volatile List<String> knowledgeTagsCache = List.of();
+
+    /**
+     * 上次刷新开始时间（惰性刷新限流用，避免 DB 故障时每次请求都全量查询）
+     */
+    private volatile long lastRefreshStartTime = 0L;
+
+    /**
+     * 惰性刷新最小间隔（毫秒）
+     */
+    private static final long REFRESH_MIN_INTERVAL_MS = 60_000L;
+
+    /**
+     * 获取全部知识点标签（缓存，用于搜索下拉）
+     */
+    @Override
+    public List<String> listKnowledgeTags() {
+        List<String> tags = knowledgeTagsCache;
+        if (tags.isEmpty() && System.currentTimeMillis() - lastRefreshStartTime > REFRESH_MIN_INTERVAL_MS) {
+            // 兜底：缓存未初始化（如任务未跑）时惰性刷新一次；限流避免频繁触发
+            refreshKnowledgeTags();
+            tags = knowledgeTagsCache;
+        }
+        return tags;
+    }
+
+    /**
+     * 刷新知识点标签缓存：SQL 侧仅提取 config.knowledge 字段，聚合去重排序
+     */
+    @Override
+    public void refreshKnowledgeTags() {
+        lastRefreshStartTime = System.currentTimeMillis();
+        try {
+            List<String> knowledgeJsonList = challengeDraftMapper.selectKnowledgeJsonList();
+            Set<String> tags = new TreeSet<>();
+            for (String knowledgeJson : knowledgeJsonList) {
+                if (StringUtils.isBlank(knowledgeJson)) {
+                    continue;
+                }
+                try {
+                    List<String> knowledge = objectMapper.readValue(knowledgeJson, new TypeReference<List<String>>() {
+                    });
+                    for (String tag : knowledge) {
+                        if (StringUtils.isNotBlank(tag)) {
+                            tags.add(tag.trim());
+                        }
+                    }
+                } catch (Exception e) {
+                    // 单行解析失败不影响整体刷新（如历史脏数据），记 warn 跳过
+                    log.warn("[refreshKnowledgeTags] 解析知识点 JSON 失败，已跳过: {}", knowledgeJson);
+                }
+            }
+            knowledgeTagsCache = List.copyOf(tags);
+            log.info("[refreshKnowledgeTags] 知识点标签缓存已刷新，共 {} 个", tags.size());
+        } catch (Exception e) {
+            log.error("[refreshKnowledgeTags] 刷新知识点标签缓存失败", e);
+        }
+    }
 
     /**
      * 查询题目列表
@@ -87,7 +153,6 @@ public class ChallengeServiceImpl implements IChallengeService {
     }
 
     private LambdaQueryWrapper<Challenge> buildQueryWrapper(ChallengeBo bo) {
-        Map<String, Object> params = bo.getParams();
         LambdaQueryWrapper<Challenge> lqw = Wrappers.lambdaQuery();
         lqw.orderByAsc(Challenge::getId);
         lqw.eq(StringUtils.isNotBlank(bo.getCategory()), Challenge::getCategory, bo.getCategory());
@@ -97,6 +162,22 @@ public class ChallengeServiceImpl implements IChallengeService {
         if (bo.getPublished() != null) {
             lqw.isNotNull(bo.getPublished(), Challenge::getLatestVersionId);
             lqw.isNull(!bo.getPublished(), Challenge::getLatestVersionId);
+        }
+        // 难度/知识点筛选：题目最新草稿（按创建时间倒序取第一条）的 config JSON 匹配
+        if (StringUtils.isNotBlank(bo.getDifficulty()) || StringUtils.isNotBlank(bo.getKnowledge())) {
+            lqw.exists(
+                "select 1 from t_challenge_draft d " +
+                    "where d.challenge_id = t_challenge.id " +
+                    "and d.del_flag = 0 " +
+                    "and d.id = (select d2.id from t_challenge_draft d2 " +
+                    "            where d2.challenge_id = d.challenge_id and d2.del_flag = 0 " +
+                    "            order by d2.create_time desc, d2.id desc limit 1) " +
+                    (StringUtils.isNotBlank(bo.getDifficulty())
+                        ? "and json_unquote(json_extract(d.config, '$.difficulty')) = {0} " : "") +
+                    (StringUtils.isNotBlank(bo.getKnowledge())
+                        ? "and json_contains(d.config, json_quote({1}), '$.knowledge') " : ""),
+                bo.getDifficulty(), bo.getKnowledge()
+            );
         }
         return lqw;
     }

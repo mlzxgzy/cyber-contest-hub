@@ -27,6 +27,8 @@ const searchParams = ref<Api.Cch.ChallengeSearchParams>({
   category: null,
   name: null,
   remark: null,
+  difficulty: null,
+  knowledge: null,
   published: null,
   params: {}
 });

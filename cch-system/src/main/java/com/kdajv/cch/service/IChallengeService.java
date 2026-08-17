@@ -78,4 +78,16 @@ public interface IChallengeService {
      * @return 初始化的草稿信息（含新题目ID）
      */
     ChallengeDraftVo initChallengeWithDraft(ChallengeDraftBo bo);
+
+    /**
+     * 获取全部知识点标签（缓存，用于搜索下拉）
+     *
+     * @return 去重排序后的知识点标签列表
+     */
+    List<String> listKnowledgeTags();
+
+    /**
+     * 刷新知识点标签缓存（扫描全部草稿 config 聚合）
+     */
+    void refreshKnowledgeTags();
 }

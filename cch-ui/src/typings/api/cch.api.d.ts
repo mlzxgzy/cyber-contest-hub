@@ -38,7 +38,12 @@ declare namespace Api {
         | 'name'
         | 'remark'
         | 'published'
-      > &
+      > & {
+        /** 难度（最新草稿 config.difficulty，字典 cch_question_difficulty） */
+        difficulty?: string;
+        /** 知识点（最新草稿 config.knowledge 标签） */
+        knowledge?: string;
+      } &
       Api.Common.CommonSearchParams
     >;
 

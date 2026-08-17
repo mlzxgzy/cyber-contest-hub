@@ -82,10 +82,11 @@ public class ChallengeDraftServiceImpl implements IChallengeDraftService {
      */
     @Override
     public ChallengeDraftVo queryTop1ByChallengeIdOrderByCreateTimeDesc(Long challengeId) {
-        // 查询最新的草稿记录
+        // 查询最新的草稿记录（create_time 相同以 id 兜底，与题目列表搜索的最新草稿语义保持一致）
         LambdaQueryWrapper<ChallengeDraft> draftQueryWrapper = Wrappers.lambdaQuery();
         draftQueryWrapper.eq(ChallengeDraft::getChallengeId, challengeId);
         draftQueryWrapper.orderByDesc(ChallengeDraft::getCreateTime);
+        draftQueryWrapper.orderByDesc(ChallengeDraft::getId);
         draftQueryWrapper.last("LIMIT 1");
         return baseMapper.selectVoOne(draftQueryWrapper);
     }

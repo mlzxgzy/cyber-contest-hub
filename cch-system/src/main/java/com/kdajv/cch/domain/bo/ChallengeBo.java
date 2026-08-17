@@ -50,5 +50,15 @@ public class ChallengeBo extends BaseEntity {
      */
     private Boolean published;
 
+    /**
+     * 难度筛选（查询用，对应最新草稿 config.difficulty 的字典值，如 3medium）
+     */
+    private String difficulty;
+
+    /**
+     * 知识点筛选（查询用，对应最新草稿 config.knowledge 中的标签）
+     */
+    private String knowledge;
+
 
 }

@@ -55,6 +55,15 @@ public class ChallengeController extends BaseController {
     }
 
     /**
+     * 获取知识点标签列表（用于搜索下拉，缓存维护）
+     */
+    @SaCheckPermission("cch:challenge:list")
+    @GetMapping("/knowledgeTags")
+    public R<List<String>> knowledgeTags() {
+        return R.ok(challengeService.listKnowledgeTags());
+    }
+
+    /**
      * 导出题目列表列表
      */
     @SaCheckPermission("cch:challenge:export")

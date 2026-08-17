@@ -12,7 +12,7 @@ export function fetchGetChallengeList(params?: Api.Cch.ChallengeSearchParams) {
 /** 获取题目列表列表 */
 export function fetchGetChallengeById(challengeId: CommonType.IdType) {
     return request<Api.Cch.Challenge>({
-        url: '/cch/challenge/' + challengeId,
+        url: `/cch/challenge/${challengeId}`,
         method: 'get',
     });
 }
@@ -64,6 +64,14 @@ export function fetchChallengeDraftByChallengeId(challengeId: CommonType.IdType)
 export function fetchGetChallengeProjects(challengeId: CommonType.IdType) {
     return request<Api.Cch.ProjectChallenge[]>({
         url: `/cch/challenge/${challengeId}/projects`,
+        method: 'get'
+    });
+}
+
+/** 获取知识点标签列表（搜索下拉使用） */
+export function fetchGetChallengeKnowledgeTags() {
+    return request<string[]>({
+        url: '/cch/challenge/knowledgeTags',
         method: 'get'
     });
 }
