@@ -6,16 +6,23 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kdajv.cch.domain.Challenge;
+import com.kdajv.cch.domain.ChallengeContainerImage;
 import com.kdajv.cch.domain.ChallengeDraft;
+import com.kdajv.cch.domain.ChallengeFile;
 import com.kdajv.cch.domain.ChallengeVersion;
 import com.kdajv.cch.domain.DraftConfig;
 import com.kdajv.cch.domain.bo.ChallengeBo;
 import com.kdajv.cch.domain.bo.ChallengeDraftBo;
 import com.kdajv.cch.domain.vo.ChallengeDraftVo;
 import com.kdajv.cch.domain.vo.ChallengeVo;
+import com.kdajv.cch.domain.ProjectChallenge;
+import com.kdajv.cch.enums.ChallengeStatus;
+import com.kdajv.cch.mapper.ChallengeContainerImageMapper;
 import com.kdajv.cch.mapper.ChallengeDraftMapper;
+import com.kdajv.cch.mapper.ChallengeFileMapper;
 import com.kdajv.cch.mapper.ChallengeMapper;
 import com.kdajv.cch.mapper.ChallengeVersionMapper;
+import com.kdajv.cch.mapper.ProjectChallengeMapper;
 import com.kdajv.cch.service.IChallengeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -49,6 +56,9 @@ public class ChallengeServiceImpl implements IChallengeService {
     private final ChallengeMapper baseMapper;
     private final ChallengeDraftMapper challengeDraftMapper;
     private final ChallengeVersionMapper challengeVersionMapper;
+    private final ChallengeFileMapper challengeFileMapper;
+    private final ChallengeContainerImageMapper challengeContainerImageMapper;
+    private final ProjectChallengeMapper projectChallengeMapper;
     private final ObjectMapper objectMapper;
 
     /**
@@ -156,9 +166,11 @@ public class ChallengeServiceImpl implements IChallengeService {
     private LambdaQueryWrapper<Challenge> buildQueryWrapper(ChallengeBo bo) {
         LambdaQueryWrapper<Challenge> lqw = Wrappers.lambdaQuery();
         lqw.orderByAsc(Challenge::getId);
+        lqw.like(StringUtils.isNotBlank(bo.getCode()), Challenge::getCode, bo.getCode());
         lqw.eq(StringUtils.isNotBlank(bo.getCategory()), Challenge::getCategory, bo.getCategory());
         lqw.like(StringUtils.isNotBlank(bo.getName()), Challenge::getName, bo.getName());
         lqw.eq(StringUtils.isNotBlank(bo.getRemark()), Challenge::getRemark, bo.getRemark());
+        lqw.eq(bo.getStatus() != null, Challenge::getStatus, bo.getStatus());
         // 入库状态筛选：true=已入库（latestVersionId 非空），false=草稿中（latestVersionId 为空）
         if (bo.getPublished() != null) {
             lqw.isNotNull(bo.getPublished(), Challenge::getLatestVersionId);
@@ -226,12 +238,17 @@ public class ChallengeServiceImpl implements IChallengeService {
      * @return 是否新增成功
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Boolean insertByBo(ChallengeBo bo) {
         Challenge add = MapstructUtils.convert(bo, Challenge.class);
         validEntityBeforeSave(add);
+        // 编码由系统生成，忽略外部传入
+        add.setCode(null);
+        add.setStatus(ChallengeStatus.DRAFT.getCode());
         boolean flag = baseMapper.insert(add) > 0;
         if (flag) {
             bo.setId(add.getId());
+            fillChallengeCode(add);
         }
         return flag;
     }
@@ -246,6 +263,8 @@ public class ChallengeServiceImpl implements IChallengeService {
     public Boolean updateByBo(ChallengeBo bo) {
         Challenge update = MapstructUtils.convert(bo, Challenge.class);
         validEntityBeforeSave(update);
+        // 编码由系统生成，不允许修改（updateStrategy=NOT_NULL，置 null 即不更新该列）
+        update.setCode(null);
         return baseMapper.updateById(update) > 0;
     }
 
@@ -253,21 +272,56 @@ public class ChallengeServiceImpl implements IChallengeService {
      * 保存前的数据校验
      */
     private void validEntityBeforeSave(Challenge entity) {
-        //TODO 做一些数据校验,如唯一约束
+        if (StringUtils.isNotBlank(entity.getName())) {
+            entity.setName(entity.getName().trim());
+        }
+    }
+
+    /**
+     * 生成题目业务编码（CH + 主键ID，唯一）
+     *
+     * @param challenge 已插入的题目实体（含主键）
+     */
+    private void fillChallengeCode(Challenge challenge) {
+        Challenge update = new Challenge();
+        update.setId(challenge.getId());
+        update.setCode("CH" + challenge.getId());
+        baseMapper.updateById(update);
+        challenge.setCode(update.getCode());
     }
 
     /**
      * 校验并批量删除题目列表信息
+     * <p>删除前校验：被项目引用的题目不允许删除；
+     * 删除时级联软删草稿、版本、题目文件与容器镜像。</p>
      *
      * @param ids     待删除的主键集合
      * @param isValid 是否进行有效性校验
      * @return 是否删除成功
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Boolean deleteWithValidByIds(Collection<Long> ids, Boolean isValid) {
-        if (isValid) {
-            //TODO 做一些业务上的校验,判断是否需要校验
+        if (ids == null || ids.isEmpty()) {
+            return false;
         }
+        if (isValid) {
+            // 校验题目是否被项目引用（t_project_challenge）
+            Long refCount = projectChallengeMapper.selectCount(Wrappers.<ProjectChallenge>lambdaQuery()
+                .in(ProjectChallenge::getChallengeId, ids));
+            if (refCount != null && refCount > 0) {
+                throw new ServiceException("题目已被项目引用，请先从项目中移除后再删除");
+            }
+        }
+        // 级联软删：草稿、版本、题目文件、容器镜像
+        challengeDraftMapper.delete(Wrappers.<ChallengeDraft>lambdaQuery()
+            .in(ChallengeDraft::getChallengeId, ids));
+        challengeVersionMapper.delete(Wrappers.<ChallengeVersion>lambdaQuery()
+            .in(ChallengeVersion::getChallengeId, ids));
+        challengeFileMapper.delete(Wrappers.<ChallengeFile>lambdaQuery()
+            .in(ChallengeFile::getChallengeId, ids));
+        challengeContainerImageMapper.delete(Wrappers.<ChallengeContainerImage>lambdaQuery()
+            .in(ChallengeContainerImage::getChallengeId, ids));
         return baseMapper.deleteByIds(ids) > 0;
     }
 
@@ -294,12 +348,14 @@ public class ChallengeServiceImpl implements IChallengeService {
             throw new ServiceException("已存在同名题目：" + bo.getChallengeName().trim());
         }
 
-        // 1. 创建题目骨架（t_challenge）
+        // 1. 创建题目骨架（t_challenge），编码由系统生成（CH + 主键ID），初始状态为草稿中
         Challenge challenge = new Challenge();
         challenge.setCategory(bo.getChallengeCategory());
         challenge.setName(bo.getChallengeName().trim());
         challenge.setRemark(StringUtils.isBlank(bo.getChallengeRemark()) ? "" : bo.getChallengeRemark());
+        challenge.setStatus(ChallengeStatus.DRAFT.getCode());
         baseMapper.insert(challenge);
+        fillChallengeCode(challenge);
 
         // 2. 创建首个草稿（t_challenge_draft），config 为空时给默认对象，避免后续编辑页空指针
         ChallengeDraft draft = new ChallengeDraft();

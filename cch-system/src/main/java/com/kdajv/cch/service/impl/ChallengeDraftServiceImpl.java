@@ -58,7 +58,7 @@ public class ChallengeDraftServiceImpl implements IChallengeDraftService {
     @Override
     public TableDataInfo<ChallengeDraftVo> queryPageList(ChallengeDraftBo bo, PageQuery pageQuery) {
         LambdaQueryWrapper<ChallengeDraft> lqw = buildQueryWrapper(bo);
-        Page<ChallengeDraftVo> result = baseMapper.selectVoPage(pageQuery.build(), lqw);
+        Page<ChallengeDraftVo> result = baseMapper.selectPageDraftList(pageQuery.build(), lqw);
         return TableDataInfo.build(result);
     }
 
@@ -71,7 +71,7 @@ public class ChallengeDraftServiceImpl implements IChallengeDraftService {
     @Override
     public List<ChallengeDraftVo> queryList(ChallengeDraftBo bo) {
         LambdaQueryWrapper<ChallengeDraft> lqw = buildQueryWrapper(bo);
-        return baseMapper.selectVoList(lqw);
+        return baseMapper.selectDraftList(lqw);
     }
 
     /**

@@ -49,8 +49,10 @@ const publishedSelect = ref<'1' | '0' | null>(null);
 watch(publishedSelect, val => {
   if (val === '1') {
     model.value.published = true;
+    model.value.status = null;
   } else if (val === '0') {
     model.value.published = false;
+    model.value.status = null;
   } else {
     model.value.published = null;
   }
@@ -64,6 +66,17 @@ watch(
       publishedSelect.value = '0';
     } else {
       publishedSelect.value = null;
+    }
+  }
+);
+
+// 题目状态筛选（0-草稿中，1-已入库，2-已停用）；选择后清除入库状态筛选避免冲突
+watch(
+  () => model.value.status,
+  val => {
+    if (val !== null && val !== undefined) {
+      publishedSelect.value = null;
+      model.value.published = null;
     }
   }
 );
@@ -92,6 +105,9 @@ async function search() {
       <NCollapseItem :title="$t('common.search')" name="cch-challenge-search">
         <NForm ref="formRef" :label-width="80" :model="model" label-placement="left">
           <NGrid item-responsive responsive="screen">
+            <NFormItemGi class="pr-24px" label="题目编码" label-width="auto" path="code" span="24 s:12 m:6">
+              <NInput v-model:value="model.code" placeholder="请输入题目编码，如 CH1024"/>
+            </NFormItemGi>
             <NFormItemGi class="pr-24px" label="题目类型" label-width="auto" path="category" span="24 s:12 m:6">
               <NSelect
                 v-model:value="model.category"
@@ -122,6 +138,18 @@ async function search() {
                 filterable
                 clearable
                 placeholder="请选择知识点"
+              />
+            </NFormItemGi>
+            <NFormItemGi class="pr-24px" label="题目状态" label-width="auto" path="status" span="24 s:12 m:6">
+              <NSelect
+                v-model:value="model.status"
+                :options="[
+                  {label: '草稿中', value: 0},
+                  {label: '已入库', value: 1},
+                  {label: '已停用', value: 2}
+                ]"
+                clearable
+                placeholder="全部"
               />
             </NFormItemGi>
             <NFormItemGi class="pr-24px" label="入库状态" label-width="auto" path="published" span="24 s:12 m:6">

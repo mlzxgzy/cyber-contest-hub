@@ -67,6 +67,14 @@ public interface IChallengeVersionExportTaskService {
     void executeExportTask(Long taskId);
 
     /**
+     * 重试失败的导出任务
+     *
+     * @param taskId 任务ID
+     * @return 是否重试成功
+     */
+    Boolean retryExportTask(Long taskId);
+
+    /**
      * 获取下载链接
      *
      * @param taskId 任务ID

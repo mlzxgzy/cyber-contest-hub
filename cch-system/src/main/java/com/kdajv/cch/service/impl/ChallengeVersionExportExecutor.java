@@ -4,6 +4,8 @@ import cn.hutool.core.date.DateTime;
 import com.kdajv.cch.container.ContainerClient;
 import com.kdajv.cch.domain.ChallengeVersionExportTask;
 import com.kdajv.cch.domain.DraftConfig;
+import com.kdajv.cch.enums.ExportTaskStatus;
+import com.kdajv.cch.enums.ImageStatus;
 import com.kdajv.cch.domain.vo.ChallengeContainerImageVo;
 import com.kdajv.cch.domain.vo.ChallengeFileVo;
 import com.kdajv.cch.domain.vo.ChallengeVo;
@@ -110,8 +112,8 @@ public class ChallengeVersionExportExecutor {
             return;
         }
 
-        // 检查任务状态，只有处理中状态才能执行（队列管理器已将状态从0更新为1）
-        if (task.getTaskStatus() != 1) {
+        // 检查任务状态，只有处理中状态才能执行（队列管理器已将状态从待处理更新为处理中）
+        if (task.getTaskStatus() != ExportTaskStatus.PROCESSING.getCode()) {
             log.warn("任务状态不正确，无法执行，任务ID: {}, 当前状态: {}", taskId, task.getTaskStatus());
             return;
         }
@@ -190,7 +192,7 @@ public class ChallengeVersionExportExecutor {
             LocalDateTime expireTime = LocalDateTime.now().plusHours(retentionHours);
 
             // 更新任务状态
-            task.setTaskStatus(2); // 已完成
+            task.setTaskStatus(ExportTaskStatus.COMPLETED.getCode()); // 已完成
             task.setOssFileId(ossFileId);
             task.setOssFileName(uploadResult.getFilename());
             task.setFileSize(fileSize);
@@ -209,7 +211,7 @@ public class ChallengeVersionExportExecutor {
             cleanupOssFile(uploadedOssFileId, uploadedOssFileName);
 
             // 更新任务状态为失败
-            task.setTaskStatus(3); // 失败
+            task.setTaskStatus(ExportTaskStatus.FAILED.getCode()); // 失败
             // 限制错误信息长度，防止过长错误信息导致的问题
             String errorMessage = e.getMessage();
             if (errorMessage != null && errorMessage.length() > MAX_ERROR_MESSAGE_LENGTH) {
@@ -501,7 +503,7 @@ public class ChallengeVersionExportExecutor {
         }
 
         for (ChallengeContainerImageVo image : images) {
-            if (!"available".equals(image.getStatus())) {
+            if (!ImageStatus.AVAILABLE.getCode().equals(image.getStatus())) {
                 log.debug("镜像状态非 available，跳过: id={}, status={}", image.getId(), image.getStatus());
                 continue;
             }

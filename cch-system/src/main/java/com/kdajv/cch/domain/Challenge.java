@@ -30,6 +30,11 @@ public class Challenge extends BaseEntity {
     private Long id;
 
     /**
+     * 题目编码（唯一业务编码，格式 CH + 主键ID）
+     */
+    private String code;
+
+    /**
      * 题目类型
      */
     private String category;
@@ -48,6 +53,11 @@ public class Challenge extends BaseEntity {
      * 题目最新版ID
      */
     private Long latestVersionId;
+
+    /**
+     * 题目状态（0-草稿中，1-已入库，2-已停用）
+     */
+    private Integer status;
 
     /**
      * 删除标志

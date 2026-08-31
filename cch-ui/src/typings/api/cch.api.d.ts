@@ -14,6 +14,8 @@ declare namespace Api {
     type Challenge = Common.CommonRecord<{
       /** 主键 */
       id: CommonType.IdType;
+      /** 题目编码（唯一业务编码） */
+      code: string;
       /** 题目类型 */
       category: string;
       /** 题目名称 */
@@ -22,6 +24,8 @@ declare namespace Api {
       remark: string;
       /** 题目最新版ID */
       latestVersionId: CommonType.IdType;
+      /** 题目状态（0-草稿中，1-已入库，2-已停用） */
+      status: number;
       /** 是否已入库（latestVersionId 非空即已发版入库） */
       published: boolean;
       /** 最新版本号（关联版本表补充） */
@@ -34,9 +38,11 @@ declare namespace Api {
     type ChallengeSearchParams = CommonType.RecordNullable<
       Pick<
         Api.Cch.Challenge,
+        | 'code'
         | 'category'
         | 'name'
         | 'remark'
+        | 'status'
         | 'published'
       > & {
         /** 难度（最新草稿 config.difficulty，字典 cch_question_difficulty） */
@@ -238,6 +244,8 @@ declare namespace Api {
       challengeName?: string;
       /** 任务状态（0-待处理，1-处理中，2-已完成，3-失败） */
       taskStatus: 0 | 1 | 2 | 3;
+      /** 重试次数 */
+      retryCount?: number;
       /** 任务状态文本 */
       taskStatusText?: string;
       /** OSS文件ID */

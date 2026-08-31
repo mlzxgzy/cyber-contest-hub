@@ -34,6 +34,12 @@ public class ChallengeVo implements Serializable {
     private Long id;
 
     /**
+     * 题目编码（唯一业务编码）
+     */
+    @ExcelProperty(value = "题目编码")
+    private String code;
+
+    /**
      * 题目类型
      */
     @ExcelProperty(value = "题目类型", converter = ExcelDictConvert.class)
@@ -62,6 +68,11 @@ public class ChallengeVo implements Serializable {
      * 是否已入库（latestVersionId 非空即已发版入库）
      */
     private Boolean published;
+
+    /**
+     * 题目状态（0-草稿中，1-已入库，2-已停用）
+     */
+    private Integer status;
 
     /**
      * 最新版本号（关联版本表补充）

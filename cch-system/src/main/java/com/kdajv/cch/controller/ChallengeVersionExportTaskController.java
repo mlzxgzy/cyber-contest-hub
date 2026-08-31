@@ -86,6 +86,16 @@ public class ChallengeVersionExportTaskController extends BaseController {
     }
 
     /**
+     * 重试失败的导出任务
+     */
+    @SaCheckPermission("cch:challengeVersion:export")
+    @Log(title = "题目版本导出任务", businessType = BusinessType.UPDATE)
+    @PostMapping("/task/{id}/retry")
+    public R<Void> retryTask(@NotNull(message = "任务ID不能为空") @PathVariable Long id) {
+        return toAjax(exportTaskService.retryExportTask(id));
+    }
+
+    /**
      * 删除导出任务
      */
     @SaCheckPermission("cch:challengeVersion:export")

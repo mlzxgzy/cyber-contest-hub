@@ -28,6 +28,11 @@ public class ChallengeBo extends BaseEntity {
     private Long id;
 
     /**
+     * 题目编码（查询用，支持模糊匹配）
+     */
+    private String code;
+
+    /**
      * 题目类型
      */
     @NotBlank(message = "题目类型不能为空", groups = {AddGroup.class, EditGroup.class})
@@ -49,6 +54,11 @@ public class ChallengeBo extends BaseEntity {
      * 入库状态筛选（查询用）：true=已入库（有最新版本），false=草稿中（未发版），null=全部
      */
     private Boolean published;
+
+    /**
+     * 题目状态筛选（查询用）：0-草稿中，1-已入库，2-已停用，null=全部
+     */
+    private Integer status;
 
     /**
      * 难度筛选（查询用，对应最新草稿 config.difficulty 的字典值，如 3medium）

@@ -70,7 +70,7 @@ public class ChallengeFileServiceImpl implements IChallengeFileService {
     @Override
     public TableDataInfo<ChallengeFileVo> queryPageList(ChallengeFileBo bo, PageQuery pageQuery) {
         LambdaQueryWrapper<ChallengeFile> lqw = buildQueryWrapper(bo);
-        Page<ChallengeFileVo> result = baseMapper.selectVoPage(pageQuery.build(), lqw);
+        Page<ChallengeFileVo> result = baseMapper.selectPageFileList(pageQuery.build(), lqw);
         return TableDataInfo.build(result);
     }
 
@@ -83,7 +83,7 @@ public class ChallengeFileServiceImpl implements IChallengeFileService {
     @Override
     public List<ChallengeFileVo> queryList(ChallengeFileBo bo) {
         LambdaQueryWrapper<ChallengeFile> lqw = buildQueryWrapper(bo);
-        return baseMapper.selectVoList(lqw);
+        return baseMapper.selectFileList(lqw);
     }
 
     private LambdaQueryWrapper<ChallengeFile> buildQueryWrapper(ChallengeFileBo bo) {

@@ -2,11 +2,13 @@ package com.kdajv.cch.service.impl;
 
 import cn.hutool.core.date.DateTime;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.kdajv.cch.domain.ChallengeVersionExportTask;
 import com.kdajv.cch.domain.bo.ChallengeVersionExportTaskBo;
 import com.kdajv.cch.domain.vo.ChallengeVersionExportTaskVo;
+import com.kdajv.cch.enums.ExportTaskStatus;
 import com.kdajv.cch.mapper.ChallengeVersionExportTaskMapper;
 import com.kdajv.cch.service.IChallengeVersionExportTaskService;
 import com.kdajv.cch.service.IChallengeVersionService;
@@ -50,6 +52,11 @@ public class ChallengeVersionExportTaskServiceImpl implements IChallengeVersionE
      * 批量操作最大数量限制，防止资源耗尽攻击
      */
     private static final int MAX_BATCH_SIZE = 100;
+
+    /**
+     * 单个任务最大重试次数
+     */
+    private static final int MAX_RETRY_COUNT = 5;
 
     /**
      * 查询题目版本导出任务
@@ -116,16 +123,74 @@ public class ChallengeVersionExportTaskServiceImpl implements IChallengeVersionE
             throw new ServiceException("题目版本不存在");
         }
 
+        // 幂等校验：同版本同参数的任务已存在待处理/处理中记录时拒绝重复创建
+        Long activeCount = baseMapper.selectCount(Wrappers.<ChallengeVersionExportTask>lambdaQuery()
+            .eq(ChallengeVersionExportTask::getVersionId, versionId)
+            .eq(ChallengeVersionExportTask::getIncludeImages, includeImages)
+            .in(ChallengeVersionExportTask::getTaskStatus,
+                ExportTaskStatus.PENDING.getCode(), ExportTaskStatus.PROCESSING.getCode()));
+        if (activeCount != null && activeCount > 0) {
+            throw new ServiceException(String.format("版本「%s」已有进行中的导出任务，请等待完成后再创建",
+                version.getVersionTag()));
+        }
+
         // 创建任务
         ChallengeVersionExportTask task = new ChallengeVersionExportTask();
         task.setVersionId(versionId);
         task.setVersionTag(version.getVersionTag());
         task.setIncludeImages(includeImages);
-        task.setTaskStatus(0); // 待处理
+        task.setTaskStatus(ExportTaskStatus.PENDING.getCode()); // 待处理
+        task.setRetryCount(0);
         baseMapper.insert(task);
 
         log.info("创建导出任务成功，任务ID: {}, 版本ID: {}, 包含镜像: {}", task.getId(), versionId, includeImages);
         return task.getId();
+    }
+
+    /**
+     * 重试失败的导出任务
+     * <p>仅失败状态的任务允许重试；重试次数达到上限后拒绝；
+     * 重试时累加重试次数、重置为待处理状态并清空历史下载信息。</p>
+     *
+     * @param taskId 任务ID
+     * @return 是否重试成功
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Boolean retryExportTask(Long taskId) {
+        if (taskId == null || taskId <= 0) {
+            throw new ServiceException("任务ID无效");
+        }
+        ChallengeVersionExportTask task = baseMapper.selectById(taskId);
+        if (task == null) {
+            throw new ServiceException("导出任务不存在");
+        }
+        if (task.getTaskStatus() != ExportTaskStatus.FAILED.getCode()) {
+            throw new ServiceException("仅失败的任务允许重试");
+        }
+        int retryCount = task.getRetryCount() == null ? 0 : task.getRetryCount();
+        if (retryCount >= MAX_RETRY_COUNT) {
+            throw new ServiceException(String.format("该任务已重试 %d 次，达到上限，请检查失败原因后删除重建", MAX_RETRY_COUNT));
+        }
+
+        task.setTaskStatus(ExportTaskStatus.PENDING.getCode());
+        task.setRetryCount(retryCount + 1);
+        // 清空历史产物信息，避免重试期间误导下载
+        // （全局 updateStrategy=NOT_NULL，实体 null 字段不更新，需用 UpdateWrapper 显式 set null）
+        LambdaUpdateWrapper<ChallengeVersionExportTask> luw = Wrappers.<ChallengeVersionExportTask>lambdaUpdate()
+            .eq(ChallengeVersionExportTask::getId, taskId)
+            .set(ChallengeVersionExportTask::getTaskStatus, ExportTaskStatus.PENDING.getCode())
+            .set(ChallengeVersionExportTask::getRetryCount, retryCount + 1)
+            .set(ChallengeVersionExportTask::getErrorMessage, null)
+            .set(ChallengeVersionExportTask::getOssFileId, null)
+            .set(ChallengeVersionExportTask::getOssFileName, null)
+            .set(ChallengeVersionExportTask::getFileSize, null)
+            .set(ChallengeVersionExportTask::getDownloadUrl, null)
+            .set(ChallengeVersionExportTask::getExpireTime, null);
+        baseMapper.update(null, luw);
+
+        log.info("重试导出任务，任务ID: {}, 第 {} 次重试", taskId, retryCount + 1);
+        return true;
     }
 
     /**
@@ -187,7 +252,7 @@ public class ChallengeVersionExportTaskServiceImpl implements IChallengeVersionE
         if (task == null) {
             throw new ServiceException("导出任务不存在");
         }
-        if (task.getTaskStatus() != 2) {
+        if (task.getTaskStatus() != ExportTaskStatus.COMPLETED.getCode()) {
             throw new ServiceException("任务尚未完成，无法下载");
         }
         if (StringUtils.isBlank(task.getDownloadUrl())) {
@@ -205,7 +270,7 @@ public class ChallengeVersionExportTaskServiceImpl implements IChallengeVersionE
     @Transactional(rollbackFor = Exception.class)
     public int cleanupExpiredFiles() {
         LambdaQueryWrapper<ChallengeVersionExportTask> lqw = Wrappers.lambdaQuery();
-        lqw.eq(ChallengeVersionExportTask::getTaskStatus, 2) // 已完成
+        lqw.eq(ChallengeVersionExportTask::getTaskStatus, ExportTaskStatus.COMPLETED.getCode()) // 已完成
             .isNotNull(ChallengeVersionExportTask::getExpireTime)
             .lt(ChallengeVersionExportTask::getExpireTime, LocalDateTime.now());
 
@@ -228,7 +293,7 @@ public class ChallengeVersionExportTaskServiceImpl implements IChallengeVersionE
 
                 // 更新任务状态（标记为已过期，但不删除记录）
                 // 注意：状态3表示失败，这里用于表示文件已过期被清理
-                task.setTaskStatus(3); // 失败状态，表示已过期
+                task.setTaskStatus(ExportTaskStatus.FAILED.getCode()); // 失败状态，表示已过期
                 task.setErrorMessage("文件已过期，已被系统自动清理");
                 task.setUpdateTime(DateTime.now());
                 baseMapper.updateById(task);
@@ -375,21 +440,11 @@ public class ChallengeVersionExportTaskServiceImpl implements IChallengeVersionE
     private void enrichVo(ChallengeVersionExportTaskVo vo, Map<Long, String> challengeNameMap) {
         // 任务状态文本
         if (vo.getTaskStatus() != null) {
-            switch (vo.getTaskStatus()) {
-                case 0:
-                    vo.setTaskStatusText("待处理");
-                    break;
-                case 1:
-                    vo.setTaskStatusText("处理中");
-                    break;
-                case 2:
-                    vo.setTaskStatusText("已完成");
-                    break;
-                case 3:
-                    vo.setTaskStatusText("失败");
-                    break;
-                default:
-                    vo.setTaskStatusText("未知");
+            switch (ExportTaskStatus.of(vo.getTaskStatus())) {
+                case PENDING -> vo.setTaskStatusText("待处理");
+                case PROCESSING -> vo.setTaskStatusText("处理中");
+                case COMPLETED -> vo.setTaskStatusText("已完成");
+                case FAILED -> vo.setTaskStatusText("失败");
             }
         }
 

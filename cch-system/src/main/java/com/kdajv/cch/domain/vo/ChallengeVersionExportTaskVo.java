@@ -47,6 +47,11 @@ public class ChallengeVersionExportTaskVo implements Serializable {
     private Integer taskStatus;
 
     /**
+     * 重试次数
+     */
+    private Integer retryCount;
+
+    /**
      * 任务状态文本
      */
     private String taskStatusText;

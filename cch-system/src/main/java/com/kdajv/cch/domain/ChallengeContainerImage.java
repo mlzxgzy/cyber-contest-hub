@@ -81,4 +81,10 @@ public class ChallengeContainerImage extends BaseEntity {
      * 错误信息
      */
     private String errorMessage;
+
+    /**
+     * 删除标志
+     */
+    @TableLogic
+    private Long delFlag;
 }

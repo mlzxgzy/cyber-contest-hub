@@ -24,11 +24,13 @@ const {hasAuth} = useAuth();
 const searchParams = ref<Api.Cch.ChallengeSearchParams>({
   pageNum: 1,
   pageSize: 10,
+  code: null,
   category: null,
   name: null,
   remark: null,
   difficulty: null,
   knowledge: null,
+  status: null,
   published: null,
   params: {}
 });
@@ -61,6 +63,12 @@ const {columns, columnChecks, data, getData, getDataByPage, loading, mobilePagin
         minWidth: 120,
       },
       {
+        key: 'code',
+        title: '题目编码',
+        align: 'center',
+        minWidth: 110
+      },
+      {
         key: 'category',
         title: '题目类型',
         align: 'center',
@@ -86,11 +94,14 @@ const {columns, columnChecks, data, getData, getDataByPage, loading, mobilePagin
       },
       {
         key: 'status',
-        title: '入库状态',
+        title: '题目状态',
         align: 'center',
         minWidth: 130,
         render: row => {
-          if (!row.latestVersionId) {
+          if (row.status === 2) {
+            return <NTag type="error" size="small" bordered={false}>已停用</NTag>;
+          }
+          if (row.status === 0 || !row.latestVersionId) {
             return <NTag type="warning" size="small" bordered={false}>草稿</NTag>;
           }
           return (

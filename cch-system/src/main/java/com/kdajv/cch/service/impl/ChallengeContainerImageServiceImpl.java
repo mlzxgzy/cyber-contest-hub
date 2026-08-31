@@ -4,11 +4,15 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.kdajv.cch.domain.ChallengeContainerImage;
+import com.kdajv.cch.domain.ChallengeDraft;
+import com.kdajv.cch.domain.DraftConfig;
 import com.kdajv.cch.domain.bo.ChallengeContainerImageBo;
 import com.kdajv.cch.domain.vo.ChallengeContainerImageVo;
 import com.kdajv.cch.mapper.ChallengeContainerImageMapper;
+import com.kdajv.cch.mapper.ChallengeDraftMapper;
 import com.kdajv.cch.service.IChallengeContainerImageService;
 import lombok.RequiredArgsConstructor;
+import org.dromara.common.core.exception.ServiceException;
 import org.dromara.common.core.utils.StringUtils;
 import org.dromara.common.mybatis.core.page.PageQuery;
 import org.dromara.common.mybatis.core.page.TableDataInfo;
@@ -32,6 +36,7 @@ import java.util.List;
 public class ChallengeContainerImageServiceImpl implements IChallengeContainerImageService {
 
     private final ChallengeContainerImageMapper baseMapper;
+    private final ChallengeDraftMapper challengeDraftMapper;
 
     private static final Logger log = LoggerFactory.getLogger(ChallengeContainerImageServiceImpl.class);
 
@@ -115,12 +120,21 @@ public class ChallengeContainerImageServiceImpl implements IChallengeContainerIm
 
     /**
      * 批量删除挑战容器镜像
+     * <p>删除前校验：被题目草稿（靶机配置）引用的镜像不允许删除，防止已发版题目悬空引用。</p>
      */
     @Override
     public Boolean deleteWithValidByIds(Collection<Long> ids, Boolean isValid) {
+        if (ids == null || ids.isEmpty()) {
+            return false;
+        }
         if (isValid) {
             // 获取要删除的记录信息
             List<ChallengeContainerImageVo> imagesToDelete = baseMapper.selectVoList(new LambdaQueryWrapper<ChallengeContainerImage>().in(ChallengeContainerImage::getId, ids));
+
+            // 校验镜像是否被题目草稿的靶机配置引用
+            for (ChallengeContainerImageVo image : imagesToDelete) {
+                checkImageNotReferenced(image);
+            }
 
             // 尝试删除OSS中的文件
             for (ChallengeContainerImageVo image : imagesToDelete) {
@@ -138,6 +152,32 @@ public class ChallengeContainerImageServiceImpl implements IChallengeContainerIm
         }
 
         return baseMapper.deleteByIds(ids) > 0;
+    }
+
+    /**
+     * 校验镜像未被题目草稿的靶机配置引用
+     *
+     * @param image 待删除的镜像
+     */
+    private void checkImageNotReferenced(ChallengeContainerImageVo image) {
+        if (image.getChallengeId() == null) {
+            return;
+        }
+        List<ChallengeDraft> drafts = challengeDraftMapper.selectList(Wrappers.<ChallengeDraft>lambdaQuery()
+            .eq(ChallengeDraft::getChallengeId, image.getChallengeId()));
+        for (ChallengeDraft draft : drafts) {
+            DraftConfig config = draft.getConfig();
+            if (config == null || config.getContainerTargets() == null) {
+                continue;
+            }
+            for (DraftConfig.ContainerTarget target : config.getContainerTargets()) {
+                if (target != null && image.getId().equals(target.getImageId())) {
+                    throw new ServiceException(String.format(
+                        "镜像「%s」已被题目草稿的靶机「%s」引用，请先在草稿中移除该靶机配置后再删除",
+                        image.getImageName(), target.getName()));
+                }
+            }
+        }
     }
 
     /**

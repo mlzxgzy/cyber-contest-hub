@@ -36,6 +36,14 @@ export function fetchGetExportTaskDownloadUrl(taskId: CommonType.IdType) {
   });
 }
 
+/** 重试失败的导出任务 */
+export function fetchRetryExportTask(taskId: CommonType.IdType) {
+  return request<boolean>({
+    url: `/cch/challengeVersion/export/task/${taskId}/retry`,
+    method: 'post'
+  });
+}
+
 /** 批量删除导出任务 */
 export function fetchBatchDeleteExportTask(ids: CommonType.IdType[]) {
   return request<boolean>({

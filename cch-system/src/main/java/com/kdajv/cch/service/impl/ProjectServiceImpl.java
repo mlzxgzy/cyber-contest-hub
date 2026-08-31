@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.kdajv.cch.domain.*;
+import com.kdajv.cch.enums.ChallengeStatus;
 import com.kdajv.cch.domain.bo.ProjectBo;
 import com.kdajv.cch.domain.bo.ProjectChallengeBo;
 import com.kdajv.cch.domain.bo.ProjectMemberBo;
@@ -58,6 +59,7 @@ public class ProjectServiceImpl implements IProjectService {
     private final ISysUserService sysUserService;
     private final ISysOssService sysOssService;
     private final IChallengeVersionService challengeVersionService;
+    private final ChallengeMapper challengeMapper;
     private final ISysConfigService sysConfigService;
 
     /**
@@ -634,6 +636,12 @@ public class ProjectServiceImpl implements IProjectService {
             var versionVo = challengeVersionService.queryById(challengeBo.getVersionId());
             if (ObjectUtil.isNull(versionVo)) {
                 throw new ServiceException("题目版本不存在，版本ID: " + challengeBo.getVersionId());
+            }
+
+            // 停用的题目不允许导入项目
+            Challenge challenge = challengeMapper.selectById(versionVo.getChallengeId());
+            if (ObjectUtil.isNotNull(challenge) && ChallengeStatus.DISABLED.getCode() == challenge.getStatus()) {
+                throw new ServiceException(String.format("题目「%s」已停用，不允许导入项目", challenge.getName()));
             }
 
             // 检查是否已经导入

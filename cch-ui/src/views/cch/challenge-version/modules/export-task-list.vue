@@ -4,7 +4,8 @@ import {NTag, NTooltip} from 'naive-ui';
 import {
   fetchGetExportTaskList,
   fetchGetExportTaskDownloadUrl,
-  fetchBatchDeleteExportTask
+  fetchBatchDeleteExportTask,
+  fetchRetryExportTask
 } from '@/service/api/cch/challenge-version-export';
 import {useAuth} from '@/hooks/business/auth';
 import {useDownload} from '@/hooks/business/download';
@@ -90,12 +91,13 @@ const {columns, columnChecks, data, getData, getDataByPage, loading, mobilePagin
 
           const tag = <NTag type={type}>{statusText}</NTag>;
 
-          // 如果状态为失败且有错误信息，则添加 tooltip
+          // 如果状态为失败且有错误信息，则添加 tooltip（含重试次数提示）
           if (status === 3 && errorMessage) {
+            const retryInfo = row.retryCount ? `（已重试 ${row.retryCount} 次）` : '';
             return (
               <NTooltip trigger="hover">
                 {{
-                  default: () => errorMessage,
+                  default: () => `${errorMessage}${retryInfo}`,
                   trigger: () => tag
                 }}
               </NTooltip>
@@ -129,7 +131,7 @@ const {columns, columnChecks, data, getData, getDataByPage, loading, mobilePagin
         key: 'operate',
         title: $t('common.operate'),
         align: 'center',
-        width: 130,
+        width: 160,
         render: row => {
           const downloadBtn = () => {
             if (row.taskStatus !== 2) {
@@ -145,6 +147,25 @@ const {columns, columnChecks, data, getData, getDataByPage, loading, mobilePagin
                 icon="material-symbols:download"
                 tooltipContent="下载"
                 onClick={() => handleDownload(row.id)}
+              />
+            );
+          };
+
+          const retryBtn = () => {
+            if (row.taskStatus !== 3) {
+              return null; // 只有失败的任务才能重试
+            }
+            if (!hasAuth('cch:challengeVersion:export')) {
+              return null;
+            }
+            return (
+              <ButtonIcon
+                text
+                type="warning"
+                icon="material-symbols:refresh"
+                tooltipContent="重试"
+                popconfirmContent={`确定重试该导出任务吗？`}
+                onPositiveClick={() => handleRetry(row.id)}
               />
             );
           };
@@ -168,6 +189,7 @@ const {columns, columnChecks, data, getData, getDataByPage, loading, mobilePagin
           return (
             <div class="flex-center gap-8px">
               {downloadBtn()}
+              {retryBtn()}
               {deleteBtn()}
             </div>
           );
@@ -230,6 +252,13 @@ async function handleDelete(id: CommonType.IdType) {
   const {error} = await fetchBatchDeleteExportTask([id]);
   if (error) return;
   onDeleted();
+}
+
+async function handleRetry(taskId: CommonType.IdType) {
+  const {error} = await fetchRetryExportTask(taskId);
+  if (error) return;
+  window.$message?.success('已重新加入导出队列');
+  getData();
 }
 
 async function handleBatchDelete() {

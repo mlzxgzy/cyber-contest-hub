@@ -54,6 +54,11 @@ public class ChallengeVersionExportTask extends BaseEntity {
     private Integer taskStatus;
 
     /**
+     * 重试次数
+     */
+    private Integer retryCount;
+
+    /**
      * OSS文件ID（关联sys_oss表）
      */
     private Long ossFileId;
