@@ -27,6 +27,7 @@ import org.dromara.common.mybatis.core.page.TableDataInfo;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -165,19 +166,27 @@ public class ChallengeServiceImpl implements IChallengeService {
         }
         // 难度/知识点筛选：题目最新草稿（按创建时间倒序取第一条）的 config JSON 匹配
         if (StringUtils.isNotBlank(bo.getDifficulty()) || StringUtils.isNotBlank(bo.getKnowledge())) {
-            lqw.exists(
+            // MyBatis-Plus 会按参数下标逐个校验 SQL 中必须存在对应占位符 {i}（从 {0} 开始连续编号），
+            // 因此按实际生效的筛选条件动态拼接 SQL 与参数，避免只筛知识点时缺少 {0} 报错
+            StringBuilder existsSql = new StringBuilder(
                 "select 1 from t_challenge_draft d " +
                     "where d.challenge_id = t_challenge.id " +
                     "and d.del_flag = 0 " +
                     "and d.id = (select d2.id from t_challenge_draft d2 " +
                     "            where d2.challenge_id = d.challenge_id and d2.del_flag = 0 " +
-                    "            order by d2.create_time desc, d2.id desc limit 1) " +
-                    (StringUtils.isNotBlank(bo.getDifficulty())
-                        ? "and json_unquote(json_extract(d.config, '$.difficulty')) = {0} " : "") +
-                    (StringUtils.isNotBlank(bo.getKnowledge())
-                        ? "and json_contains(d.config, json_quote({1}), '$.knowledge') " : ""),
-                bo.getDifficulty(), bo.getKnowledge()
-            );
+                    "            order by d2.create_time desc, d2.id desc limit 1) ");
+            List<Object> existsParams = new ArrayList<>();
+            if (StringUtils.isNotBlank(bo.getDifficulty())) {
+                existsSql.append("and json_unquote(json_extract(d.config, '$.difficulty')) = {")
+                    .append(existsParams.size()).append("} ");
+                existsParams.add(bo.getDifficulty());
+            }
+            if (StringUtils.isNotBlank(bo.getKnowledge())) {
+                existsSql.append("and json_contains(d.config, json_quote({")
+                    .append(existsParams.size()).append("}), '$.knowledge') ");
+                existsParams.add(bo.getKnowledge());
+            }
+            lqw.exists(existsSql.toString(), existsParams.toArray());
         }
         return lqw;
     }
