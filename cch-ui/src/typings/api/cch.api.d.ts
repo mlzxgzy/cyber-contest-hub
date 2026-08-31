@@ -570,6 +570,8 @@ declare namespace Api {
       startTime?: string | undefined;
       /** 结束时间 */
       endTime?: string | undefined;
+      /** 题目需求（多行字符串描述） */
+      challengeRequirement?: string;
     };
 
     /** project */

@@ -36,4 +36,9 @@ public class ContestMeta implements Serializable {
      * 结束时间
      */
     private String endTime;
+
+    /**
+     * 题目需求（多行字符串描述）
+     */
+    private String challengeRequirement;
 }

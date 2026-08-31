@@ -1,11 +1,13 @@
 <script lang="ts" setup>
 import {computed, onMounted, ref} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
-import {fetchGetProjectDetail, fetchJoinProjectByInvite} from '@/service/api/cch/project';
+import {jsonClone} from '@sa/utils';
+import {fetchGetProjectDetail, fetchJoinProjectByInvite, fetchUpdateProject} from '@/service/api/cch/project';
 import {useAuthStore} from '@/store/modules/auth';
 import ProjectMemberManage from './modules/project-member-manage.vue';
 import ProjectChallengeManage from './modules/project-challenge-manage.vue';
 import ProjectFileManage from './modules/project-file-manage.vue';
+import InlineEditRow from './modules/inline-edit-row.vue';
 import {$t} from '@/locales';
 import {useTabStore} from '@/store/modules/tab';
 
@@ -48,6 +50,68 @@ const canViewChallengesTab = computed(() => canViewProject.value);
 const canViewFilesTab = computed(
   () => project.value?.projectType === 'contest' && (isProjectAdmin.value || isSuperAdmin.value)
 );
+
+const isContest = computed(() => project.value?.projectType === 'contest');
+
+// 基本信息行内编辑权限：项目管理员或超管
+const canEditBasicInfo = computed(() => isProjectAdmin.value || isSuperAdmin.value);
+
+const savingBasic = ref(false);
+
+/**
+ * 保存基本信息字段（乐观更新，失败回滚）
+ *
+ * 竞赛项目中竞赛名称/赛事备注与项目名称/备注保持同步
+ */
+async function saveBasicField(patch: {name?: string; remark?: string; meta?: Partial<Api.Cch.ContestMeta>}) {
+  if (!project.value || savingBasic.value) return;
+  const isContestProject = project.value.projectType === 'contest';
+
+  const mergedMeta: Api.Cch.ContestMeta = {
+    contestName: project.value.meta?.contestName ?? project.value.name ?? '',
+    contestRemark: project.value.meta?.contestRemark ?? project.value.remark ?? '',
+    startTime: project.value.meta?.startTime ?? '',
+    endTime: project.value.meta?.endTime ?? '',
+    challengeRequirement: project.value.meta?.challengeRequirement ?? ''
+  };
+  if (patch.name !== undefined) {
+    mergedMeta.contestName = patch.name;
+  }
+  if (patch.remark !== undefined) {
+    mergedMeta.contestRemark = patch.remark;
+  }
+  if (patch.meta) {
+    Object.assign(mergedMeta, patch.meta);
+  }
+
+  const prevProject = jsonClone(project.value);
+
+  // 乐观更新本地状态
+  if (patch.name !== undefined) project.value.name = patch.name;
+  if (patch.remark !== undefined) project.value.remark = patch.remark;
+  if (isContestProject) project.value.meta = mergedMeta;
+
+  savingBasic.value = true;
+  const {error} = await fetchUpdateProject({
+    id: project.value.id,
+    projectType: project.value.projectType,
+    name: project.value.name,
+    remark: project.value.remark ?? '',
+    meta: isContestProject ? mergedMeta : undefined
+  });
+  savingBasic.value = false;
+
+  if (error) {
+    project.value = prevProject;
+    window.$message?.error(error.message || '保存失败');
+    return;
+  }
+
+  if (patch.name !== undefined) {
+    tabStore.setTabLabel(`项目详情-${patch.name}`);
+  }
+  window.$message?.success('保存成功');
+}
 
 async function loadProjectDetail() {
   const projectId = route.params.id as string;
@@ -133,36 +197,60 @@ onMounted(() => {
           <NTabPane name="basic" tab="基本信息">
             <NCard :bordered="false" size="small">
               <template v-if="canViewProject">
-                <!-- 调整为两列布局，长文本字段跨两列展示 -->
-                <NDescriptions :column="2" bordered>
-                  <NDescriptionsItem label="项目类型">
-                    {{ project.projectType === 'contest' ? '竞赛项目' : '普通项目' }}
-                  </NDescriptionsItem>
-                  <NDescriptionsItem label="项目名称">
-                    {{ project.name }}
-                  </NDescriptionsItem>
-                  <NDescriptionsItem label="备注" :span="2">
-                    {{ project.remark || '-' }}
-                  </NDescriptionsItem>
-                  <NDescriptionsItem v-if="project.projectType === 'contest' && project.meta" label="竞赛名称">
-                    {{ project.meta.contestName || '-' }}
-                  </NDescriptionsItem>
-                  <NDescriptionsItem v-if="project.projectType === 'contest' && project.meta" label="赛事备注" :span="2">
-                    {{ project.meta.contestRemark || '-' }}
-                  </NDescriptionsItem>
-                  <NDescriptionsItem v-if="project.projectType === 'contest' && project.meta" label="开始时间">
-                    {{ project.meta.startTime || '-' }}
-                  </NDescriptionsItem>
-                  <NDescriptionsItem v-if="project.projectType === 'contest' && project.meta" label="结束时间">
-                    {{ project.meta.endTime || '-' }}
-                  </NDescriptionsItem>
-                  <NDescriptionsItem label="创建时间">
-                    {{ project.createTime }}
-                  </NDescriptionsItem>
-                  <NDescriptionsItem label="更新时间">
-                    {{ project.updateTime }}
-                  </NDescriptionsItem>
-                </NDescriptions>
+                <!-- 逐行展示，可编辑字段点击后进入编辑态，失焦自动保存 -->
+                <div class="flex flex-col">
+                  <InlineEditRow
+                    label="项目类型"
+                    :value="project.projectType === 'contest' ? '竞赛项目' : '普通项目'"
+                  />
+                  <InlineEditRow
+                    :label="isContest ? '竞赛名称' : '项目名称'"
+                    :value="isContest ? project.meta?.contestName || project.name : project.name"
+                    :editable="canEditBasicInfo"
+                    :saving="savingBasic"
+                    placeholder="点击填写"
+                    @save="(v: string) => saveBasicField({name: v})"
+                  />
+                  <InlineEditRow
+                    :label="isContest ? '赛事备注' : '备注'"
+                    :value="isContest ? project.meta?.contestRemark ?? project.remark ?? '' : project.remark ?? ''"
+                    :editable="canEditBasicInfo"
+                    :saving="savingBasic"
+                    placeholder="点击填写"
+                    @save="(v: string) => saveBasicField({remark: v})"
+                  />
+                  <template v-if="isContest">
+                    <InlineEditRow
+                      label="开始时间"
+                      :value="project.meta?.startTime ?? ''"
+                      type="date"
+                      :editable="canEditBasicInfo"
+                      :saving="savingBasic"
+                      placeholder="点击选择"
+                      @save="(v: string) => saveBasicField({meta: {startTime: v}})"
+                    />
+                    <InlineEditRow
+                      label="结束时间"
+                      :value="project.meta?.endTime ?? ''"
+                      type="date"
+                      :editable="canEditBasicInfo"
+                      :saving="savingBasic"
+                      placeholder="点击选择"
+                      @save="(v: string) => saveBasicField({meta: {endTime: v}})"
+                    />
+                    <InlineEditRow
+                      label="题目需求"
+                      :value="project.meta?.challengeRequirement ?? ''"
+                      type="textarea"
+                      :editable="canEditBasicInfo"
+                      :saving="savingBasic"
+                      placeholder="点击填写题目需求说明"
+                      @save="(v: string) => saveBasicField({meta: {challengeRequirement: v}})"
+                    />
+                  </template>
+                  <InlineEditRow label="创建时间" :value="project.createTime ?? ''" />
+                  <InlineEditRow label="更新时间" :value="project.updateTime ?? ''" />
+                </div>
               </template>
               <template v-else>
                 <NResult

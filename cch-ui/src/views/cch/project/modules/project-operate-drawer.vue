@@ -95,7 +95,8 @@ const contestMeta = ref<Api.Cch.ContestMeta>({
   contestName: '',
   contestRemark: '',
   startTime: undefined,
-  endTime: undefined
+  endTime: undefined,
+  challengeRequirement: ''
 });
 
 function handleUpdateModelWhenEdit() {
@@ -104,7 +105,8 @@ function handleUpdateModelWhenEdit() {
     contestName: '',
     contestRemark: '',
     startTime: undefined,
-    endTime: undefined
+    endTime: undefined,
+    challengeRequirement: ''
   };
 
   if (props.operateType === 'edit' && props.rowData) {
@@ -123,7 +125,8 @@ function handleUpdateModelWhenEdit() {
         contestName: props.rowData.meta.contestName || '',
         contestRemark: props.rowData.meta.contestRemark || '',
         startTime: props.rowData.meta.startTime || '',
-        endTime: props.rowData.meta.endTime || ''
+        endTime: props.rowData.meta.endTime || '',
+        challengeRequirement: props.rowData.meta.challengeRequirement || ''
       };
     }
   }
@@ -151,7 +154,8 @@ async function handleSubmit() {
       contestName: name, // 使用项目名称作为竞赛名称
       contestRemark: remark, // 使用备注作为赛事备注
       startTime: contestMeta.value.startTime || '',
-      endTime: contestMeta.value.endTime || ''
+      endTime: contestMeta.value.endTime || '',
+      challengeRequirement: contestMeta.value.challengeRequirement || ''
     };
   }
 
@@ -220,6 +224,14 @@ watch(visible, () => {
               value-format="yyyy-MM-dd"
               clearable
               placeholder="请选择结束时间"
+            />
+          </NFormItem>
+          <NFormItem label="题目需求">
+            <NInput
+              v-model:value="contestMeta.challengeRequirement"
+              type="textarea"
+              :rows="4"
+              placeholder="请输入题目需求描述（支持多行）"
             />
           </NFormItem>
         </div>

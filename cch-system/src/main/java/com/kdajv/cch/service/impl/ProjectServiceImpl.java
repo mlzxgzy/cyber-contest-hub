@@ -243,7 +243,8 @@ public class ProjectServiceImpl implements IProjectService {
         if (StringUtils.isNotBlank(bo.getName())) {
             updateWrapper.set(Project::getName, bo.getName());
         }
-        if (StringUtils.isNotBlank(bo.getRemark())) {
+        // 允许将备注清空为空字符串（行内编辑场景）
+        if (bo.getRemark() != null) {
             updateWrapper.set(Project::getRemark, bo.getRemark());
         }
         
