@@ -55,7 +55,6 @@ public class ChallengeDraftBo extends BaseEntity {
     /**
      * 题目备注（基本信息，同步到 Challenge）
      */
-    @NotBlank(message = "题目备注不能为空", groups = {AddGroup.class, EditGroup.class})
     private String challengeRemark;
 
     /**

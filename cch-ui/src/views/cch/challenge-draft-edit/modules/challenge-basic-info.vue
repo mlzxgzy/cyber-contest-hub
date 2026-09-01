@@ -30,13 +30,12 @@ const dialog = useDialog();
 const { createRequiredRule } = useFormRules();
 
 type challengeModel = Api.Cch.ChallengeOperateParams;
-type challengeRuleKey = Extract<keyof challengeModel, 'id' | 'category' | 'name' | 'remark'>;
+type challengeRuleKey = Extract<keyof challengeModel, 'id' | 'category' | 'name'>;
 
 const challengeRules: Record<challengeRuleKey, App.Global.FormRule> = {
   id: createRequiredRule('主键不能为空'),
   category: createRequiredRule('题目类型不能为空'),
-  name: createRequiredRule('题目名称不能为空'),
-  remark: createRequiredRule('题目备注不能为空')
+  name: createRequiredRule('题目名称不能为空')
 };
 
 const draftRules: Record<string, App.Global.FormRule> = {};

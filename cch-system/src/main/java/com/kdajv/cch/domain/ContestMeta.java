@@ -4,6 +4,7 @@ import lombok.Data;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.util.List;
 
 /**
  * 竞赛meta信息DTO类
@@ -41,4 +42,14 @@ public class ContestMeta implements Serializable {
      * 题目需求（多行字符串描述）
      */
     private String challengeRequirement;
+
+    /**
+     * 竞赛阶段列表（如初赛、决赛、选拔赛等）
+     */
+    private List<ContestStage> stages;
+
+    /**
+     * 竞赛平台列表（线上比赛平台等）
+     */
+    private List<ContestPlatform> platforms;
 }

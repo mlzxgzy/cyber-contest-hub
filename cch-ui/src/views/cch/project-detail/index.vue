@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import {computed, onMounted, ref} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
+import dayjs from 'dayjs';
 import {jsonClone} from '@sa/utils';
 import {fetchGetProjectDetail, fetchJoinProjectByInvite, fetchUpdateProject} from '@/service/api/cch/project';
 import {useAuthStore} from '@/store/modules/auth';
@@ -58,6 +59,73 @@ const canEditBasicInfo = computed(() => isProjectAdmin.value || isSuperAdmin.val
 
 const savingBasic = ref(false);
 
+// 阶段/平台编辑态（管理员在详情页直接增删改）
+const editableStages = ref<Api.Cch.ContestStage[]>([]);
+const editablePlatforms = ref<Api.Cch.ContestPlatform[]>([]);
+
+/** 将 meta 中的阶段/平台同步到编辑态 */
+function syncStagePlatformEditable() {
+  const stages: Api.Cch.ContestStage[] = jsonClone(project.value?.meta?.stages) || [];
+  // 将空字符串开始时间归一化为 null，避免 NDatePicker 解析空串报 Invalid time value
+  stages.forEach(stage => {
+    if (stage.startTime === '') {
+      stage.startTime = null;
+    }
+  });
+  editableStages.value = stages;
+  editablePlatforms.value = jsonClone(project.value?.meta?.platforms) || [];
+}
+
+/** 新增一个阶段 */
+function addStage() {
+  editableStages.value.push({
+    stageName: '',
+    startTime: null,
+    duration: null,
+    challengeRequirement: ''
+  });
+}
+
+/** 删除指定阶段 */
+function removeStage(index: number) {
+  editableStages.value.splice(index, 1);
+}
+
+/** 新增一个平台 */
+function addPlatform() {
+  editablePlatforms.value.push({
+    platformName: '',
+    platformUrl: ''
+  });
+}
+
+/** 删除指定平台 */
+function removePlatform(index: number) {
+  editablePlatforms.value.splice(index, 1);
+}
+
+/** 保存阶段与平台 */
+function saveStagesPlatforms() {
+  saveBasicField({
+    meta: {
+      stages: jsonClone(editableStages.value),
+      platforms: jsonClone(editablePlatforms.value)
+    }
+  });
+}
+
+/** 根据开始时间与阶段时长（分钟）自动计算结束时间，未填时长时不显示 */
+function getStageEndTime(stage: Api.Cch.ContestStage): string {
+  if (!stage.startTime || !stage.duration || stage.duration <= 0) {
+    return '';
+  }
+  const start = dayjs(stage.startTime);
+  if (!start.isValid()) {
+    return '';
+  }
+  return start.add(stage.duration, 'minute').format('YYYY-MM-DD HH:mm');
+}
+
 /**
  * 保存基本信息字段（乐观更新，失败回滚）
  *
@@ -72,7 +140,9 @@ async function saveBasicField(patch: {name?: string; remark?: string; meta?: Par
     contestRemark: project.value.meta?.contestRemark ?? project.value.remark ?? '',
     startTime: project.value.meta?.startTime ?? '',
     endTime: project.value.meta?.endTime ?? '',
-    challengeRequirement: project.value.meta?.challengeRequirement ?? ''
+    challengeRequirement: project.value.meta?.challengeRequirement ?? '',
+    stages: jsonClone(project.value.meta?.stages) || [],
+    platforms: jsonClone(project.value.meta?.platforms) || []
   };
   if (patch.name !== undefined) {
     mergedMeta.contestName = patch.name;
@@ -148,6 +218,8 @@ async function loadProjectDetail() {
   }
 
   project.value = data;
+  // 同步阶段/平台到编辑态
+  syncStagePlatformEditable();
 
   // 更新当前标签页名称为：项目详情-项目名称
   if (data.name) {
@@ -248,6 +320,162 @@ onMounted(() => {
                       @save="(v: string) => saveBasicField({meta: {challengeRequirement: v}})"
                     />
                   </template>
+
+                  <template v-if="isContest">
+                    <!-- 阶段：管理员可编辑，其他成员只读 -->
+                    <NDivider title-placement="left">竞赛阶段</NDivider>
+                    <template v-if="canEditBasicInfo">
+                      <div v-for="(stage, index) in editableStages" :key="index" class="edit-block">
+                        <div class="edit-row">
+                          <div class="edit-field">
+                            <label class="edit-label">阶段{{ index + 1 }}名称</label>
+                            <NInput v-model:value="stage.stageName" placeholder="如：初赛 / 决赛 / 选拔赛"/>
+                          </div>
+                          <div class="edit-field">
+                            <label class="edit-label">开始时间</label>
+                            <NDatePicker
+                              v-model:formatted-value="stage.startTime"
+                              type="datetime"
+                              value-format="yyyy-MM-dd HH:mm"
+                              clearable
+                              placeholder="请选择开始时间"
+                              class="w-full"
+                            />
+                          </div>
+                          <div class="edit-field">
+                            <label class="edit-label">阶段时长（分钟）</label>
+                            <NInputNumber
+                              v-model:value="stage.duration"
+                              :min="0"
+                              :step="10"
+                              clearable
+                              placeholder="如：120"
+                              class="w-full"
+                            />
+                          </div>
+                        </div>
+                        <div class="edit-field mt-8px">
+                          <label class="edit-label">结束时间</label>
+                          <div class="edit-endtime">
+                            {{ getStageEndTime(stage) || '填写开始时间与时长后自动计算' }}
+                          </div>
+                        </div>
+                        <div class="edit-field mt-8px">
+                          <label class="edit-label">本阶段赛题需求</label>
+                          <NInput
+                            v-model:value="stage.challengeRequirement"
+                            type="textarea"
+                            :rows="2"
+                            placeholder="请输入本阶段赛题需求"
+                          />
+                        </div>
+                        <div class="edit-remove">
+                          <NButton native-type="button" size="small" type="error" quaternary @click="removeStage(index)">
+                            删除此阶段
+                          </NButton>
+                        </div>
+                      </div>
+                      <NButton native-type="button" dashed block class="mb-12px" @click="addStage">
+                        <template #icon><NIcon><i class="i-carbon-add"/></NIcon></template>
+                        添加阶段
+                      </NButton>
+                    </template>
+                    <template v-else>
+                      <NDescriptions
+                        v-for="(stage, index) in project.meta?.stages || []"
+                        :key="index"
+                        :column="2"
+                        :label-placement="'left'"
+                        class="mb-12px"
+                        bordered
+                      >
+                        <NDescriptionsItem label="阶段名称">
+                          {{ stage.stageName || '-' }}
+                        </NDescriptionsItem>
+                        <NDescriptionsItem label="开始时间">
+                          {{ stage.startTime || '-' }}
+                        </NDescriptionsItem>
+                        <NDescriptionsItem label="阶段时长">
+                          {{ stage.duration ? `${stage.duration} 分钟` : '-' }}
+                        </NDescriptionsItem>
+                        <NDescriptionsItem label="结束时间">
+                          {{ getStageEndTime(stage) || '-' }}
+                        </NDescriptionsItem>
+                        <NDescriptionsItem label="本阶段赛题需求" :span="2">
+                          <span class="whitespace-pre-wrap">{{ stage.challengeRequirement || '-' }}</span>
+                        </NDescriptionsItem>
+                      </NDescriptions>
+                    </template>
+                    <NEmpty
+                      v-if="!editableStages.length && canEditBasicInfo"
+                      description="暂无竞赛阶段，点击上方「添加阶段」按钮新增"
+                      size="small"
+                    />
+
+                    <!-- 平台：管理员可编辑，其他成员只读 -->
+                    <NDivider title-placement="left">竞赛平台</NDivider>
+                    <template v-if="canEditBasicInfo">
+                      <div v-for="(platform, index) in editablePlatforms" :key="index" class="edit-block">
+                        <div class="edit-row">
+                          <div class="edit-field">
+                            <label class="edit-label">平台名称</label>
+                            <NInput v-model:value="platform.platformName" placeholder="请输入平台名称"/>
+                          </div>
+                          <div class="edit-field">
+                            <label class="edit-label">平台地址</label>
+                            <NInput v-model:value="platform.platformUrl" placeholder="请输入平台地址（URL）"/>
+                          </div>
+                        </div>
+                        <div class="edit-remove">
+                          <NButton native-type="button" size="small" type="error" quaternary @click="removePlatform(index)">
+                            删除此平台
+                          </NButton>
+                        </div>
+                      </div>
+                      <NButton native-type="button" dashed block class="mb-12px" @click="addPlatform">
+                        <template #icon><NIcon><i class="i-carbon-add"/></NIcon></template>
+                        添加平台
+                      </NButton>
+                    </template>
+                    <template v-else>
+                      <NDescriptions
+                        v-for="(platform, index) in project.meta?.platforms || []"
+                        :key="index"
+                        :column="1"
+                        :label-placement="'left'"
+                        class="mb-12px"
+                        bordered
+                      >
+                        <NDescriptionsItem label="平台名称">
+                          {{ platform.platformName || '-' }}
+                        </NDescriptionsItem>
+                        <NDescriptionsItem label="平台地址">
+                          <a
+                            v-if="platform.platformUrl"
+                            :href="platform.platformUrl"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="text-primary"
+                          >
+                            {{ platform.platformUrl }}
+                          </a>
+                          <span v-else>-</span>
+                        </NDescriptionsItem>
+                      </NDescriptions>
+                    </template>
+                    <NEmpty
+                      v-if="!editablePlatforms.length && canEditBasicInfo"
+                      description="暂无竞赛平台，点击上方「添加平台」按钮新增"
+                      size="small"
+                    />
+
+                    <!-- 管理员：统一保存阶段/平台 -->
+                    <div v-if="canEditBasicInfo" class="flex justify-end mt-12px">
+                      <NButton native-type="button" type="primary" :loading="savingBasic" @click="saveStagesPlatforms">
+                        保存阶段与平台
+                      </NButton>
+                    </div>
+                  </template>
                   <InlineEditRow label="创建时间" :value="project.createTime ?? ''" />
                   <InlineEditRow label="更新时间" :value="project.updateTime ?? ''" />
                 </div>
@@ -297,4 +525,47 @@ onMounted(() => {
   </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+.edit-block {
+  border: 1px dashed var(--n-border-color);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.edit-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.edit-field {
+  flex: 1 1 200px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.edit-label {
+  font-size: 12px;
+  color: var(--n-text-color-3, #666);
+  margin-bottom: 4px;
+}
+
+.edit-remove {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+.edit-endtime {
+  padding: 6px 11px;
+  border: 1px solid var(--n-border-color);
+  border-radius: 4px;
+  background: var(--n-color, transparent);
+  color: var(--n-text-color-3, #666);
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+}
+</style>

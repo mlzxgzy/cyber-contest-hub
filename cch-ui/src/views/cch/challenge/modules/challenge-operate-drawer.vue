@@ -61,7 +61,6 @@ type RuleKey = Extract<
   | 'id'
   | 'category'
   | 'name'
-    | 'remark'
   | 'createTime'
   | 'updateTime'
 >;
@@ -70,7 +69,6 @@ const rules: Record<RuleKey, App.Global.FormRule> = {
   id: createRequiredRule('主键不能为空'),
   category: createRequiredRule('题目类型不能为空'),
   name: createRequiredRule('题目名称不能为空'),
-  remark: createRequiredRule('题目备注不能为空'),
   createTime: createRequiredRule('创建时间不能为空'),
   updateTime: createRequiredRule('更新时间不能为空'),
 };

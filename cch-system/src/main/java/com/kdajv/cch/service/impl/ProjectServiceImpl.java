@@ -21,6 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.dromara.common.core.exception.ServiceException;
 import org.dromara.common.core.utils.MapstructUtils;
 import org.dromara.common.core.utils.StringUtils;
+import org.dromara.common.json.utils.JsonUtils;
 import org.dromara.common.mybatis.core.page.PageQuery;
 import org.dromara.common.mybatis.core.page.TableDataInfo;
 import org.dromara.common.satoken.utils.LoginHelper;
@@ -249,8 +250,11 @@ public class ProjectServiceImpl implements IProjectService {
         }
         
         // 处理 meta 字段
+        // 注意：LambdaUpdateWrapper.set 不会自动应用实体字段上的 JacksonTypeHandler，
+        // 直接传入 ContestMeta 对象会被 MyBatis 用 Java 默认序列化（产生 \xAC\xED 魔数），
+        // 导致 meta 列 json_valid 校验失败。因此这里显式将 meta 序列化为 JSON 字符串后存储。
         if (bo.getMeta() != null) {
-            updateWrapper.set(Project::getMeta, bo.getMeta());
+            updateWrapper.set(Project::getMeta, JsonUtils.toJsonString(bo.getMeta()));
         } else if (bo.getMeta() == null && "contest".equals(bo.getProjectType())) {
             // 如果是竞赛项目但没有提供 meta，保持原有 meta 不变
             // 这里不设置 meta 字段，让它保持原值

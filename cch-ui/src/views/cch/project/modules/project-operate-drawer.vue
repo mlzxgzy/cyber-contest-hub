@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import {computed, ref, watch} from 'vue';
-import {jsonClone} from '@sa/utils';
-import {fetchCreateProject, fetchUpdateProject} from '@/service/api/cch/project';
+import dayjs from 'dayjs';
+import {fetchCreateProject} from '@/service/api/cch/project';
 import {useFormRules, useNaiveForm} from '@/hooks/common/form';
 import {$t} from '@/locales';
 
@@ -9,35 +9,16 @@ defineOptions({
   name: 'ProjectOperateDrawer'
 });
 
-interface Props {
-  /** the type of operation */
-  operateType: NaiveUI.TableOperateType;
-  /** the edit row data */
-  rowData?: Api.Cch.Project | null;
-}
-
-const props = defineProps<Props>();
-
-interface Emits {
-  (e: 'submitted'): void;
-}
-
-const emit = defineEmits<Emits>();
-
 const visible = defineModel<boolean>('visible', {
   default: false
 });
 
+const emit = defineEmits<{
+  (e: 'submitted'): void;
+}>();
+
 const {formRef, validate, restoreValidation} = useNaiveForm();
 const {createRequiredRule} = useFormRules();
-
-const title = computed(() => {
-  const titles: Record<NaiveUI.TableOperateType, string> = {
-    add: '新增项目',
-    edit: '编辑项目'
-  };
-  return titles[props.operateType];
-});
 
 const projectTypeOptions = [
   {label: '普通项目', value: 'normal'},
@@ -96,53 +77,80 @@ const contestMeta = ref<Api.Cch.ContestMeta>({
   contestRemark: '',
   startTime: undefined,
   endTime: undefined,
-  challengeRequirement: ''
+  challengeRequirement: '',
+  stages: [],
+  platforms: []
 });
 
-function handleUpdateModelWhenEdit() {
-  model.value = createDefaultModel();
-  contestMeta.value = {
-    contestName: '',
-    contestRemark: '',
-    startTime: undefined,
-    endTime: undefined,
-    challengeRequirement: ''
-  };
-
-  if (props.operateType === 'edit' && props.rowData) {
-    Object.assign(model.value, jsonClone(props.rowData));
-    if (props.rowData.meta) {
-      // 如果是竞赛项目，将竞赛名称同步到项目名称，将赛事备注同步到备注
-      if (model.value.projectType === 'contest') {
-        if (props.rowData.meta.contestName) {
-          model.value.name = props.rowData.meta.contestName;
-        }
-        if (props.rowData.meta.contestRemark) {
-          model.value.remark = props.rowData.meta.contestRemark;
-        }
-      }
-      contestMeta.value = {
-        contestName: props.rowData.meta.contestName || '',
-        contestRemark: props.rowData.meta.contestRemark || '',
-        startTime: props.rowData.meta.startTime || '',
-        endTime: props.rowData.meta.endTime || '',
-        challengeRequirement: props.rowData.meta.challengeRequirement || ''
-      };
-    }
+/** 新增一个阶段 */
+function addStage() {
+  if (!contestMeta.value.stages) {
+    contestMeta.value.stages = [];
   }
+  contestMeta.value.stages.push({
+    stageName: '',
+    startTime: null,
+    duration: null,
+    challengeRequirement: ''
+  });
+}
+
+/** 删除指定阶段 */
+function removeStage(index: number) {
+  contestMeta.value.stages?.splice(index, 1);
+}
+
+/** 新增一个平台 */
+function addPlatform() {
+  if (!contestMeta.value.platforms) {
+    contestMeta.value.platforms = [];
+  }
+  contestMeta.value.platforms.push({
+    platformName: '',
+    platformUrl: ''
+  });
+}
+
+/** 删除指定平台 */
+function removePlatform(index: number) {
+  contestMeta.value.platforms?.splice(index, 1);
+}
+
+/** 根据开始时间与阶段时长（分钟）自动计算结束时间，未填时长时不显示 */
+function getStageEndTime(stage: Api.Cch.ContestStage): string {
+  if (!stage.startTime || !stage.duration || stage.duration <= 0) {
+    return '';
+  }
+  const start = dayjs(stage.startTime);
+  if (!start.isValid()) {
+    return '';
+  }
+  return start.add(stage.duration, 'minute').format('YYYY-MM-DD HH:mm');
 }
 
 function closeDrawer() {
   visible.value = false;
 }
 
+function resetForm() {
+  model.value = createDefaultModel();
+  contestMeta.value = {
+    contestName: '',
+    contestRemark: '',
+    startTime: undefined,
+    endTime: undefined,
+    challengeRequirement: '',
+    stages: [],
+    platforms: []
+  };
+}
+
 async function handleSubmit() {
   await validate();
 
-  const {id, projectType, name, remark} = model.value;
+  const {projectType, name, remark} = model.value;
 
   const submitData: Api.Cch.ProjectOperateParams = {
-    id,
     projectType,
     name,
     remark
@@ -151,42 +159,35 @@ async function handleSubmit() {
   // 如果是竞赛项目，添加meta信息
   if (projectType === 'contest') {
     submitData.meta = {
-      contestName: name, // 使用项目名称作为竞赛名称
-      contestRemark: remark, // 使用备注作为赛事备注
+      contestName: name || '', // 使用项目名称作为竞赛名称
+      contestRemark: remark || '', // 使用备注作为赛事备注
       startTime: contestMeta.value.startTime || '',
       endTime: contestMeta.value.endTime || '',
-      challengeRequirement: contestMeta.value.challengeRequirement || ''
+      challengeRequirement: contestMeta.value.challengeRequirement || '',
+      stages: contestMeta.value.stages ?? [],
+      platforms: contestMeta.value.platforms ?? []
     };
   }
 
-  // request
-  if (props.operateType === 'add') {
-    const {error} = await fetchCreateProject(submitData);
-    if (error) return;
-  }
+  const {error} = await fetchCreateProject(submitData);
+  if (error) return;
 
-  if (props.operateType === 'edit') {
-    const {error} = await fetchUpdateProject(submitData);
-    if (error) return;
-  }
-
-  window.$message?.success($t(props.operateType === 'add' ? 'common.addSuccess' : 'common.updateSuccess'));
+  window.$message?.success($t('common.addSuccess'));
   closeDrawer();
   emit('submitted');
 }
 
 watch(visible, () => {
   if (visible.value) {
-    handleUpdateModelWhenEdit();
+    resetForm();
     restoreValidation();
   }
 });
-
 </script>
 
 <template>
-  <NDrawer v-model:show="visible" :title="title" :width="800" class="max-w-90%" display-directive="show">
-    <NDrawerContent :native-scrollbar="false" :title="title" closable>
+  <NDrawer v-model:show="visible" title="新增项目" :width="800" class="max-w-90%" display-directive="show">
+    <NDrawerContent :native-scrollbar="false" title="新增项目" closable>
       <NForm ref="formRef" :model="model" :rules="rules">
         <NFormItem label="项目类型" path="projectType">
           <NSelect
@@ -234,6 +235,85 @@ watch(visible, () => {
               placeholder="请输入题目需求描述（支持多行）"
             />
           </NFormItem>
+
+          <NDivider>竞赛阶段</NDivider>
+          <div v-for="(stage, sIndex) in contestMeta.stages" :key="sIndex" class="stage-block">
+            <NGrid :cols="3" :x-gap="12" responsive="screen">
+              <NFormItem :label="`阶段${sIndex + 1}名称`">
+                <NInput
+                  v-model:value="stage.stageName"
+                  placeholder="如：初赛 / 决赛 / 选拔赛"
+                />
+              </NFormItem>
+              <NFormItem label="开始时间">
+                <NDatePicker
+                  v-model:formatted-value="stage.startTime"
+                  type="datetime"
+                  value-format="yyyy-MM-dd HH:mm"
+                  clearable
+                  placeholder="请选择开始时间"
+                />
+              </NFormItem>
+              <NFormItem label="阶段时长（分钟）">
+                <NInputNumber
+                  v-model:value="stage.duration"
+                  :min="0"
+                  :step="10"
+                  clearable
+                  placeholder="如：120"
+                />
+              </NFormItem>
+            </NGrid>
+            <NFormItem label="结束时间">
+              <div class="drawer-endtime">
+                {{ getStageEndTime(stage) || '填写开始时间与时长后自动计算' }}
+              </div>
+            </NFormItem>
+            <NFormItem label="本阶段赛题需求">
+              <NInput
+                v-model:value="stage.challengeRequirement"
+                type="textarea"
+                :rows="2"
+                placeholder="请输入本阶段赛题需求"
+              />
+            </NFormItem>
+            <div class="stage-remove">
+              <NButton native-type="button" size="small" type="error" quaternary @click="removeStage(sIndex)">
+                删除此阶段
+              </NButton>
+            </div>
+          </div>
+          <NButton native-type="button" dashed block @click="addStage">
+            <template #icon><NIcon><i class="i-carbon-add" /></NIcon></template>
+            添加阶段
+          </NButton>
+
+          <NDivider>竞赛平台</NDivider>
+          <div v-for="(platform, pIndex) in contestMeta.platforms" :key="pIndex" class="platform-block">
+            <NGrid :cols="2" :x-gap="12" responsive="screen">
+              <NFormItem label="平台名称">
+                <NInput
+                  v-model:value="platform.platformName"
+                  placeholder="请输入平台名称"
+                />
+              </NFormItem>
+              <NFormItem label="平台地址">
+                <NInput
+                  v-model:value="platform.platformUrl"
+                  placeholder="请输入平台地址（URL）"
+                />
+              </NFormItem>
+            </NGrid>
+            <div class="stage-remove">
+              <NButton native-type="button" size="small" type="error" quaternary @click="removePlatform(pIndex)">
+                删除此平台
+              </NButton>
+            </div>
+          </div>
+          <NButton native-type="button" dashed block @click="addPlatform">
+            <template #icon><NIcon><i class="i-carbon-add" /></NIcon></template>
+            添加平台
+          </NButton>
         </div>
       </NForm>
       <template #footer>
@@ -246,4 +326,29 @@ watch(visible, () => {
   </NDrawer>
 </template>
 
-<style scoped></style>
+<style scoped>
+.stage-block,
+.platform-block {
+  border: 1px dashed var(--n-border-color);
+  border-radius: 8px;
+  padding: 4px 12px 12px;
+  margin-bottom: 12px;
+}
+
+.stage-remove {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.drawer-endtime {
+  width: 100%;
+  padding: 6px 11px;
+  border: 1px solid var(--n-border-color);
+  border-radius: 4px;
+  background: var(--n-color, transparent);
+  color: var(--n-text-color-3, #666);
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+}
+</style>

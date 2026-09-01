@@ -82,28 +82,13 @@ const {columns, columnChecks, data, getData, getDataByPage, loading, mobilePagin
         key: 'operate',
         title: $t('common.operate'),
         align: 'center',
-        width: 180,
+        width: 120,
         render: row => {
           const divider = () => {
-            if (!hasAuth('cch:project:edit') && !hasAuth('cch:project:remove')) {
+            if (!hasAuth('cch:project:remove')) {
               return null;
             }
             return <NDivider vertical/>;
-          };
-
-          const editBtn = () => {
-            if (!hasAuth('cch:project:edit')) {
-              return null;
-            }
-            return (
-              <ButtonIcon
-                text
-                type="primary"
-                icon="material-symbols:drive-file-rename-outline-outline"
-                tooltipContent={$t('common.edit')}
-                onClick={() => edit(row.id)}
-              />
-            );
           };
 
           const detailBtn = () => {
@@ -141,8 +126,6 @@ const {columns, columnChecks, data, getData, getDataByPage, loading, mobilePagin
             <div class="flex-center gap-8px">
               {detailBtn()}
               {divider()}
-              {editBtn()}
-              {divider()}
               {deleteBtn()}
             </div>
           );
@@ -158,7 +141,7 @@ columnChecks.value.forEach(check => {
   }
 });
 
-const {drawerVisible, operateType, editingData, handleAdd, handleEdit, checkedRowKeys, onBatchDeleted, onDeleted} =
+const {drawerVisible, handleAdd, checkedRowKeys, onBatchDeleted, onDeleted} =
   useTableOperate(data, 'id', getData);
 
 async function handleBatchDelete() {
@@ -171,10 +154,6 @@ async function handleDelete(id: CommonType.IdType) {
   const {error} = await fetchDeleteProject([id]);
   if (error) return;
   onDeleted();
-}
-
-function edit(id: CommonType.IdType) {
-  handleEdit(id);
 }
 
 function handleViewDetail(id: CommonType.IdType) {
@@ -216,18 +195,22 @@ function handleExport() {
         :pagination="mobilePagination"
         :row-key="row => row.id"
         :scroll-x="scrollX"
-        class="sm:h-full"
+        class="sm:h-full project-table"
         remote
         size="small"
       />
       <ProjectOperateDrawer
         v-model:visible="drawerVisible"
-        :operate-type="operateType"
-        :row-data="editingData"
         @submitted="getDataByPage"
       />
     </NCard>
   </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+/* 柔和化表格行 hover 高亮，避免整行变蓝刺眼 */
+.project-table :deep(.n-data-table-td--hover),
+.project-table :deep(.n-data-table-tr:hover > .n-data-table-td) {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+</style>

@@ -560,6 +560,26 @@ declare namespace Api {
     /** challenge container image list */
     type ChallengeContainerImageList = Api.Common.PaginatingQueryRecord<ChallengeContainerImage>;
 
+    /** contest stage */
+    type ContestStage = {
+      /** 阶段名称（如初赛、决赛、选拔赛等） */
+      stageName?: string;
+      /** 阶段开始时间 */
+      startTime?: string | null;
+      /** 阶段时长（分钟） */
+      duration?: number;
+      /** 本阶段赛题需求（多行字符串描述） */
+      challengeRequirement?: string;
+    };
+
+    /** contest platform */
+    type ContestPlatform = {
+      /** 平台名称 */
+      platformName?: string;
+      /** 平台地址 */
+      platformUrl?: string;
+    };
+
     /** contest meta */
     type ContestMeta = {
       /** 竞赛名称 */
@@ -572,6 +592,10 @@ declare namespace Api {
       endTime?: string | undefined;
       /** 题目需求（多行字符串描述） */
       challengeRequirement?: string;
+      /** 竞赛阶段列表（如初赛、决赛、选拔赛等） */
+      stages?: ContestStage[];
+      /** 竞赛平台列表 */
+      platforms?: ContestPlatform[];
     };
 
     /** project */
