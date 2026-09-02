@@ -163,6 +163,13 @@ function handleViewDetail(id: CommonType.IdType) {
   });
 }
 
+/** 新增成功后直接进入项目详情，其余信息在详情页补充 */
+function handleCreated(id: CommonType.IdType) {
+  router.push({
+    path: `/cch/project/${String(id)}`
+  });
+}
+
 function handleExport() {
   download('/cch/project/export', searchParams.value, `项目列表_${new Date().getTime()}.xlsx`);
 }
@@ -201,7 +208,7 @@ function handleExport() {
       />
       <ProjectOperateDrawer
         v-model:visible="drawerVisible"
-        @submitted="getDataByPage"
+        @submitted="handleCreated"
       />
     </NCard>
   </div>

@@ -46,9 +46,9 @@ public interface IProjectService {
      * 新增项目（普通/竞赛），创建者自动成为管理员
      *
      * @param bo 项目信息
-     * @return 是否新增成功
+     * @return 新增成功返回项目ID，失败返回 null
      */
-    Boolean insertByBo(ProjectBo bo);
+    Long insertByBo(ProjectBo bo);
 
     /**
      * 更新项目

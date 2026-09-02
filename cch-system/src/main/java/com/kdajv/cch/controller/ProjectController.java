@@ -66,13 +66,16 @@ public class ProjectController extends BaseController {
 
     /**
      * 新增项目
+     *
+     * @param bo 项目信息
+     * @return 新项目ID
      */
     @SaCheckPermission("cch:project:add")
     @Log(title = "项目", businessType = BusinessType.INSERT)
     @RepeatSubmit()
     @PostMapping()
-    public R<Void> add(@Validated(AddGroup.class) @RequestBody ProjectBo bo) {
-        return toAjax(projectService.insertByBo(bo));
+    public R<Long> add(@Validated(AddGroup.class) @RequestBody ProjectBo bo) {
+        return R.ok(projectService.insertByBo(bo));
     }
 
     /**

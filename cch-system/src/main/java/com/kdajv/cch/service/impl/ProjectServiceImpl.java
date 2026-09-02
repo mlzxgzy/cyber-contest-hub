@@ -178,11 +178,11 @@ public class ProjectServiceImpl implements IProjectService {
      * 新增项目（普通/竞赛），创建者自动成为管理员
      *
      * @param bo 项目信息
-     * @return 是否新增成功
+     * @return 新增成功返回项目ID，失败返回 null
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Boolean insertByBo(ProjectBo bo) {
+    public Long insertByBo(ProjectBo bo) {
         Long currentUserId = LoginHelper.getUserId();
         if (ObjectUtil.isNull(currentUserId)) {
             throw new ServiceException("用户未登录");
@@ -191,7 +191,7 @@ public class ProjectServiceImpl implements IProjectService {
         Project project = MapstructUtils.convert(bo, Project.class);
         boolean result = baseMapper.insert(project) > 0;
         if (!result) {
-            return false;
+            return null;
         }
 
         Long projectId = project.getId();
@@ -213,7 +213,7 @@ public class ProjectServiceImpl implements IProjectService {
             importChallenges(projectId, bo.getChallenges());
         }
 
-        return true;
+        return projectId;
     }
 
     /**

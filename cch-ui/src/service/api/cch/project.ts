@@ -17,9 +17,9 @@ export function fetchGetProjectDetail(projectId: CommonType.IdType) {
     });
 }
 
-/** 新增项目 */
+/** 新增项目（返回新项目ID，超长整型已由后端序列化为字符串） */
 export function fetchCreateProject(data: Api.Cch.ProjectOperateParams) {
-    return request<boolean>({
+    return request<CommonType.IdType>({
         url: '/cch/project',
         method: 'post',
         data
