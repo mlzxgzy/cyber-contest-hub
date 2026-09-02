@@ -151,7 +151,7 @@ async function handleDeleteFile(fileId: CommonType.IdType) {
             :max="1"
             :data="{fileTag: fileTag || 'default'}"
             :action="`/cch/project/${projectId}/files/upload`"
-            @on-success="handleFileUploadSuccess"
+            :on-success="handleFileUploadSuccess"
           />
         </NFormItem>
       </NForm>

@@ -145,10 +145,18 @@ function handleFinish(options: { file: UploadFileInfo; event?: ProgressEvent }) 
   const responseText = event?.target?.responseText;
   const response = JSON.parse(responseText);
   const oss: Api.System.Oss = response.data;
-  fileList.value.find(item => item.id === file.id)!.id = String(oss.ossId);
-  file.id = String(oss.ossId);
+  // 兼容两种返回结构：系统oss（ossId）与题目文件 ChallengeFileVo（id）
+  const fileId = String((oss as Record<string, unknown>)?.ossId ?? (oss as Record<string, unknown>)?.id ?? '');
+  fileList.value.find(item => item.id === file.id)!.id = fileId;
+  file.id = fileId;
   file.url = oss.url;
   file.name = oss.fileName;
+  // NUpload 没有 on-success 事件（那是 Element Plus 的 API），外部透传的 on-success 不会自动触发，
+  // 这里在 finish 阶段手动调用，业务侧据此把文件信息写入草稿配置
+  const onSuccess = (attrs as Record<string, unknown>)['on-success'] ?? (attrs as Record<string, unknown>)['onSuccess'];
+  if (typeof onSuccess === 'function') {
+    (onSuccess as (data: unknown) => void)(response.data);
+  }
   if (fileNum === 0) {
     window.$message?.success('上传成功');
   }
