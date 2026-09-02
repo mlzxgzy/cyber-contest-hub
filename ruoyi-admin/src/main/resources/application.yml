@@ -7,8 +7,8 @@ server:
     context-path: /
   # undertow 配置
   undertow:
-    # HTTP post内容的最大大小。当值为-1时，默认值为大小是无限的
-    max-http-post-size: -1
+    # HTTP post内容的最大大小（负值会回落到 Undertow 默认 2MB 导致大文件上传被拒，务必配置明确的正值）
+    max-http-post-size: 8GB
     # 以下的配置会影响buffer,这些buffer会用于服务器连接的IO操作,有点类似netty的池化内存管理
     # 每块buffer的空间大小,越小的空间被利用越充分
     buffer-size: 512

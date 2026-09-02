@@ -9,6 +9,7 @@ import org.dromara.common.core.utils.SpringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.web.ServerProperties;
+import org.springframework.boot.autoconfigure.web.servlet.MultipartProperties;
 import org.springframework.boot.web.embedded.undertow.UndertowServletWebServerFactory;
 import org.springframework.boot.web.server.WebServerFactoryCustomizer;
 import org.springframework.core.task.VirtualThreadTaskExecutor;
@@ -24,6 +25,9 @@ public class UndertowConfig implements WebServerFactoryCustomizer<UndertowServle
     @Autowired
     private ServerProperties serverProperties;
 
+    @Autowired
+    private MultipartProperties multipartProperties;
+
     /**
      * 自定义 Undertow 配置
      * <p>
@@ -37,9 +41,12 @@ public class UndertowConfig implements WebServerFactoryCustomizer<UndertowServle
      */
     @Override
     public void customize(UndertowServletWebServerFactory factory) {
-        long bytes = serverProperties.getUndertow().getMaxHttpPostSize().toBytes();
+        // Undertow 容器层的 multipart 请求体上限需与 spring.servlet.multipart.max-request-size 保持一致。
+        // 不能使用 max-http-post-size（配置 -1 时为负值，会回落到 Undertow 默认 2MB），
+        // 否则超过 2MB 的文件上传会被 Undertow 直接以 400 拒绝，请求体尚未传输完毕连接即被关闭。
+        long multipartMaxBytes = multipartProperties.getMaxRequestSize().toBytes();
         factory.addBuilderCustomizers(builder -> {
-            builder.setServerOption(UndertowOptions.MULTIPART_MAX_ENTITY_SIZE, bytes);
+            builder.setServerOption(UndertowOptions.MULTIPART_MAX_ENTITY_SIZE, multipartMaxBytes);
         });
 
         factory.addDeploymentInfoCustomizers(deploymentInfo -> {
