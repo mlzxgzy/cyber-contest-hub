@@ -49,6 +49,12 @@ public class ProjectBo extends BaseEntity {
     private String remark;
 
     /**
+     * 项目负责人（手填人名）
+     */
+    @Size(max = 64, message = "项目负责人长度不能超过64字符", groups = {AddGroup.class, EditGroup.class})
+    private String leader;
+
+    /**
      * 竞赛meta信息（仅竞赛项目使用）
      */
     private ContestMeta meta;

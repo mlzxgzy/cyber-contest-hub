@@ -248,6 +248,10 @@ public class ProjectServiceImpl implements IProjectService {
         if (bo.getRemark() != null) {
             updateWrapper.set(Project::getRemark, bo.getRemark());
         }
+        // 允许将负责人清空为空字符串（行内编辑场景）
+        if (bo.getLeader() != null) {
+            updateWrapper.set(Project::getLeader, bo.getLeader());
+        }
         
         // 处理 meta 字段
         // 注意：LambdaUpdateWrapper.set 不会自动应用实体字段上的 JacksonTypeHandler，

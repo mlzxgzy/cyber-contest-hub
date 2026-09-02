@@ -65,6 +65,35 @@ const isBasicViewMode = computed(() => !canEditBasicInfo.value || basicViewMode.
 
 const savingBasic = ref(false);
 
+// ===== 项目负责人历史（保存在浏览器 localStorage，填写时弹出推荐） =====
+const LEADER_HISTORY_KEY = 'cch_project_leader_history';
+const LEADER_HISTORY_MAX = 20;
+const leaderHistory = ref<string[]>(readLeaderHistory());
+
+/** 从 localStorage 读取负责人历史 */
+function readLeaderHistory(): string[] {
+  try {
+    const raw = localStorage.getItem(LEADER_HISTORY_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === 'string' && v.trim() !== '') : [];
+  } catch {
+    return [];
+  }
+}
+
+/** 将负责人姓名记入本地历史（去重、最新在前、限量保存） */
+function rememberLeaderHistory(name: string) {
+  const trimmed = name.trim();
+  if (!trimmed) return;
+  const next = [trimmed, ...leaderHistory.value.filter(item => item !== trimmed)].slice(0, LEADER_HISTORY_MAX);
+  leaderHistory.value = next;
+  try {
+    localStorage.setItem(LEADER_HISTORY_KEY, JSON.stringify(next));
+  } catch {
+    // localStorage 不可用时静默忽略
+  }
+}
+
 // 阶段/平台编辑态（管理员在详情页直接增删改）
 const editableStages = ref<Api.Cch.ContestStage[]>([]);
 const editablePlatforms = ref<Api.Cch.ContestPlatform[]>([]);
@@ -187,9 +216,15 @@ function getStageEndTime(stage: Api.Cch.ContestStage): string {
  * 保存基本信息字段（乐观更新，失败回滚）
  *
  * 竞赛项目中竞赛名称/赛事备注与项目名称/备注保持同步
+ *
+ * @returns 是否保存成功
  */
-/** @returns 是否保存成功 */
-async function saveBasicField(patch: {name?: string; remark?: string; meta?: Partial<Api.Cch.ContestMeta>}): Promise<boolean> {
+async function saveBasicField(patch: {
+  name?: string;
+  leader?: string;
+  remark?: string;
+  meta?: Partial<Api.Cch.ContestMeta>;
+}): Promise<boolean> {
   if (!project.value || savingBasic.value) return false;
   const isContestProject = project.value.projectType === 'contest';
 
@@ -216,6 +251,7 @@ async function saveBasicField(patch: {name?: string; remark?: string; meta?: Par
 
   // 乐观更新本地状态
   if (patch.name !== undefined) project.value.name = patch.name;
+  if (patch.leader !== undefined) project.value.leader = patch.leader;
   if (patch.remark !== undefined) project.value.remark = patch.remark;
   if (isContestProject) project.value.meta = mergedMeta;
 
@@ -224,6 +260,7 @@ async function saveBasicField(patch: {name?: string; remark?: string; meta?: Par
     id: project.value.id,
     projectType: project.value.projectType,
     name: project.value.name,
+    leader: project.value.leader ?? '',
     remark: project.value.remark ?? '',
     meta: isContestProject ? mergedMeta : undefined
   });
@@ -237,6 +274,9 @@ async function saveBasicField(patch: {name?: string; remark?: string; meta?: Par
 
   if (patch.name !== undefined) {
     tabStore.setTabLabel(`项目详情-${patch.name}`);
+  }
+  if (patch.leader !== undefined) {
+    rememberLeaderHistory(patch.leader);
   }
   window.$message?.success('保存成功');
   return true;
@@ -348,6 +388,9 @@ onMounted(() => {
                     <NDescriptionsItem :label="isContest ? '竞赛名称' : '项目名称'">
                       {{ isContest ? project.meta?.contestName || project.name : project.name }}
                     </NDescriptionsItem>
+                    <NDescriptionsItem label="项目负责人">
+                      {{ project.leader || '-' }}
+                    </NDescriptionsItem>
                     <NDescriptionsItem :label="isContest ? '赛事备注' : '备注'" :span="2">
                       <span class="whitespace-pre-wrap">
                         {{ isContest ? project.meta?.contestRemark ?? project.remark ?? '-' : project.remark ?? '-' }}
@@ -409,6 +452,15 @@ onMounted(() => {
                     :saving="savingBasic"
                     placeholder="点击填写"
                     @save="(v: string) => saveBasicField({name: v})"
+                  />
+                  <InlineEditRow
+                    label="项目负责人"
+                    :value="project.leader ?? ''"
+                    :editable="canEditBasicInfo"
+                    :saving="savingBasic"
+                    placeholder="点击填写负责人姓名"
+                    :suggestions="leaderHistory"
+                    @save="(v: string) => saveBasicField({leader: v})"
                   />
                   <InlineEditRow
                     :label="isContest ? '赛事备注' : '备注'"

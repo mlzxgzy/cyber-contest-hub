@@ -606,6 +606,8 @@ declare namespace Api {
       projectType: 'normal' | 'contest';
       /** 项目名称 */
       name: string;
+      /** 项目负责人（手填人名） */
+      leader?: string;
       /** 备注 */
       remark?: string;
       /** 竞赛meta信息（仅竞赛项目使用） */
@@ -636,6 +638,7 @@ declare namespace Api {
         | 'id'
         | 'projectType'
         | 'name'
+        | 'leader'
         | 'remark'
         | 'meta'
       >

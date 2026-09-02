@@ -55,6 +55,11 @@ public class Project extends BaseEntity {
     private String remark;
 
     /**
+     * 项目负责人（手填人名）
+     */
+    private String leader;
+
+    /**
      * JSON字段，存储竞赛项目的额外信息（竞赛时间段、相关文件等）
      */
     @TableField(typeHandler = JacksonTypeHandler.class)

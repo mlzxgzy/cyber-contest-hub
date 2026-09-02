@@ -48,6 +48,12 @@ public class ProjectVo implements Serializable {
     private String remark;
 
     /**
+     * 项目负责人（手填人名）
+     */
+    @ExcelProperty(value = "项目负责人")
+    private String leader;
+
+    /**
      * 竞赛meta信息（仅竞赛项目使用）
      */
     private ContestMeta meta;

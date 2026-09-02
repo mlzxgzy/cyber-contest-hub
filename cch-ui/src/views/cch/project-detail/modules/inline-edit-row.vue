@@ -19,6 +19,8 @@ interface Props {
   placeholder?: string;
   /** 保存中（禁用编辑控件防止重复提交） */
   saving?: boolean;
+  /** 历史输入推荐（传入后文本编辑控件使用自动补全） */
+  suggestions?: string[];
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -26,7 +28,8 @@ const props = withDefaults(defineProps<Props>(), {
   type: 'text',
   editable: false,
   placeholder: '点击填写',
-  saving: false
+  saving: false,
+  suggestions: undefined
 });
 
 interface Emits {
@@ -37,13 +40,22 @@ const emit = defineEmits<Emits>();
 
 const editing = ref(false);
 const draft = ref('');
-const inputRef = ref<InstanceType<typeof import('naive-ui')['NInput']> | null>(null);
+const inputRef = ref<{ focus: () => void; select?: () => void } | null>(null);
 const datePickerRef = ref<{ focus: () => void } | null>(null);
 const rowRef = ref<HTMLElement | null>(null);
 
 const isTextarea = computed(() => props.type === 'textarea');
 const isDate = computed(() => props.type === 'date');
+const useAutocomplete = computed(() => props.suggestions !== undefined);
 const displayValue = computed(() => props.value || '');
+
+/** 根据输入内容过滤历史推荐 */
+const autocompleteOptions = computed(() => {
+  const keyword = (draft.value || '').trim();
+  const list = props.suggestions || [];
+  const matched = keyword ? list.filter(item => item.includes(keyword) && item !== keyword) : list;
+  return matched.map(item => ({label: item, value: item}));
+});
 
 onClickOutside(rowRef, () => {
   if (editing.value) {
@@ -103,8 +115,21 @@ function handleDateChange(val: string | null) {
     <div class="inline-edit-row__label">{{ label }}</div>
     <div class="inline-edit-row__content">
       <template v-if="editing">
+        <NAutoComplete
+          v-if="type === 'text' && useAutocomplete"
+          ref="inputRef"
+          v-model:value="draft"
+          size="small"
+          :options="autocompleteOptions"
+          :placeholder="placeholder"
+          :disabled="saving"
+          :input-props="{autocomplete: 'off'}"
+          @blur="handleBlur"
+          @keydown.enter.prevent="handleEnter"
+          @keydown.esc.prevent="handleCancel"
+        />
         <NInput
-          v-if="type === 'text'"
+          v-else-if="type === 'text'"
           ref="inputRef"
           v-model:value="draft"
           size="small"
