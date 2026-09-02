@@ -9,6 +9,8 @@ import {
   NTag,
   NEmpty,
   NButton,
+  NModal,
+  NSpin,
   useDialog
 } from 'naive-ui';
 import type { UploadFileInfo } from 'naive-ui';
@@ -24,7 +26,7 @@ const props = defineProps<{
   draftData: Api.Cch.ChallengeDraft | null;
 }>();
 
-const { downloadChallengeFile } = useDownload();
+const { downloadChallengeFile, getChallengeFileBlob } = useDownload();
 const dialog = useDialog();
 
 const { createRequiredRule } = useFormRules();
@@ -82,6 +84,43 @@ function handleWriteupUploadSuccess(data: Api.Cch.ChallengeFile) {
 
 function downloadFile(fileId: CommonType.IdType) {
   downloadChallengeFile(fileId);
+}
+
+// ========== PDF 在线预览 ==========
+const pdfPreviewVisible = ref(false);
+const pdfPreviewLoading = ref(false);
+const pdfPreviewUrl = ref('');
+const pdfPreviewTitle = ref('');
+
+function isPdf(fileName: string) {
+  return !!fileName && fileName.toLowerCase().endsWith('.pdf');
+}
+
+async function previewPdf(fileId: CommonType.IdType, fileName: string) {
+  pdfPreviewTitle.value = fileName;
+  pdfPreviewVisible.value = true;
+  pdfPreviewLoading.value = true;
+  try {
+    const blob = await getChallengeFileBlob(fileId);
+    // 显式指定 PDF 类型，确保浏览器内置渲染器正确识别
+    pdfPreviewUrl.value = window.URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+  } catch (err) {
+    pdfPreviewVisible.value = false;
+    window.$message?.error(`加载预览失败: ${err}`);
+  } finally {
+    pdfPreviewLoading.value = false;
+  }
+}
+
+function handlePdfPreviewClose(show: boolean) {
+  if (!show) {
+    // 释放 ObjectURL，避免内存泄漏
+    if (pdfPreviewUrl.value) {
+      window.URL.revokeObjectURL(pdfPreviewUrl.value);
+      pdfPreviewUrl.value = '';
+    }
+    pdfPreviewLoading.value = false;
+  }
 }
 
 function deleteAttachment(fileId: CommonType.IdType, fileName: string) {
@@ -319,6 +358,18 @@ function deleteWriteup(fileId: CommonType.IdType, fileName: string) {
                 />
               </div>
               <NButton
+                v-if="isPdf(x.fileName)"
+                text
+                type="info"
+                @click="previewPdf(x.fileId, x.fileName)"
+                class="file-action"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </NButton>
+              <NButton
                 text
                 type="primary"
                 @click="downloadFile(x.fileId)"
@@ -411,6 +462,18 @@ function deleteWriteup(fileId: CommonType.IdType, fileName: string) {
                 />
               </div>
               <NButton
+                v-if="isPdf(x.fileName)"
+                text
+                type="info"
+                @click="previewPdf(x.fileId, x.fileName)"
+                class="file-action"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </NButton>
+              <NButton
                 text
                 type="primary"
                 @click="downloadFile(x.fileId)"
@@ -439,6 +502,28 @@ function deleteWriteup(fileId: CommonType.IdType, fileName: string) {
         </div>
       </div>
     </div>
+
+    <!-- PDF 在线预览对话框 -->
+    <NModal
+      v-model:show="pdfPreviewVisible"
+      preset="card"
+      :title="pdfPreviewTitle"
+      :style="{ width: '80vw' }"
+      :bordered="false"
+      :segmented="{ content: true }"
+      @update:show="handlePdfPreviewClose"
+    >
+      <NSpin :show="pdfPreviewLoading">
+        <iframe
+          v-if="pdfPreviewUrl"
+          :src="pdfPreviewUrl"
+          class="pdf-preview-frame"
+          frameborder="0"
+          allowfullscreen
+        />
+        <div v-else class="pdf-preview-placeholder" />
+      </NSpin>
+    </NModal>
   </div>
 </template>
 
@@ -664,6 +749,20 @@ $shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
     width: 16px;
     height: 16px;
   }
+}
+
+// PDF 在线预览
+.pdf-preview-frame {
+  display: block;
+  width: 100%;
+  height: 75vh;
+  border: none;
+  background: #525659;
+}
+
+.pdf-preview-placeholder {
+  height: 75vh;
+  background: #525659;
 }
 </style>
 

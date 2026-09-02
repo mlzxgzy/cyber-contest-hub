@@ -149,6 +149,18 @@ export function useDownload() {
       url: `/cch/challengeFile/download/${fileId}`
     });
 
+  /** 获取题目文件Blob（用于PDF在线预览等场景，不触发浏览器下载） */
+  const getChallengeFileBlob = async (fileId: CommonType.IdType): Promise<Blob> => {
+    const url = `/cch/challengeFile/download/${fileId}`;
+    const fullUrl = `${baseURL}${url}${url.includes('?') ? '&' : '?'}t=${Date.now()}`;
+    const response = await fetch(fullUrl, { method: 'GET', headers: getCommonHeaders() });
+    if (response.status !== 200) {
+      throw new Error(errorCodeRecord.default);
+    }
+    await handleResponse(response);
+    return response.blob();
+  };
+
   /** OSS文件下载 */
   const oss = (ossId: CommonType.IdType) =>
     executeDownload({
@@ -169,6 +181,7 @@ export function useDownload() {
     oss,
     zip,
     download,
-    downloadChallengeFile
+    downloadChallengeFile,
+    getChallengeFileBlob
   };
 }
