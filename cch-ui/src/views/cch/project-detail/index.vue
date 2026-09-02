@@ -1,5 +1,6 @@
 <script lang="ts" setup>
-import {computed, onMounted, ref} from 'vue';
+import {computed, h, onMounted, ref} from 'vue';
+import type {DataTableColumns} from 'naive-ui';
 import {useRoute, useRouter} from 'vue-router';
 import dayjs from 'dayjs';
 import {jsonClone} from '@sa/utils';
@@ -57,6 +58,11 @@ const isContest = computed(() => project.value?.projectType === 'contest');
 // 基本信息行内编辑权限：项目管理员或超管
 const canEditBasicInfo = computed(() => isProjectAdmin.value || isSuperAdmin.value);
 
+// 基本信息视图模式：view 展示视角 / edit 编辑视角（仅管理员可切换）
+const basicViewMode = ref<'view' | 'edit'>('view');
+// 是否处于展示视角（非管理员恒为展示视角）
+const isBasicViewMode = computed(() => !canEditBasicInfo.value || basicViewMode.value === 'view');
+
 const savingBasic = ref(false);
 
 // 阶段/平台编辑态（管理员在详情页直接增删改）
@@ -104,14 +110,65 @@ function removePlatform(index: number) {
   editablePlatforms.value.splice(index, 1);
 }
 
-/** 保存阶段与平台 */
-function saveStagesPlatforms() {
-  saveBasicField({
+/** 保存阶段与平台，成功后自动回到展示视角 */
+async function saveStagesPlatforms() {
+  const ok = await saveBasicField({
     meta: {
       stages: jsonClone(editableStages.value),
       platforms: jsonClone(editablePlatforms.value)
     }
   });
+  if (ok) {
+    basicViewMode.value = 'view';
+  }
+}
+
+/** 展示视角：竞赛阶段只读数据 */
+const viewStages = computed<Api.Cch.ContestStage[]>(() => project.value?.meta?.stages || []);
+
+/** 展示视角：竞赛平台只读数据 */
+const viewPlatforms = computed<Api.Cch.ContestPlatform[]>(() => project.value?.meta?.platforms || []);
+
+/** 展示视角：竞赛阶段汇总表格列 */
+const stageViewColumns: DataTableColumns<Api.Cch.ContestStage> = [
+  {key: 'index', title: '#', width: 48, align: 'center', render: (_row, index) => index + 1},
+  {key: 'stageName', title: '阶段名称', minWidth: 100},
+  {key: 'startTime', title: '开始时间', minWidth: 140},
+  {
+    key: 'duration',
+    title: '阶段时长（分钟）',
+    width: 130,
+    align: 'center',
+    render: row => (row.duration ? String(row.duration) : '-')
+  },
+  {key: 'endTime', title: '结束时间', minWidth: 140, render: row => getStageEndTime(row) || '-'},
+  {
+    key: 'challengeRequirement',
+    title: '本阶段赛题需求',
+    minWidth: 200,
+    render: row => h('span', {class: 'whitespace-pre-wrap'}, row.challengeRequirement || '-')
+  }
+];
+
+/** 展示视角：竞赛平台汇总表格列 */
+const platformViewColumns: DataTableColumns<Api.Cch.ContestPlatform> = [
+  {key: 'index', title: '#', width: 48, align: 'center', render: (_row, index) => index + 1},
+  {key: 'platformName', title: '平台名称', minWidth: 140},
+  {
+    key: 'platformUrl',
+    title: '平台地址',
+    minWidth: 220,
+    render: row =>
+      row.platformUrl
+        ? h('a', {href: row.platformUrl, target: '_blank', rel: 'noopener noreferrer', class: 'text-primary'}, row.platformUrl)
+        : '-'
+  }
+];
+
+/** 进入基本信息编辑视角（以服务端数据重新初始化阶段/平台编辑态） */
+function enterBasicEdit() {
+  syncStagePlatformEditable();
+  basicViewMode.value = 'edit';
 }
 
 /** 根据开始时间与阶段时长（分钟）自动计算结束时间，未填时长时不显示 */
@@ -131,8 +188,9 @@ function getStageEndTime(stage: Api.Cch.ContestStage): string {
  *
  * 竞赛项目中竞赛名称/赛事备注与项目名称/备注保持同步
  */
-async function saveBasicField(patch: {name?: string; remark?: string; meta?: Partial<Api.Cch.ContestMeta>}) {
-  if (!project.value || savingBasic.value) return;
+/** @returns 是否保存成功 */
+async function saveBasicField(patch: {name?: string; remark?: string; meta?: Partial<Api.Cch.ContestMeta>}): Promise<boolean> {
+  if (!project.value || savingBasic.value) return false;
   const isContestProject = project.value.projectType === 'contest';
 
   const mergedMeta: Api.Cch.ContestMeta = {
@@ -174,13 +232,14 @@ async function saveBasicField(patch: {name?: string; remark?: string; meta?: Par
   if (error) {
     project.value = prevProject;
     window.$message?.error(error.message || '保存失败');
-    return;
+    return false;
   }
 
   if (patch.name !== undefined) {
     tabStore.setTabLabel(`项目详情-${patch.name}`);
   }
   window.$message?.success('保存成功');
+  return true;
 }
 
 async function loadProjectDetail() {
@@ -269,8 +328,76 @@ onMounted(() => {
           <NTabPane name="basic" tab="基本信息">
             <NCard :bordered="false" size="small">
               <template v-if="canViewProject">
-                <!-- 逐行展示，可编辑字段点击后进入编辑态，失焦自动保存 -->
-                <div class="flex flex-col">
+                <!-- 视角切换：仅项目管理员/超管可进入编辑视角 -->
+                <div v-if="canEditBasicInfo" class="mb-12px flex justify-end">
+                  <NButton v-if="isBasicViewMode" size="small" type="primary" ghost @click="enterBasicEdit">
+                    <template #icon>
+                      <icon-ic-round-edit class="text-icon"/>
+                    </template>
+                    编辑
+                  </NButton>
+                  <NButton v-else size="small" @click="basicViewMode = 'view'">退出编辑</NButton>
+                </div>
+
+                <!-- 展示视角：仅展示数据与内容 -->
+                <div v-if="isBasicViewMode" class="flex flex-col gap-16px">
+                  <NDescriptions label-placement="left" bordered :column="2" size="small">
+                    <NDescriptionsItem label="项目类型">
+                      {{ project.projectType === 'contest' ? '竞赛项目' : '普通项目' }}
+                    </NDescriptionsItem>
+                    <NDescriptionsItem :label="isContest ? '竞赛名称' : '项目名称'">
+                      {{ isContest ? project.meta?.contestName || project.name : project.name }}
+                    </NDescriptionsItem>
+                    <NDescriptionsItem :label="isContest ? '赛事备注' : '备注'" :span="2">
+                      <span class="whitespace-pre-wrap">
+                        {{ isContest ? project.meta?.contestRemark ?? project.remark ?? '-' : project.remark ?? '-' }}
+                      </span>
+                    </NDescriptionsItem>
+                    <template v-if="isContest">
+                      <NDescriptionsItem label="开始时间">
+                        {{ project.meta?.startTime || '-' }}
+                      </NDescriptionsItem>
+                      <NDescriptionsItem label="结束时间">
+                        {{ project.meta?.endTime || '-' }}
+                      </NDescriptionsItem>
+                      <NDescriptionsItem label="题目需求" :span="2">
+                        <span class="whitespace-pre-wrap">{{ project.meta?.challengeRequirement || '-' }}</span>
+                      </NDescriptionsItem>
+                    </template>
+                    <NDescriptionsItem label="创建时间">
+                      {{ project.createTime || '-' }}
+                    </NDescriptionsItem>
+                    <NDescriptionsItem label="更新时间">
+                      {{ project.updateTime || '-' }}
+                    </NDescriptionsItem>
+                  </NDescriptions>
+
+                  <template v-if="isContest">
+                    <div class="flex flex-col gap-8px">
+                      <NDivider title-placement="left">竞赛阶段</NDivider>
+                      <NDataTable
+                        v-if="viewStages.length"
+                        size="small"
+                        :columns="stageViewColumns"
+                        :data="viewStages"
+                      />
+                      <NEmpty v-else description="暂无竞赛阶段" size="small" />
+                    </div>
+                    <div class="flex flex-col gap-8px">
+                      <NDivider title-placement="left">竞赛平台</NDivider>
+                      <NDataTable
+                        v-if="viewPlatforms.length"
+                        size="small"
+                        :columns="platformViewColumns"
+                        :data="viewPlatforms"
+                      />
+                      <NEmpty v-else description="暂无竞赛平台" size="small" />
+                    </div>
+                  </template>
+                </div>
+
+                <!-- 编辑视角：与管理员原有行内编辑保持一致 -->
+                <div v-else class="flex flex-col">
                   <InlineEditRow
                     label="项目类型"
                     :value="project.projectType === 'contest' ? '竞赛项目' : '普通项目'"
@@ -322,7 +449,7 @@ onMounted(() => {
                   </template>
 
                   <template v-if="isContest">
-                    <!-- 阶段：管理员可编辑，其他成员只读 -->
+                    <!-- 竞赛阶段编辑块 -->
                     <NDivider title-placement="left">竞赛阶段</NDivider>
                     <template v-if="canEditBasicInfo">
                       <div v-for="(stage, index) in editableStages" :key="index" class="edit-block">
@@ -380,39 +507,13 @@ onMounted(() => {
                         添加阶段
                       </NButton>
                     </template>
-                    <template v-else>
-                      <NDescriptions
-                        v-for="(stage, index) in project.meta?.stages || []"
-                        :key="index"
-                        :column="2"
-                        :label-placement="'left'"
-                        class="mb-12px"
-                        bordered
-                      >
-                        <NDescriptionsItem label="阶段名称">
-                          {{ stage.stageName || '-' }}
-                        </NDescriptionsItem>
-                        <NDescriptionsItem label="开始时间">
-                          {{ stage.startTime || '-' }}
-                        </NDescriptionsItem>
-                        <NDescriptionsItem label="阶段时长">
-                          {{ stage.duration ? `${stage.duration} 分钟` : '-' }}
-                        </NDescriptionsItem>
-                        <NDescriptionsItem label="结束时间">
-                          {{ getStageEndTime(stage) || '-' }}
-                        </NDescriptionsItem>
-                        <NDescriptionsItem label="本阶段赛题需求" :span="2">
-                          <span class="whitespace-pre-wrap">{{ stage.challengeRequirement || '-' }}</span>
-                        </NDescriptionsItem>
-                      </NDescriptions>
-                    </template>
                     <NEmpty
-                      v-if="!editableStages.length && canEditBasicInfo"
+                      v-if="!editableStages.length"
                       description="暂无竞赛阶段，点击上方「添加阶段」按钮新增"
                       size="small"
                     />
 
-                    <!-- 平台：管理员可编辑，其他成员只读 -->
+                    <!-- 竞赛平台编辑块 -->
                     <NDivider title-placement="left">竞赛平台</NDivider>
                     <template v-if="canEditBasicInfo">
                       <div v-for="(platform, index) in editablePlatforms" :key="index" class="edit-block">
@@ -437,34 +538,8 @@ onMounted(() => {
                         添加平台
                       </NButton>
                     </template>
-                    <template v-else>
-                      <NDescriptions
-                        v-for="(platform, index) in project.meta?.platforms || []"
-                        :key="index"
-                        :column="1"
-                        :label-placement="'left'"
-                        class="mb-12px"
-                        bordered
-                      >
-                        <NDescriptionsItem label="平台名称">
-                          {{ platform.platformName || '-' }}
-                        </NDescriptionsItem>
-                        <NDescriptionsItem label="平台地址">
-                          <a
-                            v-if="platform.platformUrl"
-                            :href="platform.platformUrl"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="text-primary"
-                          >
-                            {{ platform.platformUrl }}
-                          </a>
-                          <span v-else>-</span>
-                        </NDescriptionsItem>
-                      </NDescriptions>
-                    </template>
                     <NEmpty
-                      v-if="!editablePlatforms.length && canEditBasicInfo"
+                      v-if="!editablePlatforms.length"
                       description="暂无竞赛平台，点击上方「添加平台」按钮新增"
                       size="small"
                     />
