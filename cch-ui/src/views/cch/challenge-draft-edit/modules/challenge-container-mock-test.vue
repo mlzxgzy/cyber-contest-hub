@@ -4,14 +4,13 @@ import {
   NButton,
   NCard,
   NEmpty,
-  NIcon,
   NInputNumber,
+  NRadioButton,
+  NRadioGroup,
   NSelect,
   NSpace,
   NSpin,
   NTag,
-  NTabs,
-  NTabPane,
   NModal,
   NForm,
   NFormItem
@@ -442,16 +441,12 @@ onUnmounted(() => {
 
 <template>
   <div class="container-mock-test-container">
-    <!-- 来源类型选择 -->
-    <div class="source-type-section">
-      <NTabs v-model:value="sourceType" type="card" size="small">
-        <NTabPane name="draft" tab="草稿列表"/>
-        <NTabPane name="version" tab="版本列表"/>
-      </NTabs>
-    </div>
-
-    <!-- 选择区域 -->
-    <div class="select-section">
+    <!-- 来源工具条：类型切换 + 选择 + 启动（单行） -->
+    <div class="mock-toolbar">
+      <NRadioGroup v-model:value="sourceType" size="small">
+        <NRadioButton value="draft">草稿</NRadioButton>
+        <NRadioButton value="version">版本</NRadioButton>
+      </NRadioGroup>
       <NSelect
         v-model:value="selectedSourceId"
         :options="sourceOptions"
@@ -459,26 +454,28 @@ onUnmounted(() => {
         :loading="loadingSources"
         filterable
         clearable
+        size="small"
         class="source-select"
       />
       <NButton
         type="primary"
+        size="small"
         :loading="starting"
         :disabled="!selectedSourceId"
         @click="handleStartTest"
       >
         <template #icon>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+          <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1" width="13" height="13">
             <polygon points="5 3 19 12 5 21 5 3"/>
           </svg>
         </template>
-        启动测试
+        启动
       </NButton>
     </div>
 
     <!-- 活跃测试列表 -->
     <div class="tests-section">
-      <div class="section-title">活跃测试环境</div>
+      <div class="section-title">活跃测试环境 ({{ mockTests.length }})</div>
 
       <NSpin :show="loadingTests">
         <div v-if="mockTests.length" class="test-list">
@@ -490,18 +487,13 @@ onUnmounted(() => {
           >
             <template #header>
               <div class="test-card-header">
-                <div class="test-title">
-                  <span class="title-text">{{ test.challengeName }}</span>
-                  <NTag :type="getStatusType(test.status)" size="small">
-                    {{ getStatusLabel(test.status) }}
-                  </NTag>
-                </div>
-                <div class="test-source">
-                  <NTag :type="test.sourceType === 'version' ? 'warning' : 'info'" size="small">
-                    {{ test.sourceType === 'version' ? '版本' : '草稿' }}
-                  </NTag>
-                  <span class="source-id">ID: {{ test.sourceId }}</span>
-                </div>
+                <span class="title-text">{{ test.challengeName }}</span>
+                <NTag :type="getStatusType(test.status)" size="small">
+                  {{ getStatusLabel(test.status) }}
+                </NTag>
+                <NTag :type="test.sourceType === 'version' ? 'warning' : 'info'" size="small">
+                  {{ test.sourceType === 'version' ? '版本' : '草稿' }}
+                </NTag>
               </div>
             </template>
 
@@ -523,55 +515,51 @@ onUnmounted(() => {
                 :key="idx"
                 class="container-item"
               >
-                <div class="container-name">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                <span class="container-name">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
                     <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
                     <line x1="8" y1="21" x2="16" y2="21"/>
                     <line x1="12" y1="17" x2="12" y2="21"/>
                   </svg>
-                  <span>{{ container.name }}</span>
-                  <NTag v-if="container.protocol" size="small" type="info" style="margin-left: 4px;">
-                    {{ container.protocol.toUpperCase() }}
-                  </NTag>
-                </div>
-                <div class="access-url">
-                  <div class="url-display">
-                    <code class="full-url">{{ getAccessUrl(container) }}</code>
-                    <span class="port-mapping" v-if="container.externalPort">
-                      → {{ container.internalPort }}
-                    </span>
-                  </div>
-                  <NButton text size="small" @click="copyAccessUrl(container)" title="复制完整地址">
-                    <template #icon>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14"
-                           height="14">
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                      </svg>
-                    </template>
-                  </NButton>
-                </div>
+                  {{ container.name }}
+                </span>
+                <NTag v-if="container.protocol" size="small" type="info" class="protocol-tag">
+                  {{ container.protocol.toUpperCase() }}
+                </NTag>
+                <code class="full-url">{{ getAccessUrl(container) }}</code>
+                <span v-if="container.externalPort" class="port-mapping">→{{ container.internalPort }}</span>
+                <NButton text size="tiny" @click="copyAccessUrl(container)" title="复制完整地址">
+                  <template #icon>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                  </template>
+                </NButton>
               </div>
             </div>
 
             <!-- 底部操作栏 -->
             <div class="test-card-footer">
-              <div class="countdown">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+              <div
+                class="countdown"
+                :class="{urgent: (test.remainingSeconds || 0) > 0 && (test.remainingSeconds || 0) < 300}"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
                   <circle cx="12" cy="12" r="10"/>
                   <polyline points="12 6 12 12 16 14"/>
                 </svg>
-                <span>剩余: {{ formatTime(test.remainingSeconds || 0) }}</span>
+                <span>{{ formatTime(test.remainingSeconds || 0) }}</span>
                 <NTag v-if="test.extendCount > 0" size="small" type="warning">
                   已延长{{ test.extendCount }}次
                 </NTag>
               </div>
-              <NSpace>
-                <NButton size="small" @click="openExtendModal(test.id)">
-                  延长时间
+              <NSpace :size="4">
+                <NButton size="tiny" @click="openExtendModal(test.id)">
+                  延长
                 </NButton>
                 <NButton
-                  size="small"
+                  size="tiny"
                   type="error"
                   :disabled="test.status === 'destroying' || test.status === 'expired'"
                   @click="handleDestroy(test.id)"
@@ -617,22 +605,21 @@ onUnmounted(() => {
   height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
   padding: 8px;
   overflow-y: auto;
 }
 
-.source-type-section {
-  flex-shrink: 0;
-}
-
-.select-section {
+// 单行工具条：类型切换 + 来源选择 + 启动
+.mock-toolbar {
   display: flex;
-  gap: 8px;
+  gap: 6px;
+  align-items: center;
   flex-shrink: 0;
 
   .source-select {
     flex: 1;
+    min-width: 0;
   }
 }
 
@@ -642,17 +629,17 @@ onUnmounted(() => {
   min-height: 0;
 
   .section-title {
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 500;
-    color: #666;
-    margin-bottom: 8px;
+    color: #9ca3af;
+    margin-bottom: 6px;
   }
 }
 
 .test-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .test-card {
@@ -662,159 +649,149 @@ onUnmounted(() => {
   transition: all 0.2s ease;
 
   &:hover {
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
     border-color: #d1d5db;
   }
 
   :deep(.n-card__header) {
-    padding: 12px;
-    border-bottom: 1px solid #e5e7eb;
-    background: #f9fafb;
+    padding: 6px 9px;
+    border-bottom: 1px solid #eef0f2;
+    background: #fafbfc;
   }
 
   :deep(.n-card__content) {
-    padding: 12px;
+    padding: 8px 9px;
   }
 }
 
 .test-card-header {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.test-title {
-  display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  min-width: 0;
 
   .title-text {
-    font-size: 14px;
+    flex: 1;
+    min-width: 0;
+    font-size: 12.5px;
     font-weight: 600;
-    color: #333;
-  }
-}
-
-.test-source {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: #999;
-
-  .source-id {
-    color: #999;
+    color: #1f2937;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
 
 .starting-tip {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  margin-bottom: 12px;
+  gap: 6px;
+  padding: 5px 8px;
+  margin-bottom: 6px;
   border: 1px dashed #fbbf24;
   background: #fffbeb;
-  border-radius: 4px;
-  font-size: 13px;
+  border-radius: 3px;
+  font-size: 11.5px;
   color: #b45309;
 }
 
 .failed-tip {
-  padding: 10px 12px;
-  margin-bottom: 12px;
+  padding: 5px 8px;
+  margin-bottom: 6px;
   border: 1px solid #fecaca;
   background: #fef2f2;
-  border-radius: 4px;
-  font-size: 13px;
+  border-radius: 3px;
+  font-size: 11.5px;
   color: #b91c1c;
   word-break: break-all;
 }
 
 .container-info {
-  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
 }
 
 .container-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 10px 0;
-  border-bottom: 1px solid #e5e7eb;
+  gap: 6px;
+  font-size: 12px;
+  padding: 4px 0;
 
-  &:last-child {
-    border-bottom: none;
+  & + .container-item {
+    border-top: 1px dashed #f3f4f6;
   }
 }
 
 .container-name {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: #333;
-  flex: 1;
+  gap: 5px;
+  color: #374151;
+  font-weight: 500;
+  width: 64px;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 
   svg {
     color: #3b82f6;
     flex-shrink: 0;
   }
-
-  .port-info {
-    font-size: 11px;
-    color: #999;
-    margin-left: 4px;
-  }
 }
 
-.access-url {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.protocol-tag {
   flex-shrink: 0;
+  padding: 0 5px;
+  font-size: 10px;
+}
 
-  .url-display {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
+.full-url {
+  flex: 1;
+  min-width: 0;
+  font-family: 'Monaco', 'Consolas', monospace;
+  font-size: 11.5px;
+  color: #2563eb;
+  background: #f0f7ff;
+  border: 1px solid #dbeafe;
+  padding: 2px 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
-  .full-url {
-    font-family: 'Monaco', 'Consolas', monospace;
-    font-size: 12px;
-    color: #3b82f6;
-    background: #f0f7ff;
-    padding: 4px 8px;
-    border-radius: 2px;
-    word-break: break-all;
-    max-width: 300px;
-    border: 1px solid #dbeafe;
-  }
-
-  .port-mapping {
-    font-size: 11px;
-    color: #666;
-    font-family: 'Monaco', 'Consolas', monospace;
-  }
+.port-mapping {
+  font-size: 10.5px;
+  color: #9ca3af;
+  font-family: 'Monaco', 'Consolas', monospace;
+  flex-shrink: 0;
 }
 
 .test-card-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: 12px;
-  border-top: 1px solid #eee;
+  padding-top: 6px;
+  margin-top: 6px;
+  border-top: 1px dashed #eef0f2;
 }
 
 .countdown {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: #666;
+  gap: 5px;
+  font-size: 12px;
+  color: #6b7280;
+  font-family: 'Monaco', 'Consolas', monospace;
 
   svg {
     color: #f59e0b;
+  }
+
+  &.urgent {
+    color: #dc2626;
+    font-weight: 600;
   }
 }
 </style>

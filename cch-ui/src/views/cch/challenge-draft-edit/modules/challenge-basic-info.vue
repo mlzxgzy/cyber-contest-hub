@@ -6,7 +6,6 @@ import {
   NInput,
   NRadioButton,
   NRadioGroup,
-  NTag,
   NEmpty,
   NButton,
   NModal,
@@ -137,7 +136,7 @@ function deleteAttachment(fileId: CommonType.IdType, fileName: string) {
           window.$message?.error(`删除失败: ${error}`);
           return;
         }
-        
+
         // 从前端数据中移除
         if (props.draftData?.config.attachments) {
           const index = props.draftData.config.attachments.findIndex(item => item.fileId === fileId);
@@ -145,7 +144,7 @@ function deleteAttachment(fileId: CommonType.IdType, fileName: string) {
             props.draftData.config.attachments.splice(index, 1);
           }
         }
-        
+
         window.$message?.success('删除成功');
       } catch (err) {
         window.$message?.error(`删除异常: ${err}`);
@@ -168,7 +167,7 @@ function deleteWriteup(fileId: CommonType.IdType, fileName: string) {
           window.$message?.error(`删除失败: ${error}`);
           return;
         }
-        
+
         // 从前端数据中移除
         if (props.draftData?.config.writeups) {
           const index = props.draftData.config.writeups.findIndex(item => item.fileId === fileId);
@@ -176,7 +175,7 @@ function deleteWriteup(fileId: CommonType.IdType, fileName: string) {
             props.draftData.config.writeups.splice(index, 1);
           }
         }
-        
+
         window.$message?.success('删除成功');
       } catch (err) {
         window.$message?.error(`删除异常: ${err}`);
@@ -188,91 +187,80 @@ function deleteWriteup(fileId: CommonType.IdType, fileName: string) {
 
 <template>
   <div class="info-masonry">
-    <!-- 基本信息卡片 -->
-    <div class="masonry-item">
+    <div class="grid2">
+      <!-- 基本信息卡片 -->
       <div class="info-card">
         <div class="card-header">
-          <div class="card-icon basic">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-              <line x1="3" y1="9" x2="21" y2="9" />
-              <line x1="9" y1="21" x2="9" y2="9" />
-            </svg>
-          </div>
+          <span class="card-dot basic"></span>
           <h3 class="card-title">基本信息</h3>
         </div>
         <div class="card-body">
           <NForm ref="challengeFormRef" :model="challengeData" :rules="challengeRules">
-            <div class="form-group">
-              <label class="form-label">题目类型</label>
-              <NSelect
-                v-model:value="challengeData.category"
-                :options="cchQuestionCategroyOptions"
-                clearable
-                placeholder="请选择题目类型"
-                class="cyber-input"
-              />
-            </div>
-            <div class="form-group">
-              <label class="form-label">题目名称</label>
-              <NInput
-                v-model:value="challengeData.name"
-                placeholder="请输入题目名称"
-                class="cyber-input"
-              />
+            <div class="frow">
+              <div class="form-group">
+                <label class="form-label">题目类型<span class="req">*</span></label>
+                <NSelect
+                  v-model:value="challengeData.category"
+                  :options="cchQuestionCategroyOptions"
+                  clearable
+                  placeholder="请选择题目类型"
+                  size="small"
+                />
+              </div>
+              <div class="form-group">
+                <label class="form-label">题目名称<span class="req">*</span></label>
+                <NInput
+                  v-model:value="challengeData.name"
+                  placeholder="请输入题目名称"
+                  size="small"
+                />
+              </div>
             </div>
             <div class="form-group">
               <label class="form-label">题目备注</label>
               <NInput
                 v-model:value="challengeData.remark"
-                :rows="3"
+                :rows="2"
                 placeholder="请输入题目备注"
                 type="textarea"
-                class="cyber-input"
+                size="small"
               />
             </div>
           </NForm>
         </div>
       </div>
-    </div>
 
-    <!-- 题目配置卡片 -->
-    <div class="masonry-item" v-if="draftData">
-      <div class="info-card">
+      <!-- 题目配置卡片 -->
+      <div class="info-card" v-if="draftData">
         <div class="card-header">
-          <div class="card-icon config">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="3" />
-              <path
-                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
-              />
-            </svg>
-          </div>
+          <span class="card-dot config"></span>
           <h3 class="card-title">题目配置</h3>
         </div>
         <div class="card-body">
           <NForm ref="draftFormRef" :model="draftData.config" :rules="draftRules">
-            <div class="form-group">
-              <label class="form-label">运行类型</label><br>
-              <NRadioGroup v-model:value="draftData.config.runType">
-                <NRadioButton
-                  v-for="option in cchQuestionRunTypeOptions"
-                  :key="option.value"
-                  :value="option.value"
-                  :label="option.label"
-                />
-              </NRadioGroup>
-            </div>
-            <div class="form-group">
-              <label class="form-label">难度</label><br>
-              <NRadioGroup v-model:value="draftData.config.difficulty">
-                <NRadioButton
-                  v-for="option in cchQuestionDifficultyOptions"
-                  :key="option.value"
-                  :value="option.value"
-                  :label="option.label"
-                />
-              </NRadioGroup>
+            <div class="frow">
+              <div class="form-group">
+                <label class="form-label">运行类型</label>
+                <NRadioGroup v-model:value="draftData.config.runType" size="small">
+                  <NRadioButton
+                    v-for="option in cchQuestionRunTypeOptions"
+                    :key="option.value"
+                    :value="option.value"
+                    :label="option.label"
+                  />
+                </NRadioGroup>
+              </div>
+              <div class="form-group">
+                <label class="form-label">难度</label>
+                <NRadioGroup v-model:value="draftData.config.difficulty" size="small">
+                  <NRadioButton
+                    v-for="option in cchQuestionDifficultyOptions"
+                    :key="option.value"
+                    :value="option.value"
+                    :label="option.label"
+                  />
+                </NRadioGroup>
+              </div>
             </div>
             <div class="form-group">
               <label class="form-label">知识点</label>
@@ -281,17 +269,17 @@ function deleteWriteup(fileId: CommonType.IdType, fileName: string) {
                 filterable
                 multiple
                 tag
-                class="cyber-select"
+                size="small"
               />
             </div>
-            <div class="form-group full-height">
+            <div class="form-group">
               <label class="form-label">题干描述</label>
               <NInput
                 v-model:value="draftData.config.stem"
-                :rows="6"
+                :rows="5"
                 placeholder="请输入题干内容"
                 type="textarea"
-                class="cyber-input"
+                size="small"
               />
             </div>
           </NForm>
@@ -299,31 +287,29 @@ function deleteWriteup(fileId: CommonType.IdType, fileName: string) {
       </div>
     </div>
 
-    <!-- 附件管理卡片 -->
-    <div class="masonry-item" v-if="draftData">
-      <div class="info-card">
+    <div class="grid2">
+      <!-- 附件管理卡片 -->
+      <div class="info-card" v-if="draftData">
         <div class="card-header">
-          <div class="card-icon attachment">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path
-                d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"
-              />
-            </svg>
-          </div>
+          <span class="card-dot attachment"></span>
           <h3 class="card-title">附件管理</h3>
-        </div>
-        <div class="card-body">
+          <span class="card-hint">{{ draftData.config.attachments?.length || 0 }} 个文件</span>
           <FileUpload
             v-if="draftData.challengeId"
             v-model:file-list="draftAttachmentList"
             upload-type="file"
-            :show-file-list="true"
+            trigger="button"
+            :show-file-list="false"
+            :show-tip="false"
             :accept="AcceptType.ChallengeAttachment"
             :data="uploadData"
             action="/cch/challengeFile/upload"
             :on-success="handleAttachmentUploadSuccess"
+            class="card-upload"
           />
-          <div v-else class="upload-disabled-tip">
+        </div>
+        <div class="card-body">
+          <div v-if="!draftData.challengeId" class="upload-disabled-tip">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="10"/>
               <line x1="12" y1="16" x2="12" y2="12"/>
@@ -343,89 +329,81 @@ function deleteWriteup(fileId: CommonType.IdType, fileName: string) {
                   <polyline points="14 2 14 8 20 8" />
                 </svg>
               </div>
-              <div class="file-info">
-                <div class="file-name">
-                  <NTag type="success" size="small">
-                    附件
-                  </NTag>
-                  <span>{{ x.fileName }}</span>
-                </div>
-                <NInput
-                  v-model:value="x.remark"
-                  placeholder="填写备注（可选）"
-                  size="small"
-                  class="file-remark"
-                />
+              <span class="file-name">{{ x.fileName }}</span>
+              <NInput
+                v-model:value="x.remark"
+                placeholder="填写备注（可选）"
+                size="tiny"
+                class="file-remark"
+              />
+              <div class="file-acts">
+                <NButton
+                  v-if="isPdf(x.fileName)"
+                  text
+                  type="info"
+                  size="tiny"
+                  title="预览"
+                  @click="previewPdf(x.fileId, x.fileName)"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                </NButton>
+                <NButton
+                  text
+                  type="primary"
+                  size="tiny"
+                  title="下载"
+                  @click="downloadFile(x.fileId)"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                </NButton>
+                <NButton
+                  text
+                  type="error"
+                  size="tiny"
+                  title="删除"
+                  @click="deleteAttachment(x.fileId, x.fileName)"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  </svg>
+                </NButton>
               </div>
-              <NButton
-                v-if="isPdf(x.fileName)"
-                text
-                type="info"
-                @click="previewPdf(x.fileId, x.fileName)"
-                class="file-action"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                  <circle cx="12" cy="12" r="3" />
-                </svg>
-              </NButton>
-              <NButton
-                text
-                type="primary"
-                @click="downloadFile(x.fileId)"
-                class="file-action"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7 10 12 15 17 10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
-              </NButton>
-              <NButton
-                text
-                type="error"
-                @click="deleteAttachment(x.fileId, x.fileName)"
-                class="file-action"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="3 6 5 6 21 6" />
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                </svg>
-              </NButton>
             </div>
           </div>
-          <NEmpty v-else description="暂无附件" size="small" />
+          <NEmpty v-else-if="draftData.challengeId" description="暂无附件" size="small" class="empty-small" />
         </div>
       </div>
-    </div>
 
-    <!-- Writeup 管理卡片 -->
-    <div class="masonry-item" v-if="draftData">
-      <div class="info-card">
+      <!-- Writeup 管理卡片 -->
+      <div class="info-card" v-if="draftData">
         <div class="card-header">
-          <div class="card-icon writeup">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-              <polyline points="14 2 14 8 20 8" />
-              <line x1="16" y1="13" x2="8" y2="13" />
-              <line x1="16" y1="17" x2="8" y2="17" />
-              <polyline points="10 9 9 9 8 9" />
-            </svg>
-          </div>
+          <span class="card-dot writeup"></span>
           <h3 class="card-title">Writeup 管理</h3>
-        </div>
-        <div class="card-body">
+          <span class="card-hint">{{ draftData.config.writeups?.length || 0 }} 个文件</span>
           <FileUpload
             v-if="draftData.challengeId"
             v-model:file-list="draftWriteupList"
             upload-type="file"
-            :show-file-list="true"
+            trigger="button"
+            :show-file-list="false"
+            :show-tip="false"
             :accept="AcceptType.ChallengeWriteup"
             :data="uploadData"
             action="/cch/challengeFile/upload"
             :on-success="handleWriteupUploadSuccess"
+            class="card-upload"
           />
-          <div v-else class="upload-disabled-tip">
+        </div>
+        <div class="card-body">
+          <div v-if="!draftData.challengeId" class="upload-disabled-tip">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="10"/>
               <line x1="12" y1="16" x2="12" y2="12"/>
@@ -447,58 +425,56 @@ function deleteWriteup(fileId: CommonType.IdType, fileName: string) {
                   <line x1="16" y1="17" x2="8" y2="17" />
                 </svg>
               </div>
-              <div class="file-info">
-                <div class="file-name">
-                  <NTag type="info" size="small">
-                    Writeup
-                  </NTag>
-                  <span>{{ x.fileName }}</span>
-                </div>
-                <NInput
-                  v-model:value="x.remark"
-                  placeholder="填写备注（可选）"
-                  size="small"
-                  class="file-remark"
-                />
+              <span class="file-name">{{ x.fileName }}</span>
+              <NInput
+                v-model:value="x.remark"
+                placeholder="填写备注（可选）"
+                size="tiny"
+                class="file-remark"
+              />
+              <div class="file-acts">
+                <NButton
+                  v-if="isPdf(x.fileName)"
+                  text
+                  type="info"
+                  size="tiny"
+                  title="预览"
+                  @click="previewPdf(x.fileId, x.fileName)"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                </NButton>
+                <NButton
+                  text
+                  type="primary"
+                  size="tiny"
+                  title="下载"
+                  @click="downloadFile(x.fileId)"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                </NButton>
+                <NButton
+                  text
+                  type="error"
+                  size="tiny"
+                  title="删除"
+                  @click="deleteWriteup(x.fileId, x.fileName)"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  </svg>
+                </NButton>
               </div>
-              <NButton
-                v-if="isPdf(x.fileName)"
-                text
-                type="info"
-                @click="previewPdf(x.fileId, x.fileName)"
-                class="file-action"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                  <circle cx="12" cy="12" r="3" />
-                </svg>
-              </NButton>
-              <NButton
-                text
-                type="primary"
-                @click="downloadFile(x.fileId)"
-                class="file-action"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7 10 12 15 17 10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
-              </NButton>
-              <NButton
-                text
-                type="error"
-                @click="deleteWriteup(x.fileId, x.fileName)"
-                class="file-action"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="3 6 5 6 21 6" />
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                </svg>
-              </NButton>
             </div>
           </div>
-          <NEmpty v-else description="暂无 Writeup" size="small" />
+          <NEmpty v-else-if="draftData.challengeId" description="暂无 Writeup" size="small" class="empty-small" />
         </div>
       </div>
     </div>
@@ -528,7 +504,7 @@ function deleteWriteup(fileId: CommonType.IdType, fileName: string) {
 </template>
 
 <style scoped lang="scss">
-// 扁平化设计变量
+// 紧凑扁平设计变量
 $border-radius-sm: 2px;
 $border-radius: 4px;
 $border-color: #e5e7eb;
@@ -538,18 +514,22 @@ $bg-hover: #f3f4f6;
 $shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 $shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
 
+// 双卡片并排（窄屏单列）
 .info-masonry {
-  column-count: 1;
-  column-gap: 16px;
-
-  @media (min-width: 600px) {
-    column-count: 2;
-  }
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.masonry-item {
-  break-inside: avoid;
-  margin-bottom: 16px;
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  align-items: start;
+
+  @media (max-width: 1100px) {
+    grid-template-columns: 1fr;
+  }
 }
 
 .info-card {
@@ -561,33 +541,24 @@ $shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
   transition: all 0.2s ease;
 
   &:hover {
-    box-shadow: $shadow;
     border-color: #d1d5db;
   }
 
   .card-header {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 14px 16px;
+    gap: 8px;
+    padding: 6px 10px;
     background: $bg-secondary;
-    border-bottom: 1px solid $border-color;
+    border-bottom: 1px solid #eef0f2;
+    min-height: 30px;
   }
 
-  .card-icon {
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: $border-radius-sm;
-    color: #ffffff;
+  .card-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
     flex-shrink: 0;
-
-    svg {
-      width: 18px;
-      height: 18px;
-    }
 
     &.basic {
       background: #3b82f6;
@@ -608,19 +579,32 @@ $shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
 
   .card-title {
     margin: 0;
-    font-size: 14px;
+    font-size: 12.5px;
     font-weight: 600;
     color: #1f2937;
-    letter-spacing: 0.01em;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .card-hint {
+    font-size: 11px;
+    color: #9ca3af;
+    font-weight: 400;
+    flex-shrink: 0;
+  }
+
+  .card-upload {
+    flex-shrink: 0;
+    display: inline-block;
   }
 
   .card-body {
-    padding: 16px;
+    padding: 10px 12px;
   }
 }
 
 .form-group {
-  margin-bottom: 16px;
+  margin-bottom: 10px;
 
   &:last-child {
     margin-bottom: 0;
@@ -628,54 +612,64 @@ $shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
 
   .form-label {
     display: block;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 500;
-    color: #374151;
-    margin-bottom: 8px;
-  }
+    color: #4b5563;
+    margin-bottom: 4px;
 
-  .cyber-input,
-  .cyber-select {
-    :deep(.n-input),
-    :deep(.n-select) {
-      border-radius: $border-radius-sm;
+    .req {
+      color: #ef4444;
+      margin-left: 2px;
     }
   }
 }
 
+// 两个窄字段并排
+.frow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+
+  .form-group {
+    min-width: 0;
+  }
+}
+
 .file-list {
-  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
 }
 
 .upload-disabled-tip {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 14px 16px;
-  background: #f9fafb;
+  padding: 8px 10px;
+  background: $bg-secondary;
   border: 1px dashed #d1d5db;
-  border-radius: 4px;
+  border-radius: 3px;
   color: #6b7280;
-  font-size: 13px;
+  font-size: 12px;
 
   svg {
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
     color: #3b82f6;
     flex-shrink: 0;
   }
 }
 
+// 紧凑文件行
 .file-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  background: $bg-secondary;
-  border: 1px solid $border-color;
-  border-radius: $border-radius-sm;
-  margin-bottom: 8px;
-  transition: all 0.2s ease;
+  gap: 8px;
+  padding: 4px 8px;
+  border: 1px solid #eef0f2;
+  border-radius: 3px;
+  margin-bottom: 6px;
+  background: #fafbfc;
+  transition: all 0.15s ease;
 
   &:last-child {
     margin-bottom: 0;
@@ -683,22 +677,25 @@ $shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
 
   &:hover {
     background: $bg-hover;
-    border-color: #d1d5db;
+
+    .file-acts {
+      opacity: 1;
+    }
   }
 }
 
 .file-icon {
-  width: 32px;
-  height: 32px;
+  width: 22px;
+  height: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: $border-radius-sm;
+  border-radius: 3px;
   flex-shrink: 0;
 
   svg {
-    width: 16px;
-    height: 16px;
+    width: 12px;
+    height: 12px;
   }
 
   &.attachment {
@@ -712,17 +709,10 @@ $shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
   }
 }
 
-.file-info {
-  flex: 1;
-  min-width: 0;
-}
-
 .file-name {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-  font-size: 13px;
+  flex-shrink: 0;
+  max-width: 42%;
+  font-size: 12px;
   color: #1f2937;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -730,25 +720,33 @@ $shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
 }
 
 .file-remark {
+  flex: 1;
+  min-width: 0;
+
   :deep(.n-input) {
     background: transparent;
-    border: none;
-    font-size: 12px;
-    border-radius: $border-radius-sm;
 
     .n-input__input-el {
-      text-overflow: ellipsis;
+      font-size: 11.5px;
     }
   }
 }
 
-.file-action {
+.file-acts {
+  display: flex;
+  gap: 2px;
+  opacity: 0.45;
+  transition: opacity 0.15s ease;
   flex-shrink: 0;
 
   svg {
-    width: 16px;
-    height: 16px;
+    width: 13px;
+    height: 13px;
   }
+}
+
+.empty-small {
+  padding: 12px 0;
 }
 
 // PDF 在线预览
@@ -765,4 +763,3 @@ $shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
   background: #525659;
 }
 </style>
-

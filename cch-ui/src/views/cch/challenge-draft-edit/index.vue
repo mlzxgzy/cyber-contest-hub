@@ -521,7 +521,7 @@ async function loadImageList() {
 
 <template>
   <div class="draft-container">
-    <!-- 顶部标题栏 -->
+    <!-- 顶部标题栏（紧凑单行：标题 + 徽标 + 入库步骤 + 操作） -->
     <div class="draft-header">
       <div class="header-left">
         <div class="header-icon">
@@ -540,9 +540,32 @@ async function loadImageList() {
           <span v-if="challengeData.latestVersionId" class="header-badge published-badge">已入库 {{ challengeData.latestVersionTag || '' }}</span>
         </div>
       </div>
+      <!-- 入库流程步骤条（压缩为标题栏内胶囊组） -->
+      <div v-if="!isCreateMode" class="hdr-steps">
+        <template v-for="(step, index) in intakeSteps" :key="step.key">
+          <div
+            class="step"
+            :class="{
+              'is-done': step.done,
+              'is-current': index === currentStepIndex && !step.done,
+              'is-current-done': index === currentStepIndex && step.done
+            }"
+            @click="handleStepJump(index)"
+          >
+            <span class="step-num">
+              <svg v-if="step.done" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              <template v-else>{{ index + 1 }}</template>
+            </span>
+            <span class="step-title">{{ step.title }}</span>
+          </div>
+          <span v-if="index < intakeSteps.length - 1" class="step-sep"></span>
+        </template>
+      </div>
       <div class="header-actions">
         <template v-if="isCreateMode">
-          <NButton :loading="saving" type="primary" size="large" @click="createChallengeAndEnter">
+          <NButton :loading="saving" type="primary" size="small" @click="createChallengeAndEnter">
             <template #icon>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
@@ -554,7 +577,7 @@ async function loadImageList() {
           </NButton>
         </template>
         <template v-else>
-          <NButton :loading="saving" :disabled="!hasEdited || saving" type="primary" size="large" @click="saveDraft">
+          <NButton :loading="saving" :disabled="!hasEdited || saving" type="primary" size="small" @click="saveDraft">
             <template #icon>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
@@ -567,7 +590,7 @@ async function loadImageList() {
           <NButton
             :disabled="!draftData || !challengeData.id"
             type="info"
-            size="large"
+            size="small"
             @click="handlePublish"
           >
             <template #icon>
@@ -578,7 +601,7 @@ async function loadImageList() {
             发版
           </NButton>
         </template>
-        <NButton size="large" @click="goBack">
+        <NButton size="small" @click="goBack">
           <template #icon>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="19" y1="12" x2="5" y2="12"/>
@@ -608,36 +631,9 @@ async function loadImageList() {
 
             <!-- 数据加载完成 -->
             <template v-else-if="draftData">
-              <!-- 入库流程步骤条（对应 CTF 入库流程） -->
-              <div class="intake-steps">
-                <div
-                  v-for="(step, index) in intakeSteps"
-                  :key="step.key"
-                  class="intake-step"
-                  :class="{
-                    'is-done': step.done,
-                    'is-current': index === currentStepIndex && !step.done,
-                    'is-current-done': index === currentStepIndex && step.done
-                  }"
-                  @click="handleStepJump(index)"
-                >
-                  <div class="step-indicator">
-                    <svg v-if="step.done" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                      <polyline points="20 6 9 17 4 12"/>
-                    </svg>
-                    <span v-else>{{ index + 1 }}</span>
-                  </div>
-                  <div class="step-text">
-                    <span class="step-title">{{ step.title }}</span>
-                    <span class="step-desc">{{ step.desc }}</span>
-                  </div>
-                  <div v-if="index < intakeSteps.length - 1" class="step-line"></div>
-                </div>
-              </div>
-
               <!-- 标签页导航 -->
               <div class="tab-nav-wrapper">
-                <NTabs v-model:value="activeMainTab" type="card" animated class="cyber-tabs">
+                <NTabs v-model:value="activeMainTab" type="line" size="small" animated class="cyber-tabs">
                   <NTabPane name="info" tab="题目信息" tab-class="cyber-tab">
                     <template #tab>
                       <span class="tab-icon">
@@ -676,8 +672,8 @@ async function loadImageList() {
                     <div class="pane-content">
                       <div class="flag-header">
                         <h3 class="section-title">Flag 列表</h3>
-                        <NSpace>
-                          <NButton type="primary" @click="addFlag('static')">
+                        <NSpace :size="8">
+                          <NButton type="primary" size="small" @click="addFlag('static')">
                             <template #icon>
                               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <line x1="12" y1="5" x2="12" y2="19"/>
@@ -686,7 +682,7 @@ async function loadImageList() {
                             </template>
                             静态Flag
                           </NButton>
-                          <NButton @click="addFlag('dynamic')">
+                          <NButton size="small" @click="addFlag('dynamic')">
                             <template #icon>
                               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M12 2L2 7l10 5 10-5-10-5z"/>
@@ -915,21 +911,19 @@ async function loadImageList() {
 
         <template #2>
           <div class="side-panel">
-            <NCard class="side-card">
-              <NTabs v-model:value="activeSideTab" type="line" animated>
-                <NTabPane name="history" tab="修改历史">
-                  <ChallengeDraftHistory
-                    ref="historyRef"
-                    :challenge-id="challengeId"
-                    :current-draft-id="draftId"
-                    :fork-from="forkFromDraftId"
-                  />
-                </NTabPane>
-                <NTabPane name="containerMockTest" tab="容器模拟测试">
-                  <ChallengeContainerMockTest :current-draft-id="draftId" :challenge-id="challengeId"/>
-                </NTabPane>
-              </NTabs>
-            </NCard>
+            <NTabs v-model:value="activeSideTab" type="line" size="small" animated class="side-tabs">
+              <NTabPane name="history" tab="修改历史">
+                <ChallengeDraftHistory
+                  ref="historyRef"
+                  :challenge-id="challengeId"
+                  :current-draft-id="draftId"
+                  :fork-from="forkFromDraftId"
+                />
+              </NTabPane>
+              <NTabPane name="containerMockTest" tab="容器模拟测试">
+                <ChallengeContainerMockTest :current-draft-id="draftId" :challenge-id="challengeId"/>
+              </NTabPane>
+            </NTabs>
           </div>
         </template>
       </NSplit>
@@ -986,58 +980,62 @@ $bg-hover: #f3f4f6;
   min-height: 0; // 关键：允许内部滚动容器正确计算高度
 }
 
-// 顶部标题栏
+// 顶部标题栏（紧凑单行 48px）
 .draft-header {
+  height: 48px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 16px 24px;
+  gap: 12px;
+  padding: 0 12px;
   background: $bg-primary;
   border-bottom: 1px solid $border-color;
-  box-shadow: $shadow-sm;
 
   .header-left {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
+    flex-shrink: 0;
   }
 
   .header-icon {
-    width: 48px;
-    height: 48px;
+    width: 28px;
+    height: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
     background: $primary-color;
-    border-radius: $border-radius-sm;
+    border-radius: $border-radius;
     color: white;
 
     svg {
-      width: 24px;
-      height: 24px;
+      width: 15px;
+      height: 15px;
     }
   }
 
   .header-content {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 6px;
   }
 
   .header-title {
     margin: 0;
-    font-size: 20px;
+    font-size: 15px;
     font-weight: 600;
     color: $text-primary;
+    white-space: nowrap;
   }
 
   .header-badge {
-    padding: 4px 12px;
+    padding: 1px 8px;
     background: $warning-color;
     color: white;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 500;
-    border-radius: $border-radius-sm;
+    border-radius: 3px;
+    white-space: nowrap;
 
     &.create-badge {
       background: $primary-color;
@@ -1051,130 +1049,92 @@ $bg-hover: #f3f4f6;
       background: $success-color;
     }
   }
-
-  .header-actions {
-    display: flex;
-    gap: 12px;
-  }
 }
 
-// 入库流程步骤条
-.intake-steps {
-  display: flex;
-  align-items: flex-start;
-  padding: 14px 16px;
-  margin-bottom: 12px;
-  background: $bg-primary;
-  border: 1px solid $border-color;
-  border-radius: $border-radius;
-  box-shadow: $shadow-sm;
-  flex-shrink: 0;
-  overflow-x: auto;
-}
-
-.intake-step {
+// 入库步骤条（压缩为标题栏内胶囊组）
+.hdr-steps {
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 6px 10px;
-  border-radius: $border-radius-sm;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-  min-width: 0;
+  gap: 2px;
+  overflow: hidden;
+  padding: 0 8px;
 
-  &:hover {
-    background: $bg-hover;
-  }
+  .step {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: $text-secondary;
+    white-space: nowrap;
+    padding: 2px 8px 2px 3px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 0.15s ease;
 
-  &.is-done {
-    .step-indicator {
-      background: $success-color;
-      border-color: $success-color;
-      color: white;
+    &:hover {
+      background: $bg-hover;
     }
 
-    .step-title {
-      color: $text-primary;
-    }
-  }
-
-  &.is-current,
-  &.is-current-done {
-    .step-indicator {
-      box-shadow: 0 0 0 3px $primary-light;
-    }
-  }
-
-  &.is-current:not(.is-done) {
-    .step-indicator {
-      background: $primary-color;
-      border-color: $primary-color;
-      color: white;
+    &.is-done {
+      color: #059669;
     }
 
-    .step-title {
+    &.is-current:not(.is-done),
+    &.is-current-done {
       color: $primary-color;
       font-weight: 600;
+      background: $primary-light;
     }
   }
 
-  &.is-current-done {
-    .step-indicator {
-      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+  .step-num {
+    width: 16px;
+    height: 16px;
+    min-width: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 600;
+    background: $bg-tertiary;
+    color: $text-muted;
+    border: 1px solid $border-color;
+    transition: all 0.15s ease;
+
+    svg {
+      width: 9px;
+      height: 9px;
     }
   }
-}
 
-.step-indicator {
-  width: 26px;
-  height: 26px;
-  min-width: 26px;
-  border-radius: 50%;
-  border: 2px solid $border-color;
-  background: $bg-secondary;
-  color: $text-muted;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 600;
-  transition: all 0.2s ease;
+  .step.is-done .step-num {
+    background: $success-color;
+    border-color: $success-color;
+    color: white;
+  }
 
-  svg {
-    width: 14px;
-    height: 14px;
+  .step.is-current:not(.is-done) .step-num,
+  .step.is-current-done .step-num {
+    background: $primary-color;
+    border-color: $primary-color;
+    color: white;
+  }
+
+  .step-sep {
+    width: 10px;
+    height: 1px;
+    background: #d1d5db;
+    flex-shrink: 0;
   }
 }
 
-.step-text {
+.header-actions {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.step-title {
-  font-size: 13px;
-  font-weight: 500;
-  color: $text-secondary;
-  white-space: nowrap;
-  transition: color 0.2s ease;
-}
-
-.step-desc {
-  font-size: 11px;
-  color: $text-muted;
-  white-space: nowrap;
-}
-
-.step-line {
-  width: 32px;
-  height: 2px;
-  background: $border-color;
-  margin: 0 6px;
+  gap: 8px;
   flex-shrink: 0;
-  align-self: center;
 }
 
 // 创建模式引导提示
@@ -1201,7 +1161,7 @@ $bg-hover: #f3f4f6;
 // 主内容区域
 .draft-main {
   flex: 1;
-  padding: 16px;
+  padding: 8px;
   overflow: hidden;
   min-height: 0; // 关键：flex 子项默认 min-height:auto 会导致无法滚动
 }
@@ -1226,7 +1186,6 @@ $bg-hover: #f3f4f6;
   overflow: auto;
   display: flex;
   flex-direction: column;
-  padding-right: 8px;
 }
 
 // 标签页容器
@@ -1238,7 +1197,7 @@ $bg-hover: #f3f4f6;
   min-height: 0;
 }
 
-// 扁平化标签页
+// 紧凑标签页（line 型）
 .cyber-tabs {
   height: 100%;
   display: flex;
@@ -1248,49 +1207,26 @@ $bg-hover: #f3f4f6;
 
   :deep(.n-tabs-nav) {
     background: $bg-primary;
-    border-radius: $border-radius-sm;
-    padding: 6px 6px 0 6px;
-    box-shadow: $shadow-sm;
+    border: 1px solid $border-color;
+    border-bottom: none;
+    border-radius: $border-radius $border-radius 0 0;
+    padding: 0 6px;
     flex-shrink: 0;
-    border-bottom: 1px solid $border-color;
-  }
-
-  :deep(.n-tabs-tab-wrapper) {
-    margin-right: 2px;
   }
 
   :deep(.n-tabs-tab) {
-    padding: 10px 18px;
-    border-radius: $border-radius-sm $border-radius-sm 0 0;
-    background: $bg-secondary;
-    color: $text-secondary;
+    padding: 7px 12px;
+    font-size: 12.5px;
     font-weight: 500;
-    font-size: 13px;
-    transition: all 0.2s ease;
-    border: 1px solid transparent;
-    border-bottom: none;
+    color: $text-secondary;
 
     &:hover {
       color: $primary-color;
-      background: $bg-hover;
     }
 
     &.n-tabs-tab--active {
       color: $primary-color;
-      background: $bg-primary;
-      border-color: $border-color;
-      border-bottom-color: $bg-primary;
-      position: relative;
-
-      &::after {
-        content: '';
-        position: absolute;
-        bottom: -1px;
-        left: 0;
-        right: 0;
-        height: 2px;
-        background: $primary-color;
-      }
+      font-weight: 600;
     }
   }
 
@@ -1299,6 +1235,9 @@ $bg-hover: #f3f4f6;
     flex: 1;
     overflow: hidden;
     min-height: 0;
+    border: 1px solid $border-color;
+    border-radius: 0 0 $border-radius $border-radius;
+    background: $bg-primary;
   }
 
   :deep(.n-tabs-content--animated) {
@@ -1319,11 +1258,7 @@ $bg-hover: #f3f4f6;
     overflow-y: auto;
     overflow-x: hidden;
     min-height: 0;
-  }
-
-  :deep(.n-tabs-tab-pane) {
     padding: 0;
-    height: 100%;
   }
 }
 
@@ -1366,9 +1301,64 @@ $bg-hover: #f3f4f6;
 
 // 内容面板
 .pane-content {
-  padding: 16px;
+  padding: 10px;
   height: 100%;
   box-sizing: border-box;
+}
+
+// 右侧面板（紧凑：边栏式 + 内部滚动）
+.side-panel {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: $bg-primary;
+  border-left: 1px solid $border-color;
+}
+
+.side-tabs {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+
+  :deep(.n-tabs-nav) {
+    padding: 0 8px;
+    flex-shrink: 0;
+  }
+
+  :deep(.n-tabs-tab) {
+    padding: 7px 10px;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: $text-secondary;
+
+    &.n-tabs-tab--active {
+      color: $primary-color;
+      font-weight: 600;
+    }
+  }
+
+  :deep(.n-tabs-content) {
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  :deep(.n-tabs-pane-wrapper) {
+    height: 100%;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  :deep(.n-tab-pane) {
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 0;
+    padding: 0;
+  }
 }
 
 // 信息卡片（扁平化）
@@ -1445,7 +1435,7 @@ $bg-hover: #f3f4f6;
 
 // 表单样式
 .form-group {
-  margin-bottom: 16px;
+  margin-bottom: 10px;
 
   &:last-child {
     margin-bottom: 0;
@@ -1458,8 +1448,8 @@ $bg-hover: #f3f4f6;
 
 .form-label {
   display: block;
-  margin-bottom: 8px;
-  font-size: 13px;
+  margin-bottom: 4px;
+  font-size: 12px;
   font-weight: 500;
   color: $text-secondary;
 }
@@ -1608,8 +1598,8 @@ $bg-hover: #f3f4f6;
 
 // Flag管理
 .section-title {
-  margin: 0 0 16px 0;
-  font-size: 16px;
+  margin: 0;
+  font-size: 13px;
   font-weight: 600;
   color: $text-primary;
 }
@@ -1618,13 +1608,13 @@ $bg-hover: #f3f4f6;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
 }
 
 .flag-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 8px;
 }
 
 .flag-item {
@@ -1645,7 +1635,7 @@ $bg-hover: #f3f4f6;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
+  padding: 5px 10px;
   background: $bg-secondary;
   border-bottom: 1px solid $border-color;
 }
@@ -1653,11 +1643,11 @@ $bg-hover: #f3f4f6;
 .flag-title-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .flag-index {
-  font-size: 14px;
+  font-size: 12.5px;
   font-weight: 500;
   color: $text-primary;
 }
@@ -1674,12 +1664,12 @@ $bg-hover: #f3f4f6;
 }
 
 .flag-body {
-  padding: 16px;
+  padding: 10px 12px;
 }
 
 // 空状态
 .empty-state {
-  padding: 48px 0;
+  padding: 32px 0;
 }
 
 // 错误卡片

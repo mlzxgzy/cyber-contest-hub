@@ -20,6 +20,8 @@ interface Props {
   accept?: string;
   fileSize?: number;
   uploadType?: 'file' | 'image';
+  /** 触发方式：dragger=拖拽区域（默认），button=紧凑上传按钮 */
+  trigger?: 'dragger' | 'button';
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -30,7 +32,8 @@ const props = withDefaults(defineProps<Props>(), {
   max: 5,
   accept: undefined,
   fileSize: 5,
-  uploadType: 'file'
+  uploadType: 'file',
+  trigger: 'dragger'
 });
 
 const accept = computed(() => {
@@ -183,7 +186,7 @@ async function handleRemove(file: UploadFileInfo) {
 </script>
 
 <template>
-  <div class="w-full flex-col">
+  <div :class="trigger === 'button' ? 'inline-block' : 'w-full flex-col'">
     <NUpload
       v-bind="attrs"
       v-model:file-list="fileList"
@@ -193,7 +196,7 @@ async function handleRemove(file: UploadFileInfo) {
       :max="max"
       :accept="accept"
       :multiple="max > 1"
-      directory-dnd
+      :directory-dnd="trigger === 'dragger'"
       :default-upload="defaultUpload"
       :list-type="uploadType === 'image' ? 'image-card' : 'text'"
       :is-error-state="isErrorState"
@@ -202,7 +205,13 @@ async function handleRemove(file: UploadFileInfo) {
       @before-upload="beforeUpload"
       @remove="({ file }) => handleRemove(file)"
     >
-      <NUploadDragger v-if="uploadType === 'file'">
+      <NButton v-if="trigger === 'button'" size="small" type="primary" secondary>
+        <template #icon>
+          <SvgIcon icon="material-symbols:upload" />
+        </template>
+        上传
+      </NButton>
+      <NUploadDragger v-else-if="uploadType === 'file'">
         <div class="mb-12px flex-center">
           <SvgIcon icon="material-symbols:unarchive-outline" class="text-58px color-#d8d8db dark:color-#a1a1a2" />
         </div>

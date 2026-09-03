@@ -127,9 +127,9 @@ function resolveImageName(imageId?: CommonType.IdType | null) {
   <div class="container-target-config">
     <div class="config-header">
       <div class="config-title">容器靶机配置</div>
-      <NSpace>
-        <NButton type="primary" @click="addTarget">新增靶机</NButton>
-        <NButton @click="loadImages">刷新镜像列表</NButton>
+      <NSpace :size="8">
+        <NButton type="primary" size="small" @click="addTarget">新增靶机</NButton>
+        <NButton size="small" @click="loadImages">刷新镜像列表</NButton>
       </NSpace>
     </div>
 
@@ -218,21 +218,20 @@ $shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 $shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
 
 .container-target-config {
-  padding: 16px;
+  padding: 0;
 }
 
 .config-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
 }
 
 .config-title {
-  font-size: 16px;
+  font-size: 12.5px;
   font-weight: 600;
   color: #1f2937;
-  letter-spacing: 0.01em;
 }
 
 .target-card {
@@ -242,18 +241,17 @@ $shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
   transition: all 0.2s ease;
 
   &:hover {
-    box-shadow: $shadow;
     border-color: #d1d5db;
   }
 
   :deep(.n-card__header) {
-    padding: 14px 16px;
-    border-bottom: 1px solid $border-color;
+    padding: 6px 10px;
+    border-bottom: 1px solid #eef0f2;
     background: $bg-secondary;
   }
 
   :deep(.n-card__content) {
-    padding: 16px;
+    padding: 12px;
   }
 }
 
@@ -265,18 +263,19 @@ $shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
 
 .target-title {
   font-weight: 600;
-  font-size: 14px;
+  font-size: 12.5px;
   color: #1f2937;
 }
 
 :deep(.n-divider) {
-  margin: 16px 0;
+  margin: 10px 0;
 }
 
 :deep(.n-form-item-label) {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   color: #374151;
+  padding-bottom: 2px;
 }
 
 :deep(.n-input),

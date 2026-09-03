@@ -138,26 +138,20 @@ function handlePublishClick() {
       <div class="check-list">
         <div v-for="check of checks" :key="check.key" class="check-item" :class="{done: check.done}">
           <div class="check-icon">
-            <svg v-if="check.done" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <svg v-if="check.done" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
               <polyline points="20 6 9 17 4 12"/>
             </svg>
-            <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/>
-              <line x1="15" y1="9" x2="9" y2="15"/>
-              <line x1="9" y1="9" x2="15" y2="15"/>
-            </svg>
+            <span v-else class="check-x">×</span>
           </div>
-          <div class="check-info">
-            <div class="check-title">{{ check.label }}</div>
-            <div class="check-desc">{{ check.done ? check.desc : check.hint }}</div>
-          </div>
+          <span class="check-title">{{ check.label }}</span>
+          <span class="check-desc">{{ check.done ? check.desc : check.hint }}</span>
         </div>
       </div>
     </NCard>
 
     <!-- 操作 -->
-    <NSpace justify="end" :size="12" class="action-bar">
-      <NButton :disabled="isCreateMode" @click="emit('save')">
+    <NSpace justify="end" :size="8" class="action-bar">
+      <NButton size="small" :disabled="isCreateMode" @click="emit('save')">
         <template #icon>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
@@ -167,7 +161,7 @@ function handlePublishClick() {
         </template>
         保存草稿
       </NButton>
-      <NButton type="primary" :disabled="isCreateMode" @click="handlePublishClick">
+      <NButton size="small" type="primary" :disabled="isCreateMode" @click="handlePublishClick">
         <template #icon>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M5 12h14M12 5l7 7-7 7"/>
@@ -197,8 +191,7 @@ $text-muted: #9ca3af;
 .publish-check {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  max-width: 720px;
+  gap: 10px;
 }
 
 .status-card {
@@ -208,7 +201,7 @@ $text-muted: #9ca3af;
   :deep(.n-card__content) {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
   }
 }
 
@@ -234,7 +227,7 @@ $text-muted: #9ca3af;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 12px;
+  padding: 6px 10px;
   background: $bg-secondary;
   border: 1px solid $border-color;
   border-radius: $border-radius-sm;
@@ -242,8 +235,8 @@ $text-muted: #9ca3af;
   color: $text-secondary;
 
   svg {
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
     color: $primary-color;
     flex-shrink: 0;
   }
@@ -254,7 +247,7 @@ $text-muted: #9ca3af;
   border: 1px solid $border-color;
 
   :deep(.n-card-header__main) {
-    font-size: 14px;
+    font-size: 12.5px;
     font-weight: 600;
     color: $text-primary;
   }
@@ -263,15 +256,15 @@ $text-muted: #9ca3af;
 .check-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .check-item {
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 10px 12px;
-  border: 1px solid $border-color;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border: 1px solid #eef0f2;
   border-radius: $border-radius-sm;
   background: $bg-secondary;
   transition: all 0.2s ease;
@@ -283,19 +276,18 @@ $text-muted: #9ca3af;
 }
 
 .check-icon {
-  width: 22px;
-  height: 22px;
-  min-width: 22px;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  margin-top: 1px;
 
   svg {
-    width: 14px;
-    height: 14px;
+    width: 10px;
+    height: 10px;
   }
 
   .check-item:not(.done) & {
@@ -309,23 +301,27 @@ $text-muted: #9ca3af;
   }
 }
 
-.check-info {
-  min-width: 0;
+.check-x {
+  font-size: 12px;
+  line-height: 1;
 }
 
 .check-title {
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 500;
   color: $text-primary;
-  margin-bottom: 2px;
+  width: 70px;
+  flex-shrink: 0;
 }
 
 .check-desc {
   font-size: 12px;
   color: $text-muted;
+  flex: 1;
+  min-width: 0;
 }
 
 .action-bar {
-  margin-top: 4px;
+  margin-top: 2px;
 }
 </style>

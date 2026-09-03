@@ -181,255 +181,161 @@ onMounted(() => {
       <div v-if="!historyLoading && historyTimelineData.length === 0" class="empty-wrapper">
         <NEmpty description="暂无版本历史"/>
       </div>
-      
-      <div v-else class="timeline-wrapper">
-        <!-- 时间线节点 -->
-        <div class="timeline-nodes">
-          <div
-            v-for="(draft, index) in historyTimelineData"
-            :key="draft.id"
-            class="timeline-item"
-            :class="{
-              'is-current': draft.id === currentDraftId,
-              'is-fork-source': draft.id === forkFrom
-            }"
-          >
-            <!-- 时间线点 -->
-            <div class="timeline-dot-wrapper">
-              <div 
-                class="timeline-dot"
-                :style="{ 
-                  background: `rgb(${draft.depthColor.dotR}, ${draft.depthColor.dotG}, ${draft.depthColor.dotB})`,
-                  borderColor: `rgb(${draft.depthColor.dotR}, ${draft.depthColor.dotG}, ${draft.depthColor.dotB})`
-                }"
-              ></div>
-              <div v-if="index < historyTimelineData.length - 1" class="timeline-line"></div>
-            </div>
-            
-            <!-- 版本卡片 -->
-            <div 
-              class="version-card"
-              :style="{ 
-                borderColor: `rgb(${draft.depthColor.borderR}, ${draft.depthColor.borderG}, ${draft.depthColor.borderB})`,
-                background: `rgb(${draft.depthColor.bgR}, ${draft.depthColor.bgG}, ${draft.depthColor.bgB})`
-              }"
-            >
-              <div class="version-content">
-                <div class="version-title-row">
-                  <NTag
-                    v-if="draft.draftVersion"
-                    type="info"
-                    size="small"
-                    :bordered="false"
-                    class="version-tag"
-                  >
-                    第{{ draft.draftVersion }}版
-                  </NTag>
-                  <span class="version-name">{{ draft.challengeName || '未命名题目' }}</span>
-                  <NTag
-                    v-if="draft.id === currentDraftId"
-                    type="success"
-                    size="small"
-                  >
-                    当前
-                  </NTag>
-                  <NTag
-                    v-if="draft.id === forkFrom && draft.id !== currentDraftId"
-                    type="warning"
-                    size="small"
-                  >
-                    源版本
-                  </NTag>
-                </div>
-                <div class="version-time">
-                  <template v-if="draft.createTime">
-                    {{ formatTime(draft.createTime) }}
-                  </template>
-                  <template v-else>
-                    <span style="color: #ef4444;">无时间信息 (createTime: {{ draft.createTime }})</span>
-                  </template>
-                </div>
-              </div>
-              <div class="version-actions">
-                <NButton
-                  text
-                  type="primary"
-                  size="small"
-                  @click="forkFromVersion(draft)"
-                >
-                  派生
-                </NButton>
-              </div>
-            </div>
-          </div>
+
+      <template v-else>
+        <div class="h-summary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+          </svg>
+          共 {{ historyTimelineData.length }} 个版本 · 悬停可「派生」
         </div>
-      </div>
+        <div
+          v-for="draft in historyTimelineData"
+          :key="draft.id"
+          class="h-item"
+          :class="{
+            'is-current': draft.id === currentDraftId,
+            'is-fork-source': draft.id === forkFrom
+          }"
+        >
+          <span
+            class="h-dot"
+            :style="{ background: `rgb(${draft.depthColor.dotR}, ${draft.depthColor.dotG}, ${draft.depthColor.dotB})` }"
+          ></span>
+          <NTag
+            v-if="draft.draftVersion"
+            type="info"
+            size="small"
+            :bordered="false"
+            class="h-ver"
+          >
+            第{{ draft.draftVersion }}版
+          </NTag>
+          <span class="h-name">{{ draft.challengeName || '未命名题目' }}</span>
+          <span class="h-time">{{ draft.createTime ? formatTime(draft.createTime) : '未知时间' }}</span>
+          <NTag v-if="draft.id === currentDraftId" type="success" size="small">当前</NTag>
+          <NTag v-else-if="draft.id === forkFrom" type="warning" size="small">源版本</NTag>
+          <NButton
+            v-if="draft.id !== currentDraftId"
+            text
+            type="primary"
+            size="tiny"
+            class="h-fork"
+            @click="forkFromVersion(draft)"
+          >
+            派生
+          </NButton>
+        </div>
+      </template>
     </div>
   </NSpin>
 </template>
 
 <style scoped lang="scss">
+// 紧凑单行列表（由滚动容器接管，组件本身不再限制高度）
 .history-container {
-  min-height: 200px;
-  max-height: calc(100vh - 350px);
-  overflow-y: auto;
-  padding: 8px;
-  position: relative;
+  min-height: 120px;
 }
 
 .empty-wrapper {
-  padding: 40px 0;
+  padding: 32px 0;
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
-.timeline-wrapper {
-  position: relative;
-  padding-left: 48px;
-}
-
-.timeline-nodes {
-  position: relative;
-}
-
-.timeline-item {
+.h-summary {
   display: flex;
-  align-items: flex-start;
-  margin-bottom: 8px;
-  position: relative;
-  
-  &:last-child {
-    margin-bottom: 0;
-  }
-  
-  &.is-current {
-    .version-card {
-      border-color: #3b82f6 !important;
-      background: rgba(59, 130, 246, 0.1) !important;
-      
-      .version-name {
-        color: #3b82f6;
-        font-weight: 600;
-      }
-    }
-    
-    .timeline-dot {
-      background: #3b82f6 !important;
-      border-color: #3b82f6 !important;
-      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
-    }
-  }
-  
-  &.is-fork-source {
-    .version-card {
-      border-color: #f59e0b !important;
-      background: rgba(245, 158, 11, 0.1) !important;
-      
-      .version-name {
-        color: #f59e0b;
-        font-weight: 600;
-      }
-    }
-    
-    .timeline-dot {
-      background: #f59e0b !important;
-      border-color: #f59e0b !important;
-      box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.2);
-    }
-  }
-}
-
-.timeline-dot-wrapper {
-  position: absolute;
-  left: -48px;
-  top: 0;
-  width: 48px;
-  display: flex;
-  flex-direction: column;
   align-items: center;
-}
+  gap: 6px;
+  padding: 6px 10px;
+  font-size: 11px;
+  color: #9ca3af;
+  border-bottom: 1px solid #eef0f2;
+  background: #fafbfc;
 
-.timeline-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #ffffff;
-  border: 2px solid #d1d5db;
-  flex-shrink: 0;
-  z-index: 3;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-}
-
-.timeline-line {
-  width: 2px;
-  flex: 1;
-  background: #e5e7eb;
-  margin-top: 4px;
-  min-height: 36px;
-}
-
-.version-card {
-  flex: 1;
-  border: 1px solid;
-  border-radius: 4px;
-  padding: 12px 14px;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-  transition: all 0.2s ease;
-  min-width: 0;
-  min-height: 56px;
-  background: #ffffff;
-  border-color: #e5e7eb;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  
-  &:hover {
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-    border-color: #d1d5db;
+  svg {
+    width: 11px;
+    height: 11px;
+    flex-shrink: 0;
+    color: #3b82f6;
   }
 }
 
-.version-content {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  gap: 4px;
-}
-
-.version-title-row {
+.h-item {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: nowrap;
+  padding: 6px 10px;
+  border-bottom: 1px solid #f3f4f6;
+  cursor: default;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: #f9fafb;
+
+    .h-fork {
+      opacity: 1;
+    }
+  }
+
+  &.is-current {
+    background: #eff6ff;
+    box-shadow: inset 2px 0 0 #3b82f6;
+
+    .h-name {
+      color: #3b82f6;
+      font-weight: 600;
+    }
+
+    .h-dot {
+      background: #3b82f6 !important;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+  }
+
+  &.is-fork-source {
+    background: #fffbeb;
+    box-shadow: inset 2px 0 0 #f59e0b;
+
+    .h-dot {
+      background: #f59e0b !important;
+    }
+  }
 }
 
-.version-tag {
+.h-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #d1d5db;
+  transition: all 0.2s ease;
+}
+
+.h-ver {
   flex-shrink: 0;
 }
 
-.version-name {
-  font-size: 14px;
-  font-weight: 500;
-  color: #1f2937;
+.h-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: #374151;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.version-time {
-  font-size: 12px;
-  color: #6b7280;
-  line-height: 1.4;
-  display: block;
-  margin-top: 2px;
+.h-time {
+  font-size: 11px;
+  color: #9ca3af;
+  flex-shrink: 0;
 }
 
-.version-actions {
+.h-fork {
+  opacity: 0;
+  transition: opacity 0.15s ease;
   flex-shrink: 0;
 }
 </style>

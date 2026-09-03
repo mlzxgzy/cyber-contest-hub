@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>题目草稿编辑 · 紧凑版设计模拟稿</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    font-size: 13px;
+    color: #1f2937;
+    background: #f9fafb;
+    overflow: hidden;
+  }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  svg { flex-shrink: 0; }
+
+  /* ============ 整体框架 ============ */
+  .page { height: 100vh; display: flex; flex-direction: column; }
+
+  /* ============ 顶部标题栏（80px → 48px，步骤条并入标题栏） ============ */
+  .hdr {
+    height: 48px; flex-shrink: 0;
+    display: flex; align-items: center; gap: 12px;
+    padding: 0 12px;
+    background: #fff; border-bottom: 1px solid #e5e7eb;
+  }
+  .hdr-icon {
+    width: 28px; height: 28px; border-radius: 4px;
+    background: #3b82f6; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .hdr-icon svg { width: 15px; height: 15px; }
+  .hdr-title { font-size: 15px; font-weight: 600; white-space: nowrap; }
+  .badge {
+    font-size: 11px; font-weight: 500; color: #fff;
+    padding: 1px 8px; border-radius: 3px; white-space: nowrap;
+  }
+  .badge.ver  { background: #06b6d4; }
+  .badge.pub  { background: #10b981; }
+  .badge.fork { background: #f59e0b; }
+
+  /* 入库步骤条：由独立一行(约76px)压缩为标题栏内的胶囊组 */
+  .hdr-steps {
+    flex: 1; min-width: 0;
+    display: flex; align-items: center; gap: 2px;
+    overflow: hidden; padding: 0 8px;
+  }
+  .step {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 12px; color: #6b7280; white-space: nowrap;
+    padding: 2px 8px 2px 3px; border-radius: 999px; cursor: pointer;
+  }
+  .step:hover { background: #f3f4f6; }
+  .step .num {
+    width: 16px; height: 16px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 600;
+    background: #f3f4f6; color: #9ca3af;
+    border: 1px solid #e5e7eb;
+  }
+  .step.done { color: #059669; }
+  .step.done .num { background: #10b981; border-color: #10b981; color: #fff; }
+  .step.current { color: #3b82f6; font-weight: 600; background: #eff6ff; }
+  .step.current .num { background: #3b82f6; border-color: #3b82f6; color: #fff; }
+  .step-sep { width: 10px; height: 1px; background: #d1d5db; flex-shrink: 0; }
+
+  .hdr-actions { display: flex; gap: 8px; }
+
+  /* ============ 通用小控件（模拟 Naive UI small 尺寸） ============ */
+  .btn {
+    height: 28px; padding: 0 12px; font-size: 12.5px;
+    border: 1px solid #dcdfe4; border-radius: 4px;
+    background: #fff; color: #374151;
+    display: inline-flex; align-items: center; gap: 5px;
+    cursor: pointer; white-space: nowrap; transition: all .15s;
+  }
+  .btn:hover { border-color: #3b82f6; color: #3b82f6; }
+  .btn.primary { background: #3b82f6; border-color: #3b82f6; color: #fff; }
+  .btn.primary:hover { background: #2563eb; }
+  .btn.info { background: #3b82f6; border-color: #3b82f6; color: #fff; }
+  .btn.danger { color: #ef4444; }
+  .btn.danger:hover { border-color: #ef4444; }
+  .btn.text { border: none; background: transparent; padding: 0 6px; height: 22px; font-size: 12px; }
+  .btn.text.primary { color: #3b82f6; background: transparent; }
+  .btn.text.danger { color: #ef4444; }
+  .btn.xs { height: 24px; padding: 0 8px; font-size: 12px; }
+
+  .tag {
+    display: inline-flex; align-items: center;
+    font-size: 11px; line-height: 1; padding: 3px 7px;
+    border-radius: 3px; white-space: nowrap; font-weight: 500;
+  }
+  .tag.success { background: #ecfdf5; color: #059669; }
+  .tag.warning { background: #fffbeb; color: #b45309; }
+  .tag.error   { background: #fef2f2; color: #dc2626; }
+  .tag.info    { background: #eff6ff; color: #2563eb; }
+  .tag.cyan    { background: #ecfeff; color: #0e7490; }
+  .tag.gray    { background: #f3f4f6; color: #6b7280; }
+
+  .input, .select {
+    height: 28px; width: 100%;
+    border: 1px solid #dcdfe4; border-radius: 3px;
+    background: #fff; font-size: 12.5px; color: #1f2937;
+    padding: 0 8px; display: flex; align-items: center;
+  }
+  .input:focus, .select:focus { border-color: #3b82f6; outline: none; box-shadow: 0 0 0 2px rgba(59,130,246,.12); }
+  .input::placeholder { color: #c0c4cc; }
+  .input[disabled] { background: #f9fafb; color: #9ca3af; }
+  .select { justify-content: space-between; cursor: pointer; }
+  .select .ph { color: #c0c4cc; }
+  .select svg { width: 12px; height: 12px; color: #9ca3af; }
+  .textarea {
+    width: 100%; min-height: 56px;
+    border: 1px solid #dcdfe4; border-radius: 3px;
+    background: #fff; font-size: 12.5px; color: #1f2937;
+    padding: 6px 8px; line-height: 1.6; resize: vertical;
+    font-family: inherit;
+  }
+  .textarea:focus { border-color: #3b82f6; outline: none; box-shadow: 0 0 0 2px rgba(59,130,246,.12); }
+
+  /* 分段选择器（运行类型 / 难度 / 来源类型） */
+  .seg { display: inline-flex; border: 1px solid #dcdfe4; border-radius: 4px; overflow: hidden; height: 28px; }
+  .seg span {
+    display: flex; align-items: center; padding: 0 12px;
+    font-size: 12px; color: #6b7280; cursor: pointer; white-space: nowrap;
+    border-right: 1px solid #e5e7eb; background: #fff;
+  }
+  .seg span:last-child { border-right: none; }
+  .seg span.on { background: #3b82f6; color: #fff; font-weight: 500; }
+
+  .code {
+    font-family: Monaco, Consolas, monospace; font-size: 11.5px;
+    color: #2563eb; background: #f0f7ff; border: 1px solid #dbeafe;
+    padding: 2px 6px; border-radius: 3px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+
+  /* ============ 主体左右分栏 ============ */
+  .body-split { flex: 1; min-height: 0; display: flex; }
+
+  .main-panel {
+    flex: 1; min-width: 0;
+    display: flex; flex-direction: column;
+    padding: 8px 8px 8px 8px;
+  }
+
+  /* 主标签导航（card 44px → line 34px） */
+  .tabs {
+    height: 34px; flex-shrink: 0;
+    display: flex; align-items: stretch; gap: 2px;
+    background: #fff; border: 1px solid #e5e7eb; border-bottom: none;
+    border-radius: 4px 4px 0 0; padding: 0 6px;
+  }
+  .tab {
+    display: flex; align-items: center; gap: 6px;
+    padding: 0 13px; font-size: 12.5px; color: #6b7280;
+    cursor: pointer; border-bottom: 2px solid transparent;
+    white-space: nowrap; user-select: none;
+  }
+  .tab svg { width: 13px; height: 13px; }
+  .tab:hover { color: #3b82f6; }
+  .tab.active { color: #3b82f6; font-weight: 600; border-bottom-color: #3b82f6; }
+  .tab .cnt { font-size: 10px; background: #eff6ff; color: #3b82f6; border-radius: 8px; padding: 1px 5px; }
+
+  .tab-content {
+    flex: 1; min-height: 0; overflow-y: auto;
+    background: #fff; border: 1px solid #e5e7eb; border-radius: 0 0 4px 4px;
+    padding: 10px;
+  }
+  .pane { display: none; }
+  .pane.active { display: block; }
+
+  /* ============ 紧凑卡片 ============ */
+  .card {
+    background: #fff; border: 1px solid #e5e7eb; border-radius: 4px;
+    margin-bottom: 10px; overflow: hidden;
+  }
+  .card-hd {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 10px; background: #fafbfc; border-bottom: 1px solid #eef0f2;
+    min-height: 30px;
+  }
+  .card-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+  .card-dot.basic { background: #3b82f6; }
+  .card-dot.config { background: #06b6d4; }
+  .card-dot.attachment { background: #10b981; }
+  .card-dot.writeup { background: #f59e0b; }
+  .card-dot.flag { background: #8b5cf6; }
+  .card-title { font-size: 12.5px; font-weight: 600; color: #1f2937; flex: 1; }
+  .card-hd .hint { font-size: 11px; color: #9ca3af; font-weight: 400; }
+  .card-bd { padding: 10px 12px; }
+
+  /* 卡片内两列字段网格 */
+  .fgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; }
+  .f { min-width: 0; }
+  .f > label {
+    display: block; font-size: 12px; font-weight: 500; color: #4b5563;
+    margin-bottom: 4px;
+  }
+  .f > label .req { color: #ef4444; margin-left: 2px; }
+  .span2 { grid-column: span 2; }
+
+  /* 双卡片并排 */
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: start; }
+  .grid2 > .card { margin-bottom: 0; }
+
+  /* 标签组（知识点） */
+  .tags { display: flex; flex-wrap: wrap; gap: 5px; min-height: 28px; align-items: center; border: 1px solid #dcdfe4; border-radius: 3px; padding: 3px 8px; background: #fff; }
+  .tags .tag { background: #f0f7ff; color: #2563eb; border: 1px solid #dbeafe; }
+  .tags .add { color: #9ca3af; font-size: 12px; cursor: pointer; }
+  .tags .add:hover { color: #3b82f6; }
+
+  /* 文件行（附件 / Writeup）：46px → 34px */
+  .file-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 5px 8px; border: 1px solid #eef0f2; border-radius: 3px;
+    margin-bottom: 6px; background: #fafbfc;
+  }
+  .file-row:last-child { margin-bottom: 0; }
+  .file-row:hover { background: #f3f4f6; }
+  .file-ico {
+    width: 22px; height: 22px; border-radius: 3px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .file-ico svg { width: 12px; height: 12px; }
+  .file-ico.attachment { background: rgba(16,185,129,.1); color: #10b981; }
+  .file-ico.writeup { background: rgba(245,158,11,.1); color: #f59e0b; }
+  .file-name { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0; max-width: 45%; }
+  .file-remark {
+    flex: 1; min-width: 0; height: 22px; border: 1px solid transparent; border-radius: 3px;
+    background: transparent; font-size: 11.5px; padding: 0 6px; color: #6b7280;
+  }
+  .file-remark:hover { border-color: #dcdfe4; background: #fff; }
+  .file-remark:focus { border-color: #3b82f6; outline: none; }
+  .file-acts { display: flex; gap: 2px; opacity: .45; transition: opacity .15s; }
+  .file-row:hover .file-acts { opacity: 1; }
+  .icon-btn {
+    width: 22px; height: 22px; border: none; background: transparent; border-radius: 3px;
+    display: flex; align-items: center; justify-content: center; cursor: pointer; color: #6b7280;
+  }
+  .icon-btn:hover { background: #e5e7eb; color: #3b82f6; }
+  .icon-btn.danger:hover { color: #ef4444; }
+  .icon-btn svg { width: 13px; height: 13px; }
+
+  /* Flag 条目 */
+  .flag-card { border: 1px solid #e5e7eb; border-radius: 4px; margin-bottom: 8px; overflow: hidden; }
+  .flag-hd {
+    display: flex; align-items: center; gap: 8px;
+    padding: 5px 10px; background: #fafbfc; border-bottom: 1px solid #eef0f2;
+  }
+  .flag-bd { padding: 10px 12px; }
+  .flag-bd .fgrid { gap: 8px 14px; }
+  .flag-bd .textarea { min-height: 40px; }
+
+  /* 容器靶机 */
+  .target-card { border: 1px solid #e5e7eb; border-radius: 4px; margin-bottom: 8px; overflow: hidden; }
+  .mini-table { border: 1px solid #eef0f2; border-radius: 3px; overflow: hidden; font-size: 12px; }
+  .mini-table .tr {
+    display: grid; grid-template-columns: 1fr 1fr 90px 28px;
+    align-items: center; border-bottom: 1px solid #f3f4f6;
+  }
+  .mini-table .tr:last-child { border-bottom: none; }
+  .mini-table .tr > div { padding: 4px 8px; border-right: 1px solid #f3f4f6; min-height: 26px; display: flex; align-items: center; }
+  .mini-table .tr > div:last-child { border-right: none; justify-content: center; }
+  .mini-table .th { background: #fafbfc; color: #9ca3af; font-size: 11px; font-weight: 500; grid-template-columns: 1fr 1fr 90px 28px; }
+  .mini-table .th > div { min-height: 24px; }
+
+  /* 入库检查 */
+  .check-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 10px; border: 1px solid #eef0f2; border-radius: 3px;
+    margin-bottom: 6px; background: #fff;
+  }
+  .check-ico { width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .check-ico svg { width: 10px; height: 10px; }
+  .check-ico.ok { background: #10b981; color: #fff; }
+  .check-ico.no { background: #f3f4f6; color: #9ca3af; border: 1px dashed #d1d5db; }
+  .check-label { font-size: 12.5px; font-weight: 500; width: 70px; flex-shrink: 0; }
+  .check-desc { font-size: 12px; color: #6b7280; flex: 1; }
+  .check-hint { font-size: 11px; color: #f59e0b; }
+
+  /* ============ 右侧面板（固定宽 320px） ============ */
+  .side-panel {
+    width: 320px; flex-shrink: 0;
+    display: flex; flex-direction: column;
+    background: #fff; border-left: 1px solid #e5e7eb;
+  }
+  .side-tabs { height: 34px; flex-shrink: 0; display: flex; border-bottom: 1px solid #e5e7eb; padding: 0 4px; }
+  .side-tab {
+    flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px;
+    font-size: 12.5px; color: #6b7280; cursor: pointer;
+    border-bottom: 2px solid transparent; user-select: none;
+  }
+  .side-tab svg { width: 13px; height: 13px; }
+  .side-tab.active { color: #3b82f6; font-weight: 600; border-bottom-color: #3b82f6; }
+  .side-content { flex: 1; min-height: 0; overflow-y: auto; }
+  .side-pane { display: none; }
+  .side-pane.active { display: block; }
+
+  /* 修改历史：卡片式(~66px) → 单行式(~32px) */
+  .h-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 10px; border-bottom: 1px solid #f3f4f6;
+    cursor: default; position: relative;
+  }
+  .h-item:hover { background: #f9fafb; }
+  .h-item:hover .h-fork { opacity: 1; }
+  .h-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: #d1d5db; }
+  .h-item .h-ver { flex-shrink: 0; }
+  .h-name { flex: 1; min-width: 0; font-size: 12px; color: #374151; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .h-time { font-size: 11px; color: #9ca3af; flex-shrink: 0; }
+  .h-fork { opacity: 0; transition: opacity .15s; flex-shrink: 0; }
+  .h-item.current { background: #eff6ff; box-shadow: inset 2px 0 0 #3b82f6; }
+  .h-item.current .h-name { color: #3b82f6; font-weight: 600; }
+  .h-item.current .h-dot { background: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.2); }
+  .h-item.forksrc { background: #fffbeb; box-shadow: inset 2px 0 0 #f59e0b; }
+  .h-item.forksrc .h-dot { background: #f59e0b; }
+  .h-summary {
+    display: flex; align-items: center; gap: 6px;
+    padding: 7px 10px; font-size: 11px; color: #9ca3af;
+    border-bottom: 1px solid #eef0f2; background: #fafbfc;
+  }
+
+  /* 容器模拟测试 */
+  .mock-toolbar {
+    display: flex; gap: 6px; align-items: center;
+    padding: 8px 10px; border-bottom: 1px solid #eef0f2; background: #fafbfc;
+  }
+  .mock-toolbar .seg { height: 26px; }
+  .mock-toolbar .seg span { padding: 0 9px; font-size: 11.5px; }
+  .mock-toolbar .select { height: 26px; font-size: 11.5px; flex: 1; min-width: 0; }
+  .mock-list { padding: 8px 10px; display: flex; flex-direction: column; gap: 8px; }
+  .t-card { border: 1px solid #e5e7eb; border-radius: 4px; overflow: hidden; }
+  .t-hd {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 9px; background: #fafbfc; border-bottom: 1px solid #eef0f2;
+  }
+  .t-name { font-size: 12.5px; font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .t-bd { padding: 7px 9px; display: flex; flex-direction: column; gap: 5px; }
+  .c-row { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+  .c-row .cname { color: #374151; font-weight: 500; width: 52px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .c-row .code { flex: 1; min-width: 0; }
+  .c-row .map { font-size: 10.5px; color: #9ca3af; font-family: Monaco, Consolas, monospace; flex-shrink: 0; }
+  .t-tip {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11.5px; padding: 5px 8px; border-radius: 3px;
+  }
+  .t-tip.starting { background: #fffbeb; border: 1px dashed #fbbf24; color: #b45309; }
+  .t-tip.failed { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; }
+  .t-ft {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 5px 9px; border-top: 1px dashed #eef0f2;
+  }
+  .countdown { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #6b7280; font-family: Monaco, Consolas, monospace; }
+  .countdown svg { width: 12px; height: 12px; color: #f59e0b; }
+  .countdown.urgent { color: #dc2626; font-weight: 600; }
+  .t-ft .acts { display: flex; gap: 4px; }
+
+  /* 空状态 */
+  .empty { padding: 36px 0; text-align: center; color: #9ca3af; font-size: 12.5px; }
+
+  /* ============ 悬浮说明 ============ */
+  .fab {
+    position: fixed; right: 16px; bottom: 16px; z-index: 99;
+    height: 30px; padding: 0 12px; border-radius: 15px;
+    background: #1f2937; color: #fff; font-size: 12px; border: none;
+    cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,.18);
+    display: flex; align-items: center; gap: 5px;
+  }
+  .notes {
+    position: fixed; right: 16px; bottom: 54px; z-index: 99;
+    width: 300px; max-height: 70vh; overflow-y: auto;
+    background: #fff; border: 1px solid #e5e7eb; border-radius: 6px;
+    box-shadow: 0 8px 30px rgba(0,0,0,.12);
+    padding: 14px; font-size: 12px; line-height: 1.7; display: none;
+  }
+  .notes.show { display: block; }
+  .notes h4 { font-size: 13px; margin-bottom: 8px; }
+  .notes li { margin-left: 16px; color: #4b5563; }
+  .notes b { color: #3b82f6; }
+  .notes .dim { color: #9ca3af; }
+
+  @media (max-width: 1500px) { .hdr-steps .step-desc { display: none; } }
+  @media (max-width: 1280px) {
+    .hdr-steps { display: none; }
+    .grid2 { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 1100px) {
+    .side-panel { width: 280px; }
+    .fgrid { grid-template-columns: 1fr; }
+    .span2 { grid-column: span 1; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- ============ 顶部：标题 + 徽标 + 步骤条 + 操作（原 80+76px 两行 → 48px 一行） ============ -->
+  <header class="hdr">
+    <div class="hdr-icon">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2L3 7V12C3 17.55 6.84 22.74 12 24C17.16 22.74 21 17.55 21 12V7L12 2Z" fill="currentColor" opacity="0.15"/>
+        <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <span class="hdr-title">题目草稿编辑</span>
+    <span class="badge ver">第3版</span>
+    <span class="badge pub">已入库 v1.2</span>
+
+    <!-- 步骤条压缩为标题栏内胶囊 -->
+    <div class="hdr-steps">
+      <div class="step done"><span class="num">✓</span>基本信息</div>
+      <span class="step-sep"></span>
+      <div class="step done"><span class="num">✓</span>题目内容</div>
+      <span class="step-sep"></span>
+      <div class="step done"><span class="num">✓</span>Flag配置</div>
+      <span class="step-sep"></span>
+      <div class="step current"><span class="num">4</span>环境配置</div>
+      <span class="step-sep"></span>
+      <div class="step"><span class="num">5</span>检查与入库</div>
+    </div>
+
+    <div class="hdr-actions">
+      <button class="btn primary">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        保存草稿
+      </button>
+      <button class="btn info">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        发版
+      </button>
+      <button class="btn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        返回
+      </button>
+    </div>
+  </header>
+
+  <div class="body-split">
+
+    <!-- ============ 左侧主面板 ============ -->
+    <main class="main-panel">
+      <nav class="tabs">
+        <div class="tab active" onclick="switchMain(this,'info')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          题目信息
+        </div>
+        <div class="tab" onclick="switchMain(this,'flag')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+          Flag管理 <span class="cnt">1</span>
+        </div>
+        <div class="tab" onclick="switchMain(this,'image')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          容器镜像
+        </div>
+        <div class="tab" onclick="switchMain(this,'target')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          容器靶机 <span class="cnt">1</span>
+        </div>
+        <div class="tab" onclick="switchMain(this,'publish')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><path d="M12 2L3 7v5c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"/></svg>
+          入库检查
+        </div>
+        <div class="tab" onclick="switchMain(this,'attach')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          附加到项目
+        </div>
+      </nav>
+
+      <div class="tab-content">
+
+        <!-- ===== Tab: 题目信息 ===== -->
+        <div class="pane active" id="pane-info">
+          <div class="grid2">
+            <!-- 基本信息 -->
+            <div class="card">
+              <div class="card-hd">
+                <span class="card-dot basic"></span>
+                <span class="card-title">基本信息</span>
+              </div>
+              <div class="card-bd">
+                <div class="fgrid">
+                  <div class="f">
+                    <label>题目类型<span class="req">*</span></label>
+                    <div class="select"><span>Web</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+                  </div>
+                  <div class="f">
+                    <label>题目名称<span class="req">*</span></label>
+                    <input class="input" value="SQL注入基础 - 联合查询">
+                  </div>
+                  <div class="f span2">
+                    <label>题目备注</label>
+                    <textarea class="textarea" rows="2">内部培训用入门题，演示联合查询注入流程</textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 题目配置 -->
+            <div class="card">
+              <div class="card-hd">
+                <span class="card-dot config"></span>
+                <span class="card-title">题目配置</span>
+              </div>
+              <div class="card-bd">
+                <div class="fgrid">
+                  <div class="f">
+                    <label>运行类型</label>
+                    <div class="seg"><span class="on">容器</span><span>虚拟机</span><span>静态</span></div>
+                  </div>
+                  <div class="f">
+                    <label>难度</label>
+                    <div class="seg"><span>简单</span><span class="on">中等</span><span>困难</span></div>
+                  </div>
+                  <div class="f span2">
+                    <label>知识点</label>
+                    <div class="tags">
+                      <span class="tag">SQL注入</span>
+                      <span class="tag">MySQL</span>
+                      <span class="tag">联合查询</span>
+                      <span class="add">+ 添加</span>
+                    </div>
+                  </div>
+                  <div class="f span2">
+                    <label>题干描述</label>
+                    <textarea class="textarea" rows="4">某电商网站存在搜索功能，请尝试利用联合查询注入获取数据库中的用户表数据，并找到隐藏在 flag 表中的flag。</textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="height:10px"></div>
+
+          <div class="grid2">
+            <!-- 附件管理 -->
+            <div class="card">
+              <div class="card-hd">
+                <span class="card-dot attachment"></span>
+                <span class="card-title">附件管理</span>
+                <span class="hint">2 个文件</span>
+                <button class="btn xs">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  上传
+                </button>
+              </div>
+              <div class="card-bd">
+                <div class="file-row">
+                  <div class="file-ico attachment"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+                  <span class="file-name">challenge_source.zip</span>
+                  <input class="file-remark" placeholder="填写备注（可选）" value="题目源码">
+                  <div class="file-acts">
+                    <button class="icon-btn" title="下载"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
+                    <button class="icon-btn danger" title="删除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+                  </div>
+                </div>
+                <div class="file-row">
+                  <div class="file-ico attachment"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+                  <span class="file-name">hints.pdf</span>
+                  <input class="file-remark" placeholder="填写备注（可选）">
+                  <div class="file-acts">
+                    <button class="icon-btn" title="预览"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+                    <button class="icon-btn" title="下载"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
+                    <button class="icon-btn danger" title="删除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Writeup 管理 -->
+            <div class="card">
+              <div class="card-hd">
+                <span class="card-dot writeup"></span>
+                <span class="card-title">Writeup 管理</span>
+                <span class="hint">1 个文件</span>
+                <button class="btn xs">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  上传
+                </button>
+              </div>
+              <div class="card-bd">
+                <div class="file-row">
+                  <div class="file-ico writeup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+                  <span class="file-name">writeup_sqli_union.pdf</span>
+                  <input class="file-remark" placeholder="填写备注（可选）">
+                  <div class="file-acts">
+                    <button class="icon-btn" title="预览"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+                    <button class="icon-btn" title="下载"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
+                    <button class="icon-btn danger" title="删除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== Tab: Flag管理 ===== -->
+        <div class="pane" id="pane-flag">
+          <div class="card">
+            <div class="card-hd">
+              <span class="card-dot flag"></span>
+              <span class="card-title">Flag 列表</span>
+              <span class="hint">共 1 个</span>
+              <button class="btn xs primary">+ 静态Flag</button>
+              <button class="btn xs">+ 动态Flag</button>
+            </div>
+            <div class="card-bd">
+              <div class="flag-card">
+                <div class="flag-hd">
+                  <span class="tag success">静态</span>
+                  <span style="font-size:12.5px;font-weight:600">Flag 1</span>
+                  <span style="flex:1"></span>
+                  <button class="btn text danger" style="height:20px">删除</button>
+                </div>
+                <div class="flag-bd">
+                  <div class="fgrid">
+                    <div class="f">
+                      <label>Flag类型</label>
+                      <input class="input" value="静态" disabled>
+                    </div>
+                    <div class="f">
+                      <label>分值（推荐）</label>
+                      <input class="input" value="100">
+                    </div>
+                    <div class="f span2">
+                      <label>Flag内容</label>
+                      <input class="input" value="flag{sql_1nject10n_b4sic}">
+                    </div>
+                    <div class="f">
+                      <label>Flag描述（选手可见）</label>
+                      <textarea class="textarea" rows="2">题目通关后提交此flag</textarea>
+                    </div>
+                    <div class="f">
+                      <label>Flag备注（仅后台）</label>
+                      <textarea class="textarea" rows="2">埋点位于 flag 表第一行</textarea>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== Tab: 容器镜像 ===== -->
+        <div class="pane" id="pane-image">
+          <div class="card">
+            <div class="card-hd">
+              <span class="card-dot config"></span>
+              <span class="card-title">镜像列表</span>
+              <span class="hint">2 个</span>
+              <button class="btn xs primary">上传镜像</button>
+              <button class="btn xs">刷新</button>
+            </div>
+            <div class="card-bd">
+              <div class="mini-table">
+                <div class="tr th"><div>镜像名称</div><div>拉取地址</div><div>状态</div><div>操作</div></div>
+                <div class="tr"><div>sqli-basic:v1.2</div><div style="font-size:11px;color:#6b7280;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block">registry.local:5000/cch/sqli-basic:v1.2</div><div><span class="tag success">就绪</span></div><div><button class="icon-btn danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></div></div>
+                <div class="tr"><div>sqli-basic:base</div><div style="font-size:11px;color:#6b7280;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block">registry.local:5000/cch/sqli-basic:base</div><div><span class="tag warning">构建中</span></div><div><button class="icon-btn danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== Tab: 容器靶机 ===== -->
+        <div class="pane" id="pane-target">
+          <div class="card">
+            <div class="card-hd">
+              <span class="card-dot config"></span>
+              <span class="card-title">容器靶机配置</span>
+              <span class="hint">1 台</span>
+              <button class="btn xs primary">+ 新增靶机</button>
+              <button class="btn xs">刷新镜像列表</button>
+            </div>
+            <div class="card-bd">
+              <div class="target-card">
+                <div class="flag-hd">
+                  <span style="font-size:12.5px;font-weight:600">靶机 1</span>
+                  <span class="tag cyan">web</span>
+                  <span style="flex:1"></span>
+                  <button class="btn text danger" style="height:20px">删除</button>
+                </div>
+                <div class="card-bd">
+                  <div class="fgrid">
+                    <div class="f">
+                      <label>名称<span class="req">*</span></label>
+                      <input class="input" value="sqli-basic-82736451">
+                    </div>
+                    <div class="f">
+                      <label>镜像<span class="req">*</span></label>
+                      <div class="select"><span>sqli-basic:v1.2 (就绪)</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+                    </div>
+                    <div class="f">
+                      <label>环境变量</label>
+                      <div class="mini-table">
+                        <div class="tr th"><div>Key</div><div>Value</div><div></div><div></div></div>
+                        <div class="tr"><div>FLAG</div><div style="color:#9ca3af">随机注入</div><div></div><div><button class="icon-btn danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div></div>
+                      </div>
+                      <div style="margin-top:4px"><button class="btn text primary">+ 添加变量</button></div>
+                    </div>
+                    <div class="f">
+                      <label>端口映射</label>
+                      <div class="mini-table">
+                        <div class="tr th"><div>名称</div><div>内部/外部</div><div>协议</div><div></div></div>
+                        <div class="tr"><div>http</div><div>80 → 30001</div><div><span class="tag info">HTTP</span></div><div><button class="icon-btn danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div></div>
+                        <div class="tr"><div>mysql</div><div>3306 → 内部</div><div><span class="tag gray">TCP</span></div><div><button class="icon-btn danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div></div>
+                      </div>
+                      <div style="margin-top:4px"><button class="btn text primary">+ 添加端口</button></div>
+                    </div>
+                    <div class="f">
+                      <label>CPU 限制（核）</label>
+                      <input class="input" value="1">
+                    </div>
+                    <div class="f">
+                      <label>内存限制（MB）</label>
+                      <input class="input" value="512">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== Tab: 入库检查 ===== -->
+        <div class="pane" id="pane-publish">
+          <div class="card">
+            <div class="card-hd">
+              <span class="card-dot basic"></span>
+              <span class="card-title">入库状态</span>
+              <span class="tag success">已入库</span>
+              <span class="hint">最新版本：v1.2</span>
+            </div>
+            <div class="card-bd">
+              <div class="check-row">
+                <div class="check-ico ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+                <span class="check-label">基本信息</span>
+                <span class="check-desc">题目名称 / 分类</span>
+              </div>
+              <div class="check-row">
+                <div class="check-ico ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+                <span class="check-label">题干描述</span>
+                <span class="check-desc">选手可见的题目说明</span>
+              </div>
+              <div class="check-row">
+                <div class="check-ico ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+                <span class="check-label">Flag 配置</span>
+                <span class="check-desc">至少 1 个，静态Flag需填写内容</span>
+              </div>
+              <div class="check-row">
+                <div class="check-ico no"><span style="font-size:10px">4</span></div>
+                <span class="check-label">运行环境</span>
+                <span class="check-desc">容器靶机（镜像/端口）</span>
+                <span class="check-hint">端口「mysql」缺少外部端口映射</span>
+              </div>
+              <div style="display:flex;gap:8px;margin-top:12px">
+                <button class="btn primary xs">保存草稿</button>
+                <button class="btn info xs">发版</button>
+                <button class="btn xs" onclick="switchSideTab('mocktest')">前往容器模拟测试</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== Tab: 附加到项目 ===== -->
+        <div class="pane" id="pane-attach">
+          <div class="card">
+            <div class="card-hd">
+              <span class="card-dot basic"></span>
+              <span class="card-title">附加到项目</span>
+              <span class="hint">将 v1.2 版本附加到竞赛项目</span>
+              <button class="btn xs primary">+ 附加到项目</button>
+            </div>
+            <div class="card-bd">
+              <div class="mini-table">
+                <div class="tr th"><div>项目名称</div><div>附加版本</div><div>时间</div><div>操作</div></div>
+                <div class="tr"><div>2026 春季校内赛</div><div><span class="tag cyan">v1.2</span></div><div style="color:#6b7280">2026-08-30</div><div><button class="btn text danger" style="height:20px">移除</button></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+    <!-- ============ 右侧面板 ============ -->
+    <aside class="side-panel">
+      <nav class="side-tabs">
+        <div class="side-tab active" id="stab-history" onclick="switchSideTab('history')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          修改历史
+        </div>
+        <div class="side-tab" id="stab-mocktest" onclick="switchSideTab('mocktest')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          容器模拟测试
+        </div>
+      </nav>
+
+      <div class="side-content">
+        <!-- ===== 修改历史 ===== -->
+        <div class="side-pane active" id="spane-history">
+          <div class="h-summary">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            共 4 个版本 · 当前编辑 <b style="color:#3b82f6">第3版</b> · 悬停可派生
+          </div>
+          <div class="h-item current">
+            <span class="h-dot"></span>
+            <span class="tag cyan h-ver">第3版</span>
+            <span class="h-name">SQL注入基础 - 联合查询</span>
+            <span class="h-time">刚刚</span>
+          </div>
+          <div class="h-item forksrc">
+            <span class="h-dot"></span>
+            <span class="tag info h-ver">第2版</span>
+            <span class="h-name">SQL注入基础 - 联合查询</span>
+            <span class="h-time">2小时前</span>
+            <button class="btn text primary h-fork">派生</button>
+          </div>
+          <div class="h-item">
+            <span class="h-dot" style="background:#9ca3af"></span>
+            <span class="tag gray h-ver">第1.1版</span>
+            <span class="h-name">SQL注入基础 - 联合查询</span>
+            <span class="h-time">昨天</span>
+            <button class="btn text primary h-fork">派生</button>
+          </div>
+          <div class="h-item">
+            <span class="h-dot" style="background:#d1d5db"></span>
+            <span class="tag gray h-ver">第1版</span>
+            <span class="h-name">SQL注入基础（初稿）</span>
+            <span class="h-time">08-28</span>
+            <button class="btn text primary h-fork">派生</button>
+          </div>
+        </div>
+
+        <!-- ===== 容器模拟测试 ===== -->
+        <div class="side-pane" id="spane-mocktest">
+          <!-- 原「类型Tabs + 下拉 + 按钮」三段 → 单行工具条 -->
+          <div class="mock-toolbar">
+            <div class="seg"><span class="on">草稿</span><span>版本</span></div>
+            <div class="select"><span class="ph">选择要测试的来源</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+            <button class="btn primary xs">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              启动
+            </button>
+          </div>
+
+          <div class="mock-list">
+            <div class="t-card">
+              <div class="t-hd">
+                <span class="t-name">SQL注入基础 - 联合查询</span>
+                <span class="tag success">运行中</span>
+                <span class="tag info">草稿</span>
+              </div>
+              <div class="t-bd">
+                <div class="c-row">
+                  <span class="cname">web</span>
+                  <span class="tag info" style="padding:2px 5px;font-size:10px">HTTP</span>
+                  <code class="code">http://192.168.1.10:30001</code>
+                  <span class="map">→80</span>
+                  <button class="icon-btn" title="复制地址"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+                </div>
+                <div class="c-row">
+                  <span class="cname">db</span>
+                  <span class="tag gray" style="padding:2px 5px;font-size:10px">TCP</span>
+                  <code class="code">nc 192.168.1.10 30002</code>
+                  <span class="map">→3306</span>
+                  <button class="icon-btn" title="复制地址"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+                </div>
+              </div>
+              <div class="t-ft">
+                <span class="countdown" data-remaining="2832">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  <span class="cd-text">--</span>
+                </span>
+                <span class="acts">
+                  <span class="tag warning" style="margin-right:2px">已延长1次</span>
+                  <button class="btn xs">延长</button>
+                  <button class="btn xs danger">销毁</button>
+                </span>
+              </div>
+            </div>
+
+            <div class="t-card">
+              <div class="t-hd">
+                <span class="t-name">XXE实体解析进阶</span>
+                <span class="tag warning">启动中</span>
+                <span class="tag warning">版本</span>
+              </div>
+              <div class="t-bd">
+                <div class="t-tip starting">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                  容器环境正在后台启动（可能需要拉取镜像），请稍候…
+                </div>
+              </div>
+              <div class="t-ft">
+                <span class="countdown" data-remaining="3600">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  <span class="cd-text">--</span>
+                </span>
+                <span class="acts">
+                  <button class="btn xs">延长</button>
+                  <button class="btn xs danger">销毁</button>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<!-- 悬浮设计说明 -->
+<button class="fab" onclick="document.getElementById('notes').classList.toggle('show')">
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+  设计说明
+</button>
+<div class="notes" id="notes">
+  <h4>紧凑版改动要点</h4>
+  <ul>
+    <li><b>顶部 80px → 48px</b>：图标/标题/按钮改 small 尺寸；入库步骤条从独立一行（约76px）压缩为标题栏内胶囊组，整体省约 110px。</li>
+    <li><b>标签导航</b>：card 型 → line 型，44px → 34px，去掉图标后的横向空间也更省。</li>
+    <li><b>卡片</b>：去掉 32px 大图标块，改用 8px 色点；卡片头 46px → 30px；「上传/新增」等操作按钮全部上收到卡片头右侧，正文更矮。</li>
+    <li><b>表单</b>：字段两列网格排布，label 间距减半；附件/Writeup 行 46px → 34px，操作按钮悬停显现。</li>
+    <li><b>修改历史</b>：卡片式（每条约66px）→ 单行式（约32px），操作「派生」悬停显现；「当前/源版本」用左侧色条高亮。</li>
+    <li><b>容器模拟测试</b>：类型Tabs+下拉+按钮三段合并为一行工具条；测试卡头部压成一行，容器地址单行排列，剩余时间等宽字体防抖动。</li>
+    <li><b>滚动策略</b>：页面整体不滚动，仅标签内容区与右侧面板内部滚动，视野内信息密度更高。</li>
+    <li class="dim">数据均为演示样例，仅用于查看布局密度。</li>
+  </ul>
+</div>
+
+<style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+
+<script>
+  // 主标签切换
+  function switchMain(el, name) {
+    document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+    document.getElementById('pane-' + name).classList.add('active');
+  }
+  // 侧栏切换
+  function switchSideTab(name) {
+    document.querySelectorAll('.side-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('stab-' + name).classList.add('active');
+    document.querySelectorAll('.side-pane').forEach(p => p.classList.remove('active'));
+    document.getElementById('spane-' + name).classList.add('active');
+  }
+  // 倒计时演示
+  function fmt(s) {
+    if (s <= 0) return '已过期';
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+    if (h > 0) return h + '时' + m + '分' + sec + '秒';
+    if (m > 0) return m + '分' + sec + '秒';
+    return sec + '秒';
+  }
+  setInterval(() => {
+    document.querySelectorAll('.countdown').forEach(el => {
+      let r = parseInt(el.dataset.remaining || '0', 10);
+      if (r > 0) r -= 1;
+      el.dataset.remaining = r;
+      el.querySelector('.cd-text').textContent = fmt(r);
+      el.classList.toggle('urgent', r > 0 && r < 300);
+    });
+  }, 1000);
+</script>
+
+</body>
+</html>
