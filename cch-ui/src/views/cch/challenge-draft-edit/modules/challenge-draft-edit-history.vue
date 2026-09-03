@@ -160,7 +160,7 @@ function forkFromVersion(draft: Api.Cch.ChallengeDraft) {
       draftId: draft.id,
       challengeId: draft.challengeId,
       forkFrom: String(draft.id), // 标记这是派生模式
-      refresh: true,
+      refresh: 'true',
     }
   });
 }
@@ -216,6 +216,15 @@ onMounted(() => {
             >
               <div class="version-content">
                 <div class="version-title-row">
+                  <NTag
+                    v-if="draft.draftVersion"
+                    type="info"
+                    size="small"
+                    :bordered="false"
+                    class="version-tag"
+                  >
+                    第{{ draft.draftVersion }}版
+                  </NTag>
                   <span class="version-name">{{ draft.challengeName || '未命名题目' }}</span>
                   <NTag
                     v-if="draft.id === currentDraftId"
@@ -397,6 +406,10 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   flex-wrap: nowrap;
+}
+
+.version-tag {
+  flex-shrink: 0;
 }
 
 .version-name {

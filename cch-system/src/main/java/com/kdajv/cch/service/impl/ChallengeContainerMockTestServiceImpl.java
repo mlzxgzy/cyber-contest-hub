@@ -55,7 +55,11 @@ public class ChallengeContainerMockTestServiceImpl implements IChallengeContaine
             if (draft.getDraftId() == null) {
                 draft.setDraftId(draft.getId());
             }
-            draft.setName(draft.getChallengeName());
+            // 名称追加草稿版本号，便于在时间倒序中甄别不同草稿（如：题目名 - 第3版）
+            String versionSuffix = draft.getDraftVersion() != null
+                ? String.format(" - 第%d版", draft.getDraftVersion())
+                : String.format(" (ID: %d)", draft.getId());
+            draft.setName(String.format("%s%s", draft.getChallengeName(), versionSuffix));
             sources.add(draft);
         }
         // 获取同一题目下的版本列表

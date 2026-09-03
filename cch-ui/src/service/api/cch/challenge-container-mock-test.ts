@@ -12,6 +12,8 @@ export namespace ContainerMockTest {
     sourceType: 'draft' | 'version';
     challengeName: string;
     versionTag?: string;
+    /** 草稿版本号（仅草稿来源有值） */
+    draftVersion?: number;
     createTime?: string; // 创建时间（修改时间）
   }
 

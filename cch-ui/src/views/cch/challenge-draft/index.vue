@@ -56,6 +56,13 @@ const {columns, columnChecks, data, getData, getDataByPage, loading, mobilePagin
         minWidth: 120
       },
       {
+        key: 'draftVersion',
+        title: '草稿版本',
+        align: 'center',
+        width: 90,
+        render: row => (row.draftVersion ? `第${row.draftVersion}版` : '-')
+      },
+      {
         key: 'challengeId',
         title: '题目ID',
         align: 'center',

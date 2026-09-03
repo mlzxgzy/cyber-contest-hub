@@ -25,6 +25,7 @@ public interface ChallengeContainerMockTestMapper extends BaseMapperPlus<Challen
      */
     @Select("""
         SELECT id, id as draftId, challenge_id as challengeId, challenge_name as challengeName,
+               ROW_NUMBER() OVER (PARTITION BY challenge_id ORDER BY create_time ASC, id ASC) as draftVersion,
                create_time as createTime
         FROM t_challenge_draft
         WHERE del_flag = 0

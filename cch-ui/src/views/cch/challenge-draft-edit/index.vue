@@ -536,6 +536,7 @@ async function loadImageList() {
           <h1 class="header-title">{{ isCreateMode ? '新增题目入库' : '题目草稿编辑' }}</h1>
           <span v-if="isCreateMode" class="header-badge create-badge">新建</span>
           <span v-else-if="isForkMode" class="header-badge">派生编辑</span>
+          <span v-if="!isCreateMode && draftData?.draftVersion" class="header-badge version-badge">第{{ draftData.draftVersion }}版</span>
           <span v-if="challengeData.latestVersionId" class="header-badge published-badge">已入库 {{ challengeData.latestVersionTag || '' }}</span>
         </div>
       </div>
@@ -1040,6 +1041,10 @@ $bg-hover: #f3f4f6;
 
     &.create-badge {
       background: $primary-color;
+    }
+
+    &.version-badge {
+      background: $info-color;
     }
 
     &.published-badge {

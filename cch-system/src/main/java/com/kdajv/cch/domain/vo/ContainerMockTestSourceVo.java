@@ -50,6 +50,11 @@ public class ContainerMockTestSourceVo implements Serializable {
     private String versionTag;
 
     /**
+     * 草稿版本号（仅草稿来源有值，按同一题目下草稿创建时间升序编号，第1版为最早创建的草稿）
+     */
+    private Integer draftVersion;
+
+    /**
      * 创建时间（修改时间）
      */
     private java.util.Date createTime;

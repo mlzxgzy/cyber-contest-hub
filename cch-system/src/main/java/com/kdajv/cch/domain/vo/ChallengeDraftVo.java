@@ -63,6 +63,12 @@ public class ChallengeDraftVo implements Serializable {
     private DraftConfig config;
 
     /**
+     * 草稿版本号（计算字段不入库，按同一题目下草稿创建时间升序编号，第1版为最早创建的草稿）
+     */
+    @ExcelProperty(value = "草稿版本号")
+    private Integer draftVersion;
+
+    /**
      * 创建时间
      */
     @ExcelProperty(value = "创建时间")

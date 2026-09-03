@@ -21,7 +21,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * 题目草稿Service业务层处理
@@ -45,7 +52,7 @@ public class ChallengeDraftServiceImpl implements IChallengeDraftService {
      */
     @Override
     public ChallengeDraftVo queryById(Long id) {
-        return baseMapper.selectVoById(id);
+        return getVoWithVersion(id);
     }
 
     /**
@@ -59,6 +66,7 @@ public class ChallengeDraftServiceImpl implements IChallengeDraftService {
     public TableDataInfo<ChallengeDraftVo> queryPageList(ChallengeDraftBo bo, PageQuery pageQuery) {
         LambdaQueryWrapper<ChallengeDraft> lqw = buildQueryWrapper(bo);
         Page<ChallengeDraftVo> result = baseMapper.selectPageDraftList(pageQuery.build(), lqw);
+        fillDraftVersion(result.getRecords());
         return TableDataInfo.build(result);
     }
 
@@ -71,7 +79,9 @@ public class ChallengeDraftServiceImpl implements IChallengeDraftService {
     @Override
     public List<ChallengeDraftVo> queryList(ChallengeDraftBo bo) {
         LambdaQueryWrapper<ChallengeDraft> lqw = buildQueryWrapper(bo);
-        return baseMapper.selectDraftList(lqw);
+        List<ChallengeDraftVo> list = baseMapper.selectDraftList(lqw);
+        fillDraftVersion(list);
+        return list;
     }
 
     /**
@@ -88,7 +98,11 @@ public class ChallengeDraftServiceImpl implements IChallengeDraftService {
         draftQueryWrapper.orderByDesc(ChallengeDraft::getCreateTime);
         draftQueryWrapper.orderByDesc(ChallengeDraft::getId);
         draftQueryWrapper.last("LIMIT 1");
-        return baseMapper.selectVoOne(draftQueryWrapper);
+        ChallengeDraftVo vo = baseMapper.selectVoOne(draftQueryWrapper);
+        if (vo != null) {
+            fillDraftVersion(Collections.singletonList(vo));
+        }
+        return vo;
     }
 
     private LambdaQueryWrapper<ChallengeDraft> buildQueryWrapper(ChallengeDraftBo bo) {
@@ -141,7 +155,7 @@ public class ChallengeDraftServiceImpl implements IChallengeDraftService {
             ChallengeDraft update = MapstructUtils.convert(bo, ChallengeDraft.class);
             validEntityBeforeSave(update);
             baseMapper.updateById(update);
-            return baseMapper.selectVoById(bo.getId());
+            return getVoWithVersion(bo.getId());
         } else {
             // 保存/派生模式：每次保存都新增一条草稿记录，保留历史
             ChallengeDraft update = MapstructUtils.convert(bo, ChallengeDraft.class);
@@ -151,8 +165,22 @@ public class ChallengeDraftServiceImpl implements IChallengeDraftService {
             update.setId(null);
             validEntityBeforeSave(update);
             baseMapper.insert(update);
-            return baseMapper.selectVoById(update.getId());
+            return getVoWithVersion(update.getId());
         }
+    }
+
+    /**
+     * 查询草稿并填充版本号（供保存/派生后返回给前端展示"第N版"）
+     *
+     * @param id 草稿ID
+     * @return 草稿VO（含版本号）
+     */
+    private ChallengeDraftVo getVoWithVersion(Long id) {
+        ChallengeDraftVo vo = baseMapper.selectVoById(id);
+        if (vo != null) {
+            fillDraftVersion(Collections.singletonList(vo));
+        }
+        return vo;
     }
 
     /**
@@ -220,8 +248,59 @@ public class ChallengeDraftServiceImpl implements IChallengeDraftService {
         // 确保config字段为null（即使查询时已排除，也做二次保障）
         if (result != null) {
             result.forEach(vo -> vo.setConfig(null));
+            // 按创建时间升序为每个草稿计算版本号（第1版为最早创建的草稿）
+            fillDraftVersion(result);
         }
         return result;
+    }
+
+    /**
+     * 为草稿列表填充版本号（draftVersion 为计算字段不入库）
+     * 规则：按同一题目下草稿的创建时间升序、ID升序编号，最早的草稿为第1版
+     *
+     * @param drafts 草稿VO列表
+     */
+    private void fillDraftVersion(List<ChallengeDraftVo> drafts) {
+        if (drafts == null || drafts.isEmpty()) {
+            return;
+        }
+        // 收集涉及到的题目ID
+        Set<Long> challengeIds = drafts.stream()
+            .map(ChallengeDraftVo::getChallengeId)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toSet());
+        if (challengeIds.isEmpty()) {
+            return;
+        }
+        // 轻量查询：仅拉取编号所需的字段
+        LambdaQueryWrapper<ChallengeDraft> lqw = Wrappers.lambdaQuery();
+        lqw.in(ChallengeDraft::getChallengeId, challengeIds);
+        lqw.select(ChallengeDraft::getId, ChallengeDraft::getChallengeId, ChallengeDraft::getCreateTime);
+        List<ChallengeDraft> allDrafts = baseMapper.selectList(lqw);
+        if (allDrafts == null || allDrafts.isEmpty()) {
+            return;
+        }
+        // 按题目分组后组内升序排序并编号
+        Map<Long, Map<Long, Integer>> versionMap = new HashMap<>();
+        allDrafts.stream()
+            .collect(Collectors.groupingBy(ChallengeDraft::getChallengeId))
+            .forEach((challengeId, list) -> {
+                list.sort(Comparator
+                    .comparing(ChallengeDraft::getCreateTime, Comparator.nullsLast(Comparator.naturalOrder()))
+                    .thenComparing(ChallengeDraft::getId));
+                Map<Long, Integer> idToVersion = new HashMap<>(list.size());
+                for (int i = 0; i < list.size(); i++) {
+                    idToVersion.put(list.get(i).getId(), i + 1);
+                }
+                versionMap.put(challengeId, idToVersion);
+            });
+        // 回填版本号
+        drafts.forEach(vo -> {
+            Map<Long, Integer> idToVersion = versionMap.get(vo.getChallengeId());
+            if (idToVersion != null) {
+                vo.setDraftVersion(idToVersion.get(vo.getId()));
+            }
+        });
     }
 
     /**
@@ -250,6 +329,6 @@ public class ChallengeDraftServiceImpl implements IChallengeDraftService {
         validEntityBeforeSave(newDraft);
         baseMapper.insert(newDraft);
 
-        return baseMapper.selectVoById(newDraft.getId());
+        return getVoWithVersion(newDraft.getId());
     }
 }

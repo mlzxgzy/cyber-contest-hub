@@ -150,6 +150,8 @@ declare namespace Api {
       challengeDescription: string;
       /** 配置 */
       config: ChallengeDraftConfig;
+      /** 草稿版本号（后端计算字段，同一题目下按创建时间升序编号，第1版为最早保存的草稿） */
+      draftVersion?: number | null;
       /** 删除标志 */
       delFlag: number;
     }>;
