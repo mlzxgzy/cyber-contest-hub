@@ -216,7 +216,8 @@ public class ChallengeContainerMockTestServiceImpl implements IChallengeContaine
                             ContainerMockTestContainerVo containerVo = new ContainerMockTestContainerVo();
                             containerVo.setName(target.getName() != null ? target.getName() : "target-" + i);
                             containerVo.setHost(portInfo.host() != null ? portInfo.host() : host);
-                            containerVo.setProtocol(pm.protocol());
+                            // Docker 仅感知 tcp/udp，业务协议（如 http）以草稿端口配置为准
+                            containerVo.setProtocol(resolveProtocol(target.getPorts(), pm));
                             containerVo.setInternalPort(pm.internalPort());
                             containerVo.setExternalPort(pm.externalPort());
                             containers.add(containerVo);
@@ -267,6 +268,36 @@ public class ChallengeContainerMockTestServiceImpl implements IChallengeContaine
             }
             markFailed(testId, "启动容器失败: " + e.getMessage());
         }
+    }
+
+    /**
+     * 解析端口协议：Docker 仅感知 tcp/udp，业务协议（如 http）只存在于草稿端口配置中。
+     * 优先按端口名称匹配草稿配置，其次按内部端口匹配，均未命中时回退到 Docker 返回的协议。
+     *
+     * @param ports 草稿中的端口配置（key: 端口名称）
+     * @param pm    Docker 返回的端口映射
+     * @return 协议（小写）
+     */
+    private String resolveProtocol(Map<String, DraftConfig.PortConfig> ports, ContainerClient.PortMapping pm) {
+        if (ports != null && !ports.isEmpty()) {
+            // 按端口名称匹配（创建 Swarm Service 时 withName 使用的就是配置的 key）
+            if (StringUtils.isNotBlank(pm.name())) {
+                DraftConfig.PortConfig byName = ports.get(pm.name());
+                if (byName != null && StringUtils.isNotBlank(byName.getProtocol())) {
+                    return byName.getProtocol().toLowerCase();
+                }
+            }
+            // 按内部端口匹配
+            if (pm.internalPort() != null) {
+                for (DraftConfig.PortConfig cfg : ports.values()) {
+                    if (cfg != null && pm.internalPort().equals(cfg.getInternalPort())
+                        && StringUtils.isNotBlank(cfg.getProtocol())) {
+                        return cfg.getProtocol().toLowerCase();
+                    }
+                }
+            }
+        }
+        return pm.protocol() != null ? pm.protocol() : "tcp";
     }
 
     /**
