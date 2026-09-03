@@ -589,7 +589,8 @@ async function loadImageList() {
           </NButton>
           <NButton
             :disabled="!draftData || !challengeData.id"
-            type="info"
+            type="primary"
+            ghost
             size="small"
             @click="handlePublish"
           >
@@ -798,46 +799,6 @@ async function loadImageList() {
                     </div>
                   </NTabPane>
 
-                  <NTabPane name="publish" tab="入库检查" tab-class="cyber-tab">
-                    <template #tab>
-                      <span class="tab-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <path d="M9 12l2 2 4-4"/>
-                          <path d="M12 2L3 7v5c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"/>
-                        </svg>
-                      </span>
-                      入库检查
-                    </template>
-                    <div class="pane-content">
-                      <ChallengePublishCheck
-                        :challenge-data="challengeData"
-                        :draft-data="draftData"
-                        :is-create-mode="isCreateMode"
-                        @save="saveDraft"
-                        @publish="handlePublish"
-                        @mock-test="handleGoMockTest"
-                      />
-                    </div>
-                  </NTabPane>
-
-                  <NTabPane v-if="challengeData.latestVersionId" name="attach" tab="附加到项目" tab-class="cyber-tab">
-                    <template #tab>
-                      <span class="tab-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-                          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-                        </svg>
-                      </span>
-                      附加到项目
-                    </template>
-                    <div class="pane-content">
-                      <ChallengeProjectAttach
-                        :challenge-id="challengeId"
-                        :latest-version-id="challengeData.latestVersionId"
-                      />
-                    </div>
-                  </NTabPane>
-
                   <NTabPane v-if="draftData?.config?.runType === 'container'" name="container" tab-class="cyber-tab">
                     <template #tab>
                       <span class="tab-icon">
@@ -892,6 +853,46 @@ async function loadImageList() {
                     </template>
                     <div class="pane-content">
                       <VmConfig v-model="draftData.config" />
+                    </div>
+                  </NTabPane>
+
+                  <NTabPane name="publish" tab="入库检查" tab-class="cyber-tab">
+                    <template #tab>
+                      <span class="tab-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M9 12l2 2 4-4"/>
+                          <path d="M12 2L3 7v5c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"/>
+                        </svg>
+                      </span>
+                      入库检查
+                    </template>
+                    <div class="pane-content">
+                      <ChallengePublishCheck
+                        :challenge-data="challengeData"
+                        :draft-data="draftData"
+                        :is-create-mode="isCreateMode"
+                        @save="saveDraft"
+                        @publish="handlePublish"
+                        @mock-test="handleGoMockTest"
+                      />
+                    </div>
+                  </NTabPane>
+
+                  <NTabPane v-if="challengeData.latestVersionId" name="attach" tab="附加到项目" tab-class="cyber-tab">
+                    <template #tab>
+                      <span class="tab-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                        </svg>
+                      </span>
+                      附加到项目
+                    </template>
+                    <div class="pane-content">
+                      <ChallengeProjectAttach
+                        :challenge-id="challengeId"
+                        :latest-version-id="challengeData.latestVersionId"
+                      />
                     </div>
                   </NTabPane>
                 </NTabs>

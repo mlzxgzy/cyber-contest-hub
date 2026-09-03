@@ -238,29 +238,27 @@ function deleteWriteup(fileId: CommonType.IdType, fileName: string) {
         </div>
         <div class="card-body">
           <NForm ref="draftFormRef" :model="draftData.config" :rules="draftRules">
-            <div class="frow">
-              <div class="form-group">
-                <label class="form-label">运行类型</label>
-                <NRadioGroup v-model:value="draftData.config.runType" size="small">
-                  <NRadioButton
-                    v-for="option in cchQuestionRunTypeOptions"
-                    :key="option.value"
-                    :value="option.value"
-                    :label="option.label"
-                  />
-                </NRadioGroup>
-              </div>
-              <div class="form-group">
-                <label class="form-label">难度</label>
-                <NRadioGroup v-model:value="draftData.config.difficulty" size="small">
-                  <NRadioButton
-                    v-for="option in cchQuestionDifficultyOptions"
-                    :key="option.value"
-                    :value="option.value"
-                    :label="option.label"
-                  />
-                </NRadioGroup>
-              </div>
+            <div class="form-group">
+              <label class="form-label">运行类型</label>
+              <NRadioGroup v-model:value="draftData.config.runType" size="small">
+                <NRadioButton
+                  v-for="option in cchQuestionRunTypeOptions"
+                  :key="option.value"
+                  :value="option.value"
+                  :label="option.label"
+                />
+              </NRadioGroup>
+            </div>
+            <div class="form-group">
+              <label class="form-label">难度</label>
+              <NRadioGroup v-model:value="draftData.config.difficulty" size="small">
+                <NRadioButton
+                  v-for="option in cchQuestionDifficultyOptions"
+                  :key="option.value"
+                  :value="option.value"
+                  :label="option.label"
+                />
+              </NRadioGroup>
             </div>
             <div class="form-group">
               <label class="form-label">知识点</label>
@@ -276,7 +274,7 @@ function deleteWriteup(fileId: CommonType.IdType, fileName: string) {
               <label class="form-label">题干描述</label>
               <NInput
                 v-model:value="draftData.config.stem"
-                :rows="5"
+                :rows="4"
                 placeholder="请输入题干内容"
                 type="textarea"
                 size="small"
@@ -622,6 +620,11 @@ $shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
       margin-left: 2px;
     }
   }
+
+  // 单选按钮组内边距收紧，避免窄卡片下溢出
+  :deep(.n-radio-button) {
+    padding: 0 10px;
+  }
 }
 
 // 两个窄字段并排
@@ -728,6 +731,20 @@ $shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
 
     .n-input__input-el {
       font-size: 11.5px;
+    }
+
+    // 默认隐藏边框保持文件行轻量，悬停/聚焦时显现
+    .n-input__border,
+    .n-input__state-border {
+      border-color: transparent;
+    }
+
+    &:hover .n-input__state-border {
+      border-color: #dcdfe4;
+    }
+
+    &.n-input--focus .n-input__state-border {
+      border-color: #3b82f6;
     }
   }
 }
