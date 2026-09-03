@@ -23,11 +23,14 @@ public interface IChallengeContainerMockTestService {
     List<ContainerMockTestSourceVo> getAvailableSources(Long challengeId);
 
     /**
-     * 启动容器模拟测试
+     * 启动容器模拟测试（异步）
+     * <p>
+     * 仅做校验并创建 starting 状态的测试记录后立即返回，
+     * 容器启动由后台线程异步执行，前端通过 {@link #getContainerMockTestDetail(Long)} 轮询获取最终状态。
      *
      * @param sourceType 来源类型：draft 或 version
      * @param sourceId   来源ID（草稿ID或版本ID）
-     * @return 测试详情
+     * @return 测试详情（status=starting）
      */
     ChallengeContainerMockTestVo startContainerMockTest(String sourceType, Long sourceId);
 

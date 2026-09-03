@@ -33,7 +33,8 @@ export namespace ContainerMockTest {
     challengeName: string;
     containerIds: string[];
     containers: ContainerInfo[];
-    status: 'running' | 'destroying' | 'expired';
+    status: 'starting' | 'running' | 'failed' | 'destroying' | 'expired';
+    errorMsg?: string | null;
     createTime: string;
     expireTime: string;
     remainingSeconds: number;

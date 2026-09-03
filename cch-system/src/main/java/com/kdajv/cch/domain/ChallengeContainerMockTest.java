@@ -68,9 +68,14 @@ public class ChallengeContainerMockTest extends BaseEntity {
     private String exposeInfo;
 
     /**
-     * 状态：running/destroying/expired
+     * 状态：starting/running/failed/destroying/expired
      */
     private String status;
+
+    /**
+     * 失败原因
+     */
+    private String errorMsg;
 
     /**
      * 过期时间

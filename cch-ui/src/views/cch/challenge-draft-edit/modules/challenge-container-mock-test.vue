@@ -56,6 +56,11 @@ const extending = ref(false);
 // 倒计时定时器
 let countdownTimer: ReturnType<typeof setInterval> | null = null;
 
+// 启动中状态轮询定时器
+let startingPollTimer: ReturnType<typeof setInterval> | null = null;
+const STARTING_POLL_INTERVAL = 3000;
+const notifiedFailedIds = new Set<number>();
+
 // 格式化时间
 function formatTime(seconds: number): string {
   if (seconds <= 0) return '已过期';
@@ -122,8 +127,12 @@ function getStatusType(status: string): 'success' | 'warning' | 'error' | 'info'
   switch (status) {
     case 'running':
       return 'success';
+    case 'starting':
+      return 'warning';
     case 'destroying':
       return 'warning';
+    case 'failed':
+      return 'error';
     case 'expired':
       return 'error';
     default:
@@ -134,8 +143,12 @@ function getStatusType(status: string): 'success' | 'warning' | 'error' | 'info'
 // 获取状态标签
 function getStatusLabel(status: string): string {
   switch (status) {
+    case 'starting':
+      return '启动中';
     case 'running':
       return '运行中';
+    case 'failed':
+      return '启动失败';
     case 'destroying':
       return '销毁中';
     case 'expired':
@@ -213,10 +226,62 @@ async function loadMockTests() {
       return;
     }
     mockTests.value = data || [];
+    // 存在启动中的测试时开启轮询
+    ensureStartingPoll();
   } catch (err) {
     window.$message?.error(`获取测试列表异常: ${err}`);
   } finally {
     loadingTests.value = false;
+  }
+}
+
+// 静默刷新列表（不触发 loading，用于轮询）
+async function silentRefresh() {
+  try {
+    const {data, error} = await fetchContainerMockTestList();
+    if (!error) {
+      mockTests.value = data || [];
+    }
+  } catch {
+    // 轮询刷新失败时静默处理，等待下次轮询
+  }
+}
+
+// 开启启动中状态轮询
+function ensureStartingPoll() {
+  if (startingPollTimer) return;
+  startingPollTimer = setInterval(async () => {
+    const hasStarting = mockTests.value.some(test => test.status === 'starting');
+    const hasUnnotifiedFailed = mockTests.value.some(
+      test => test.status === 'failed' && !notifiedFailedIds.has(test.id)
+    );
+
+    if (!hasStarting && !hasUnnotifiedFailed) {
+      stopStartingPoll();
+      return;
+    }
+
+    await silentRefresh();
+
+    // 提示新出现的启动失败
+    mockTests.value.forEach(test => {
+      if (test.status === 'failed' && !notifiedFailedIds.has(test.id)) {
+        notifiedFailedIds.add(test.id);
+        window.$message?.error(`测试环境启动失败: ${test.errorMsg || '未知原因'}`);
+      }
+    });
+
+    if (!mockTests.value.some(test => test.status === 'starting')) {
+      stopStartingPoll();
+    }
+  }, STARTING_POLL_INTERVAL);
+}
+
+// 停止启动中状态轮询
+function stopStartingPoll() {
+  if (startingPollTimer) {
+    clearInterval(startingPollTimer);
+    startingPollTimer = null;
   }
 }
 
@@ -239,7 +304,7 @@ async function handleStartTest() {
       return;
     }
 
-    window.$message?.success('测试启动成功');
+    window.$message?.success('测试已提交，容器环境正在后台启动，请稍候...');
     selectedSourceId.value = null;
     await loadMockTests();
   } catch (err) {
@@ -371,6 +436,7 @@ onUnmounted(() => {
   if (countdownTimer) {
     clearInterval(countdownTimer);
   }
+  stopStartingPoll();
 });
 </script>
 
@@ -439,6 +505,17 @@ onUnmounted(() => {
               </div>
             </template>
 
+            <!-- 启动中提示 -->
+            <div v-if="test.status === 'starting'" class="starting-tip">
+              <NSpin size="small"/>
+              <span>容器环境正在后台启动（可能需要拉取镜像），请稍候...</span>
+            </div>
+
+            <!-- 启动失败提示 -->
+            <div v-if="test.status === 'failed'" class="failed-tip">
+              启动失败: {{ test.errorMsg || '未知原因' }}
+            </div>
+
             <!-- 容器访问信息 -->
             <div v-if="test.containers && test.containers.length" class="container-info">
               <div
@@ -496,7 +573,7 @@ onUnmounted(() => {
                 <NButton
                   size="small"
                   type="error"
-                  :disabled="test.status !== 'running'"
+                  :disabled="test.status === 'destroying' || test.status === 'expired'"
                   @click="handleDestroy(test.id)"
                 >
                   销毁
@@ -628,6 +705,30 @@ onUnmounted(() => {
   .source-id {
     color: #999;
   }
+}
+
+.starting-tip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  border: 1px dashed #fbbf24;
+  background: #fffbeb;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #b45309;
+}
+
+.failed-tip {
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #b91c1c;
+  word-break: break-all;
 }
 
 .container-info {

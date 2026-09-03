@@ -56,10 +56,10 @@ public interface ChallengeContainerMockTestMapper extends BaseMapperPlus<Challen
      */
     @Select("""
         SELECT id, draft_id as draftId, source_type as sourceType, source_id as sourceId,
-               challenge_name as challengeName, status, create_time as createTime,
+               challenge_name as challengeName, status, error_msg as errorMsg, create_time as createTime,
                expire_time as expireTime, extend_count as extendCount
         FROM t_challenge_container_mock_test
-        WHERE del_flag = 0 AND status = 'running'
+        WHERE del_flag = 0 AND status IN ('running', 'starting', 'failed')
         ORDER BY create_time DESC
         """)
     List<ChallengeContainerMockTestVo> selectActiveTests();
@@ -71,7 +71,7 @@ public interface ChallengeContainerMockTestMapper extends BaseMapperPlus<Challen
      */
     @Select("""
         SELECT id FROM t_challenge_container_mock_test
-        WHERE del_flag = 0 AND status = 'running' AND expire_time < NOW(3)
+        WHERE del_flag = 0 AND status IN ('running', 'starting', 'failed') AND expire_time < NOW(3)
         """)
     List<Long> selectExpiredTestIds();
 

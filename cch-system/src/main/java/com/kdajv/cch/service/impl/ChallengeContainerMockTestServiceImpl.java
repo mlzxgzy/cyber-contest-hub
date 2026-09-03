@@ -2,6 +2,7 @@ package com.kdajv.cch.service.impl;
 
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.kdajv.cch.container.ContainerClient;
 import com.kdajv.cch.domain.ChallengeContainerMockTest;
 import com.kdajv.cch.domain.DraftConfig;
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.stream.Collectors;
 
 /**
@@ -39,6 +41,7 @@ public class ChallengeContainerMockTestServiceImpl implements IChallengeContaine
     private final ChallengeDraftMapper draftMapper;
     private final ChallengeVersionMapper versionMapper;
     private final ICchContainerConfigService containerConfigService;
+    private final ScheduledExecutorService scheduledExecutorService;
 
     @Override
     public List<ContainerMockTestSourceVo> getAvailableSources(Long challengeId) {
@@ -66,15 +69,13 @@ public class ChallengeContainerMockTestServiceImpl implements IChallengeContaine
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public ChallengeContainerMockTestVo startContainerMockTest(String sourceType, Long sourceId) {
-        // 1. 获取草稿ID
+        // 1. 同步校验（快速失败，避免创建无效记录）
         Long draftId = getDraftIdBySource(sourceType, sourceId);
         if (draftId == null) {
             throw new ServiceException("无法获取草稿ID");
         }
 
-        // 2. 获取草稿数据
         ChallengeDraftVo draft = draftMapper.selectVoById(draftId);
         if (draft == null) {
             throw new ServiceException("草稿不存在");
@@ -85,35 +86,69 @@ public class ChallengeContainerMockTestServiceImpl implements IChallengeContaine
             throw new ServiceException("草稿中没有容器靶机配置");
         }
 
-        // 3. 获取活跃的容器客户端
+        boolean hasImage = config.getContainerTargets().stream()
+            .anyMatch(t -> StringUtils.isNotBlank(t.getImageName()));
+        if (!hasImage) {
+            throw new ServiceException("草稿中的容器靶机均未配置镜像");
+        }
+
         ContainerClient containerClient = containerConfigService.getActiveClient();
         if (containerClient == null) {
             throw new ServiceException("没有活跃的容器连接，请先配置并测试容器连接");
         }
 
-        // 4. 启动 Docker Swarm Service 并收集信息
-        List<String> serviceIds = new ArrayList<>();
-        List<ContainerMockTestContainerVo> containers = new ArrayList<>();
+        // 2. 创建 starting 状态的测试记录并立即返回（容器启动转为后台异步执行，避免HTTP请求超时）
         Date now = new Date();
         Date expireTime = new Date(now.getTime() + DEFAULT_EXPIRE_MINUTES * 60 * 1000L);
 
-        for (int i = 0; i < config.getContainerTargets().size(); i++) {
-            DraftConfig.ContainerTarget target = config.getContainerTargets().get(i);
+        ChallengeContainerMockTest test = new ChallengeContainerMockTest();
+        test.setDraftId(draftId);
+        test.setSourceType(sourceType);
+        test.setSourceId(sourceId);
+        test.setChallengeName(draft.getChallengeName());
+        test.setStatus("starting");
+        test.setExpireTime(expireTime);
+        test.setExtendCount(0);
+        mockTestMapper.insert(test);
 
-            if (target.getImageName() == null || target.getImageName().isEmpty()) {
-                log.warn("靶机 {} 未配置镜像，跳过", target.getName());
-                continue;
+        // 3. 提交后台任务启动 Docker Swarm Service
+        Long testId = test.getId();
+        scheduledExecutorService.execute(() -> doStartContainers(testId, draftId));
+
+        // 4. 返回 starting 状态记录，前端轮询获取最终状态
+        ChallengeContainerMockTestVo result = convertToVo(test, new ArrayList<>());
+        result.setRemainingSeconds(calculateRemainingSeconds(expireTime));
+
+        return result;
+    }
+
+    /**
+     * 后台异步启动 Docker Swarm Service（不阻塞HTTP请求）
+     *
+     * @param testId  测试记录ID
+     * @param draftId 草稿ID
+     */
+    private void doStartContainers(Long testId, Long draftId) {
+        List<String> serviceIds = new ArrayList<>();
+        try {
+            ChallengeContainerMockTest test = mockTestMapper.selectById(testId);
+            if (test == null || !"starting".equals(test.getStatus())) {
+                // 记录不存在或已被销毁/过期，直接退出
+                return;
             }
 
-            // 获取镜像信息
-            String imageName = target.getImageName();
+            ChallengeDraftVo draft = draftMapper.selectVoById(draftId);
+            if (draft == null || draft.getConfig() == null || draft.getConfig().getContainerTargets() == null
+                || draft.getConfig().getContainerTargets().isEmpty()) {
+                markFailed(testId, "草稿不存在或缺少容器靶机配置");
+                return;
+            }
 
-            // 构建服务名称（添加mock-前缀以标识）
-            // Docker Swarm 服务名称必须是有效的 DNS 名称：只包含小写字母、数字、连字符
-            String serviceName = String.format("mock-%s-%s-%d",
-                sanitizeServiceName(draft.getChallengeName()),
-                sanitizeServiceName(target.getName()),
-                System.currentTimeMillis());
+            ContainerClient containerClient = containerConfigService.getActiveClient();
+            if (containerClient == null) {
+                markFailed(testId, "没有活跃的容器连接，请先配置并测试容器连接");
+                return;
+            }
 
             // 获取宿主机地址（从节点标签获取）
             String host = "localhost";
@@ -131,82 +166,134 @@ public class ChallengeContainerMockTestServiceImpl implements IChallengeContaine
                 log.warn("获取集群节点失败，使用默认地址: {}", e.getMessage());
             }
 
-            try {
-                // 创建并启动 Docker Swarm Service
-                ContainerClient.ServicePortInfo portInfo = containerClient.createAndStartService(imageName, target.getEnv(), target.getPorts(), target.getResources() != null ? target.getResources().getCpuLimit() : null, target.getResources() != null ? target.getResources().getMemoryLimit() : null, serviceName);
+            List<ContainerMockTestContainerVo> containers = new ArrayList<>();
 
-                serviceIds.add(portInfo.serviceId());
+            for (int i = 0; i < draft.getConfig().getContainerTargets().size(); i++) {
+                DraftConfig.ContainerTarget target = draft.getConfig().getContainerTargets().get(i);
 
-                // 构建端口暴露信息
-                List<ContainerClient.PortMapping> mappings = portInfo.portMappings();
+                if (StringUtils.isBlank(target.getImageName())) {
+                    log.warn("靶机 {} 未配置镜像，跳过", target.getName());
+                    continue;
+                }
 
-                // 如果 getServicePortInfo 返回的端口信息为空，使用配置的端口信息
-                if (mappings == null || mappings.isEmpty()) {
-                    // 使用配置的端口作为后备
-                    if (target.getPorts() != null) {
-                        for (Map.Entry<String, DraftConfig.PortConfig> entry : target.getPorts().entrySet()) {
-                            DraftConfig.PortConfig portConfig = entry.getValue();
+                // 获取镜像信息
+                String imageName = target.getImageName();
+
+                // 构建服务名称（添加mock-前缀以标识）
+                // Docker Swarm 服务名称必须是有效的 DNS 名称：只包含小写字母、数字、连字符
+                String serviceName = String.format("mock-%s-%s-%d",
+                    sanitizeServiceName(draft.getChallengeName()),
+                    sanitizeServiceName(target.getName()),
+                    System.currentTimeMillis());
+
+                try {
+                    // 创建并启动 Docker Swarm Service
+                    ContainerClient.ServicePortInfo portInfo = containerClient.createAndStartService(imageName, target.getEnv(), target.getPorts(), target.getResources() != null ? target.getResources().getCpuLimit() : null, target.getResources() != null ? target.getResources().getMemoryLimit() : null, serviceName);
+
+                    serviceIds.add(portInfo.serviceId());
+
+                    // 构建端口暴露信息
+                    List<ContainerClient.PortMapping> mappings = portInfo.portMappings();
+
+                    // 如果 getServicePortInfo 返回的端口信息为空，使用配置的端口信息
+                    if (mappings == null || mappings.isEmpty()) {
+                        // 使用配置的端口作为后备
+                        if (target.getPorts() != null) {
+                            for (Map.Entry<String, DraftConfig.PortConfig> entry : target.getPorts().entrySet()) {
+                                DraftConfig.PortConfig portConfig = entry.getValue();
+                                ContainerMockTestContainerVo containerVo = new ContainerMockTestContainerVo();
+                                containerVo.setName(target.getName() != null ? target.getName() : "target-" + i);
+                                containerVo.setHost(host);
+                                containerVo.setProtocol(portConfig.getProtocol() != null ? portConfig.getProtocol().toLowerCase() : "tcp");
+                                containerVo.setInternalPort(portConfig.getInternalPort());
+                                containerVo.setExternalPort(null); // 待分配
+                                containers.add(containerVo);
+                            }
+                        }
+                    } else {
+                        // 使用实际获取的端口信息
+                        for (ContainerClient.PortMapping pm : mappings) {
                             ContainerMockTestContainerVo containerVo = new ContainerMockTestContainerVo();
                             containerVo.setName(target.getName() != null ? target.getName() : "target-" + i);
-                            containerVo.setHost(host);
-                            containerVo.setProtocol(portConfig.getProtocol() != null ? portConfig.getProtocol().toLowerCase() : "tcp");
-                            containerVo.setInternalPort(portConfig.getInternalPort());
-                            containerVo.setExternalPort(null); // 待分配
+                            containerVo.setHost(portInfo.host() != null ? portInfo.host() : host);
+                            containerVo.setProtocol(pm.protocol());
+                            containerVo.setInternalPort(pm.internalPort());
+                            containerVo.setExternalPort(pm.externalPort());
                             containers.add(containerVo);
                         }
                     }
-                } else {
-                    // 使用实际获取的端口信息
-                    for (ContainerClient.PortMapping pm : mappings) {
-                        ContainerMockTestContainerVo containerVo = new ContainerMockTestContainerVo();
-                        containerVo.setName(target.getName() != null ? target.getName() : "target-" + i);
-                        containerVo.setHost(portInfo.host() != null ? portInfo.host() : host);
-                        containerVo.setProtocol(pm.protocol());
-                        containerVo.setInternalPort(pm.internalPort());
-                        containerVo.setExternalPort(pm.externalPort());
-                        containers.add(containerVo);
+
+                    log.info("Docker Swarm Service 启动成功: {}, 端口映射: {}", serviceName, mappings);
+
+                } catch (Exception e) {
+                    log.error("启动 Docker Swarm Service 失败: {}", serviceName, e);
+                    throw new ServiceException("启动 Docker Swarm Service 失败: " + e.getMessage());
+                }
+            }
+
+            if (serviceIds.isEmpty()) {
+                markFailed(testId, "没有成功启动任何服务");
+                return;
+            }
+
+            // 原子更新：仅当仍处于 starting 时才置为 running（避免与销毁操作竞态）
+            int updated = mockTestMapper.update(null,
+                new LambdaUpdateWrapper<ChallengeContainerMockTest>()
+                    .eq(ChallengeContainerMockTest::getId, testId)
+                    .eq(ChallengeContainerMockTest::getStatus, "starting")
+                    .set(ChallengeContainerMockTest::getStatus, "running")
+                    .set(ChallengeContainerMockTest::getContainerIds, JSONUtil.toJsonStr(serviceIds))
+                    .set(ChallengeContainerMockTest::getExposeInfo, JSONUtil.toJsonStr(containers))
+                    .set(ChallengeContainerMockTest::getUpdateTime, new Date()));
+            if (updated > 0) {
+                log.info("容器模拟测试 {} 异步启动完成，共启动 {} 个服务", testId, serviceIds.size());
+            } else {
+                // 启动期间测试已被销毁，清理已启动的服务
+                cleanupServices(containerClient, serviceIds);
+                log.info("容器模拟测试 {} 启动期间已被销毁，已清理服务", testId);
+            }
+        } catch (Exception e) {
+            log.error("异步启动容器模拟测试失败: testId={}", testId, e);
+            // 清理已启动的服务
+            try {
+                if (!serviceIds.isEmpty()) {
+                    ContainerClient containerClient = containerConfigService.getActiveClient();
+                    if (containerClient != null) {
+                        cleanupServices(containerClient, serviceIds);
                     }
                 }
-
-                log.info("Docker Swarm Service 启动成功: {}, 端口映射: {}", serviceName, mappings);
-
-            } catch (Exception e) {
-                log.error("启动 Docker Swarm Service 失败: {}", serviceName, e);
-                // 清理已启动的服务
-                cleanupServices(containerClient, serviceIds);
-                throw new ServiceException("启动 Docker Swarm Service 失败: " + e.getMessage());
+            } catch (Exception ex) {
+                log.error("清理已启动的服务失败: testId={}", testId, ex);
             }
+            markFailed(testId, "启动容器失败: " + e.getMessage());
         }
+    }
 
-        if (serviceIds.isEmpty()) {
-            throw new ServiceException("没有成功启动任何服务");
+    /**
+     * 将测试记录标记为启动失败（仅覆盖仍处于 starting 状态的记录）
+     *
+     * @param testId  测试记录ID
+     * @param message 失败原因
+     */
+    private void markFailed(Long testId, String message) {
+        try {
+            ChallengeContainerMockTest test = mockTestMapper.selectById(testId);
+            if (test == null || !"starting".equals(test.getStatus())) {
+                return;
+            }
+            test.setStatus("failed");
+            test.setErrorMsg(StringUtils.isNotBlank(message) && message.length() > 500 ? message.substring(0, 500) : message);
+            test.setUpdateTime(new Date());
+            mockTestMapper.updateById(test);
+        } catch (Exception e) {
+            log.error("标记测试启动失败状态异常: testId={}", testId, e);
         }
-
-        // 5. 保存测试记录（使用 JSON 字符串存储）
-        ChallengeContainerMockTest test = new ChallengeContainerMockTest();
-        test.setDraftId(draftId);
-        test.setSourceType(sourceType);
-        test.setSourceId(sourceId);
-        test.setChallengeName(draft.getChallengeName());
-        test.setContainerIds(JSONUtil.toJsonStr(serviceIds));
-        test.setExposeInfo(JSONUtil.toJsonStr(containers));
-        test.setStatus("running");
-        test.setExpireTime(expireTime);
-        test.setExtendCount(0);
-
-        mockTestMapper.insert(test);
-
-        // 6. 返回结果
-        ChallengeContainerMockTestVo result = convertToVo(test, containers);
-        result.setRemainingSeconds(calculateRemainingSeconds(expireTime));
-
-        return result;
     }
 
     @Override
     public ChallengeContainerMockTestVo getContainerMockTestDetail(Long id) {
         ChallengeContainerMockTest test = mockTestMapper.selectById(id);
-        if (test == null || !"running".equals(test.getStatus())) {
+        if (test == null || "destroying".equals(test.getStatus()) || "expired".equals(test.getStatus())) {
             return null;
         }
 
@@ -221,7 +308,7 @@ public class ChallengeContainerMockTestServiceImpl implements IChallengeContaine
     public List<ChallengeContainerMockTestVo> getMyActiveTests() {
         List<ChallengeContainerMockTest> tests = mockTestMapper.selectList(
             new LambdaQueryWrapper<ChallengeContainerMockTest>()
-                .eq(ChallengeContainerMockTest::getStatus, "running")
+                .in(ChallengeContainerMockTest::getStatus, "running", "starting", "failed")
                 .orderByDesc(ChallengeContainerMockTest::getCreateTime)
         );
 
@@ -237,7 +324,7 @@ public class ChallengeContainerMockTestServiceImpl implements IChallengeContaine
     public boolean extendTime(Long id, Integer minutes) {
         ChallengeContainerMockTest test = mockTestMapper.selectById(id);
         if (test == null || !"running".equals(test.getStatus())) {
-            throw new ServiceException("测试不存在或已结束");
+            throw new ServiceException("测试不存在、未运行或已结束");
         }
 
         if (test.getExtendCount() >= MAX_EXTEND_COUNT) {

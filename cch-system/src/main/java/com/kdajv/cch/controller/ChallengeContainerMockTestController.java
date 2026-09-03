@@ -40,10 +40,13 @@ public class ChallengeContainerMockTestController extends BaseController {
     }
 
     /**
-     * 启动容器模拟测试
+     * 启动容器模拟测试（异步）
+     * <p>
+     * 校验并创建 starting 状态的测试记录后立即返回，容器在后台异步启动，
+     * 前端通过轮询 /my-list 或 /{id} 获取最终状态（running/failed）。
      *
      * @param params 参数 {sourceType, sourceId}
-     * @return 测试详情
+     * @return 测试详情（status=starting）
      */
     @SaCheckPermission("cch:containerMockTest:add")
     @PostMapping("/start")
