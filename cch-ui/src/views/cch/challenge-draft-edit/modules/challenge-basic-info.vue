@@ -231,7 +231,7 @@ function deleteWriteup(fileId: CommonType.IdType, fileName: string) {
 
 <template>
   <div class="info-masonry">
-    <div class="grid2">
+    <div class="masonry">
       <!-- 基本信息卡片 -->
       <div class="info-card">
         <div class="card-header">
@@ -327,9 +327,7 @@ function deleteWriteup(fileId: CommonType.IdType, fileName: string) {
           </NForm>
         </div>
       </div>
-    </div>
 
-    <div class="grid2">
       <!-- 选手附件卡片（对选手可见） -->
       <div class="info-card" v-if="draftData">
         <div class="card-header">
@@ -657,15 +655,19 @@ $shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
   gap: 10px;
 }
 
-.grid2 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  align-items: start;
+// 瀑布流双列（照片墙式）：每列独立向下堆叠，卡片高度互不影响，消除行对齐留白
+.masonry {
+  column-count: 2;
+  column-gap: 10px;
 
   @media (max-width: 1100px) {
-    grid-template-columns: 1fr;
+    column-count: 1;
   }
+}
+
+.masonry .info-card {
+  break-inside: avoid; // 卡片不被拆断到两列
+  margin-bottom: 10px;
 }
 
 .info-card {
