@@ -10,6 +10,7 @@ import {
   fetchUpdateProjectChallengeTags
 } from '@/service/api/cch/project';
 import {useAuthStore} from '@/store/modules/auth';
+import {useDict} from '@/hooks/business/dict';
 
 defineOptions({
   name: 'ProjectChallengeManage'
@@ -36,6 +37,9 @@ const router = useRouter();
 const authStore = useAuthStore();
 const currentUserId = computed(() => authStore.userInfo.user?.userId);
 
+// 题目类型字典（与题目列表页保持一致）
+const {options: categoryDictOptions} = useDict('cch_question_categroy');
+
 const loading = ref(false);
 const challenges = ref<Api.Cch.ProjectChallenge[]>([]);
 const project = ref<Api.Cch.Project | null>(null);
@@ -47,6 +51,9 @@ const customTag = ref('');
 
 // 标签筛选项（多选，题目需包含全部所选标签才展示）
 const filterTags = ref<string[]>([]);
+
+// 题目类型筛选项（多选，题目类型命中任意一个即展示）
+const filterCategories = ref<string[]>([]);
 
 // 是否具备针对所有题目的管理能力（删除任意题目、打标签）
 const canManageAll = computed(() => {
@@ -92,14 +99,45 @@ const allTagOptions = computed<string[]>(() => {
 
 // 按标签筛选后的题目列表：需包含全部所选标签
 const filteredChallenges = computed<Api.Cch.ProjectChallenge[]>(() => {
-  if (filterTags.value.length === 0) {
-    return displayChallenges.value;
+  let result = displayChallenges.value;
+
+  if (filterCategories.value.length > 0) {
+    result = result.filter(row => row.category && filterCategories.value.includes(row.category));
   }
-  return displayChallenges.value.filter(row => {
+
+  if (filterTags.value.length === 0) {
+    return result;
+  }
+  return result.filter(row => {
     const tags = parseTags(row.tags);
     return filterTags.value.every(tag => tags.includes(tag));
   });
 });
+
+// 字典 value -> label 映射，用于展示题目类型名称
+const categoryLabelMap = computed<Record<string, string>>(() => {
+  const map: Record<string, string> = {};
+  categoryDictOptions.value.forEach(option => {
+    map[String(option.value)] = option.label;
+  });
+  return map;
+});
+
+function renderRowCategory(row: Api.Cch.ProjectChallenge) {
+  if (!row.category) {
+    return h('span', {class: 'text-gray-300'}, {default: () => '—'});
+  }
+  return h(
+    NTag,
+    {
+      size: 'small',
+      round: true,
+      bordered: false,
+      type: 'info'
+    },
+    {default: () => categoryLabelMap.value[row.category] || row.category}
+  );
+}
 
 // 是否需要展示"操作"列：有导入或删除能力的成员都需要看到
 const canShowOperateColumn = computed(() => {
@@ -136,6 +174,13 @@ const columns = computed<DataTableColumns<Api.Cch.ProjectChallenge>>(() => {
   }
 
   baseColumns.push(
+    {
+      key: 'category',
+      title: '题目类型',
+      align: 'center',
+      minWidth: 100,
+      render: row => renderRowCategory(row)
+    },
     {
       key: 'challengeName',
       title: '题目名称',
@@ -328,7 +373,7 @@ watch(() => props.projectId, () => {
 }, {immediate: true});
 
 // 切换筛选条件时清空勾选，避免对被隐藏的题目误操作
-watch(filterTags, () => {
+watch([filterTags, filterCategories], () => {
   checkedRowKeys.value = [];
 });
 
@@ -341,6 +386,20 @@ watch(filterTags, () => {
     </NCard>
 
     <NCard :bordered="false" size="small" title="题目列表">
+      <div class="mb-12px flex items-center gap-12px">
+        <span class="text-12px text-gray-400">类型筛选</span>
+        <NSelect
+          v-model:value="filterCategories"
+          class="w-320px"
+          size="small"
+          multiple
+          clearable
+          placeholder="按题目类型筛选题目"
+          :options="categoryDictOptions"
+          :max-tag-count="3"
+        />
+      </div>
+
       <div v-if="allTagOptions.length > 0" class="mb-12px flex items-center gap-12px">
         <span class="text-12px text-gray-400">标签筛选</span>
         <NSelect

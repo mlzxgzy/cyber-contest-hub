@@ -11,6 +11,7 @@ import com.kdajv.cch.domain.bo.ProjectBo;
 import com.kdajv.cch.domain.bo.ProjectChallengeBo;
 import com.kdajv.cch.domain.bo.ProjectChallengeTagBo;
 import com.kdajv.cch.domain.bo.ProjectMemberBo;
+import com.kdajv.cch.domain.vo.ChallengeVo;
 import com.kdajv.cch.domain.vo.ContestFileVo;
 import com.kdajv.cch.domain.vo.ProjectChallengeVo;
 import com.kdajv.cch.domain.vo.ProjectMemberVo;
@@ -1060,6 +1061,29 @@ public class ProjectServiceImpl implements IProjectService {
             if (ObjectUtil.isNotNull(version)) {
                 challenge.setChallengeName(version.getChallengeName());
                 challenge.setVersionTag(version.getVersionTag());
+            }
+        }
+
+        // 填充题目类型（category 保存在题目表上）
+        List<Long> challengeIds = challenges.stream()
+            .map(ProjectChallengeVo::getChallengeId)
+            .filter(Objects::nonNull)
+            .distinct()
+            .collect(Collectors.toList());
+
+        if (CollUtil.isNotEmpty(challengeIds)) {
+            Map<Long, String> categoryMap = new HashMap<>();
+            List<ChallengeVo> challengesInfo = challengeMapper.selectVoByIds(challengeIds);
+            if (CollUtil.isNotEmpty(challengesInfo)) {
+                for (ChallengeVo info : challengesInfo) {
+                    if (ObjectUtil.isNotNull(info) && ObjectUtil.isNotNull(info.getId())) {
+                        categoryMap.put(info.getId(), info.getCategory());
+                    }
+                }
+            }
+
+            for (ProjectChallengeVo challenge : challenges) {
+                challenge.setCategory(categoryMap.get(challenge.getChallengeId()));
             }
         }
     }

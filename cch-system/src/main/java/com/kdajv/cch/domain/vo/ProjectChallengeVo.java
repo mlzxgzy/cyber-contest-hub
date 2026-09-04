@@ -54,6 +54,11 @@ public class ProjectChallengeVo implements Serializable {
     private String versionTag;
 
     /**
+     * 题目类型（字典 cch_question_categroy，用于显示）
+     */
+    private String category;
+
+    /**
      * 标签（逗号分隔，用于显示）
      */
     private String tags;

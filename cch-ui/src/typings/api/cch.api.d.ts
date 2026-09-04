@@ -697,6 +697,8 @@ declare namespace Api {
       challengeName?: string;
       /** 版本号（用于显示） */
       versionTag?: string;
+      /** 题目类型（字典 cch_question_categroy，用于显示） */
+      category?: string | null;
       /** 标签（逗号分隔字符串） */
       tags?: string | null;
       /** 创建时间 */
