@@ -10,6 +10,7 @@ import ProjectMemberManage from './modules/project-member-manage.vue';
 import ProjectChallengeManage from './modules/project-challenge-manage.vue';
 import ProjectFileManage from './modules/project-file-manage.vue';
 import InlineEditRow from './modules/inline-edit-row.vue';
+import ChallengeSummary from './modules/challenge-summary.vue';
 import {$t} from '@/locales';
 import {useTabStore} from '@/store/modules/tab';
 
@@ -660,6 +661,9 @@ onMounted(() => {
                   <InlineEditRow label="创建时间" :value="project.createTime ?? ''" />
                   <InlineEditRow label="更新时间" :value="project.updateTime ?? ''" />
                 </div>
+
+                <!-- 赛题汇总：展示视角与编辑视角下均展示 -->
+                <ChallengeSummary v-if="canViewProject" :project-id="project.id" class="mt-16px" />
               </template>
               <template v-else>
                 <NResult
