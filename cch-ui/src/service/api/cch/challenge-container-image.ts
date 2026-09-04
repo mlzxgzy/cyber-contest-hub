@@ -46,16 +46,3 @@ export function fetchManualLoadImage(id: CommonType.IdType) {
     timeout: 300 * 1000
   });
 }
-
-/** 重新上传容器镜像（上传/Load失败后的重传，复用原镜像记录） */
-export function fetchReuploadChallengeContainerImage(id: CommonType.IdType, formData: FormData) {
-  return request<Api.Cch.ChallengeContainerImage>({
-    url: `/cch/challengeContainerImage/reupload/${id}`,
-    method: 'post',
-    data: formData,
-    headers: {
-      'Content-Type': 'multipart/form-data'
-    },
-    timeout: 300 * 1000
-  });
-}

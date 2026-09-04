@@ -127,25 +127,6 @@ public class ChallengeContainerImageController extends BaseController {
     }
 
     /**
-     * 重新上传容器镜像（用于上传/Load失败的镜像重传，复用原镜像记录）
-     *
-     * @param id   镜像记录ID
-     * @param file 新的镜像文件
-     */
-    @SaCheckPermission("cch:challengeContainerImage:edit")
-    @Log(title = "挑战容器镜像", businessType = BusinessType.UPDATE)
-    @PostMapping("/reupload/{id}")
-    public R<ChallengeContainerImageVo> reuploadImage(@PathVariable Long id, @RequestParam("file") MultipartFile file) {
-        try {
-            ChallengeContainerImageVo vo = imageUploadService.reuploadImage(id, file);
-            return R.ok(vo);
-        } catch (Exception e) {
-            log.error("重新上传镜像失败", e);
-            return R.fail("重新上传失败: " + e.getMessage());
-        }
-    }
-
-    /**
      * 根据题目ID查询镜像列表
      *
      * @param challengeId 题目ID

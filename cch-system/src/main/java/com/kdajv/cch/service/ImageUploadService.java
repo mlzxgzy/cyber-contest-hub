@@ -1,7 +1,6 @@
 package com.kdajv.cch.service;
 
 import cn.hutool.core.util.IdUtil;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.kdajv.cch.container.ContainerClient;
 import com.kdajv.cch.domain.ChallengeContainerImage;
 import com.kdajv.cch.domain.vo.CchContainerConfigVo;
@@ -71,43 +70,6 @@ public class ImageUploadService {
         // 插入数据库记录
         insertByBo(imageBo);
         Long imageId = imageBo.getId();
-
-        // 启动异步上传任务到OSS
-        startAsyncOssUpload(imageId, file, imageName);
-
-        // 返回镜像记录
-        return queryById(imageId);
-    }
-
-    /**
-     * 重新上传镜像文件（用于上传/Load失败的镜像重传，复用原镜像记录）
-     *
-     * @param imageId 镜像记录ID
-     * @param file    新的镜像文件
-     * @return 镜像记录信息
-     */
-    public ChallengeContainerImageVo reuploadImage(Long imageId, MultipartFile file) {
-        ChallengeContainerImageVo image = queryById(imageId);
-        if (image == null) {
-            log.error("重新上传镜像失败，镜像记录不存在: ID={}", imageId);
-            throw new IllegalArgumentException("镜像记录不存在: ID=" + imageId);
-        }
-
-        // 重置镜像记录状态，等待重新上传
-        String imageName = StringUtils.isNotBlank(image.getImageName())
-            ? image.getImageName()
-            : (file.getOriginalFilename() != null ? file.getOriginalFilename().split("\\.")[0] : "default-image");
-
-        LambdaUpdateWrapper<ChallengeContainerImage> wrapper = new LambdaUpdateWrapper<ChallengeContainerImage>()
-            .eq(ChallengeContainerImage::getId, imageId)
-            .set(ChallengeContainerImage::getStatus, "uploading")
-            .set(ChallengeContainerImage::getProgress, BigDecimal.ZERO)
-            .set(ChallengeContainerImage::getImageSize, file.getSize())
-            .set(ChallengeContainerImage::getImageName, imageName)
-            .set(ChallengeContainerImage::getFilePath, null)
-            .set(ChallengeContainerImage::getPullAddress, null)
-            .set(ChallengeContainerImage::getErrorMessage, null);
-        challengeContainerImageMapper.update(null, wrapper);
 
         // 启动异步上传任务到OSS
         startAsyncOssUpload(imageId, file, imageName);
@@ -366,7 +328,7 @@ public class ImageUploadService {
     }
 
     /**
-     * 手动Load镜像到Docker
+     * 手动Load镜像到Docker（支持重新导入：Load失败或已导入的镜像均可再次Load）
      */
     public Boolean manualLoadImage(Long imageId) {
         ChallengeContainerImageVo image = queryById(imageId);
@@ -375,9 +337,17 @@ public class ImageUploadService {
             return false;
         }
 
-        // 检查镜像是否已经加载过或处于其他非上传完成状态
-        if (!"uploaded".equals(image.getStatus())) {
-            log.error("镜像状态不允许Load: ID={}, 当前状态={}", imageId, image.getStatus());
+        // 检查镜像是否处于允许Load的状态
+        // uploaded: 等待Load; error: 上传/Load失败，可重新导入; available: 已导入，可重新导入
+        String status = image.getStatus();
+        if (!"uploaded".equals(status) && !"error".equals(status) && !"available".equals(status)) {
+            log.error("镜像状态不允许Load: ID={}, 当前状态={}", imageId, status);
+            return false;
+        }
+
+        // 重新导入必须存在原始镜像文件
+        if (StringUtils.isBlank(image.getFilePath())) {
+            log.error("镜像文件不存在，无法Load: ID={}", imageId);
             return false;
         }
 
