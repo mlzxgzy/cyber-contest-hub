@@ -21,19 +21,30 @@ const {createRequiredRule} = useFormRules();
 
 const projectTypeOptions = [
   {label: '普通项目', value: 'normal'},
-  {label: '竞赛项目', value: 'contest'}
+  {label: '竞赛项目', value: 'contest'},
+  {label: '出题项目', value: 'authoring'}
+];
+
+const authorSourceOptions = [
+  {label: '自己出', value: 'self'},
+  {label: '外采', value: 'external'}
 ];
 
 const model = ref(createDefaultModel());
 
 function createDefaultModel() {
   return {
-    projectType: 'normal',
-    name: ''
+    projectType: 'normal' as 'normal' | 'contest' | 'authoring',
+    name: '',
+    authoringMeta: {
+      authorSource: 'self' as 'self' | 'external',
+      externalUnit: ''
+    }
   };
 }
 
 const isContestProject = computed(() => model.value.projectType === 'contest');
+const isAuthoringProject = computed(() => model.value.projectType === 'authoring');
 
 const nameLabel = computed(() => {
   return isContestProject.value ? '竞赛名称' : '项目名称';
@@ -43,10 +54,16 @@ const namePlaceholder = computed(() => {
   return isContestProject.value ? '请输入竞赛名称' : '请输入项目名称';
 });
 
-const rules = computed(() => ({
-  projectType: createRequiredRule('项目类型不能为空'),
-  name: createRequiredRule(isContestProject.value ? '竞赛名称不能为空' : '项目名称不能为空')
-}));
+const rules = computed(() => {
+  const base: Record<string, App.Global.FormRule> = {
+    projectType: createRequiredRule('项目类型不能为空'),
+    name: createRequiredRule(isContestProject.value ? '竞赛名称不能为空' : '项目名称不能为空')
+  };
+  if (isAuthoringProject.value) {
+    base['authoringMeta.authorSource'] = createRequiredRule('出题方式不能为空');
+  }
+  return base;
+});
 
 const submitting = ref(false);
 
@@ -55,8 +72,18 @@ async function handleSubmit() {
   if (submitting.value) return;
   submitting.value = true;
 
-  const {projectType, name} = model.value;
-  const {data, error} = await fetchCreateProject({projectType, name});
+  const {projectType, name, authoringMeta} = model.value;
+  const {data, error} = await fetchCreateProject({
+    projectType,
+    name,
+    authoringMeta:
+      projectType === 'authoring'
+        ? {
+            authorSource: authoringMeta.authorSource,
+            externalUnit: authoringMeta.authorSource === 'external' ? authoringMeta.externalUnit || undefined : undefined
+          }
+        : undefined
+  });
   submitting.value = false;
 
   if (error || !data) return;
@@ -86,6 +113,26 @@ watch(visible, () => {
               </NRadio>
             </NSpace>
           </NRadioGroup>
+        </NFormItem>
+        <NFormItem v-if="isAuthoringProject" label="出题方式" path="authoringMeta.authorSource">
+          <NRadioGroup v-model:value="model.authoringMeta.authorSource">
+            <NSpace>
+              <NRadio v-for="opt in authorSourceOptions" :key="opt.value" :value="opt.value">
+                {{ opt.label }}
+              </NRadio>
+            </NSpace>
+          </NRadioGroup>
+        </NFormItem>
+        <NFormItem
+          v-if="isAuthoringProject && model.authoringMeta.authorSource === 'external'"
+          label="外采单位"
+          path="authoringMeta.externalUnit"
+        >
+          <NInput
+            v-model:value="model.authoringMeta.externalUnit"
+            placeholder="请输入外采单位名称（可留空）"
+            :maxlength="128"
+          />
         </NFormItem>
         <NFormItem :label="nameLabel" path="name">
           <NInput

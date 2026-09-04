@@ -54,6 +54,26 @@ const canViewFilesTab = computed(
 );
 
 const isContest = computed(() => project.value?.projectType === 'contest');
+const isAuthoring = computed(() => project.value?.projectType === 'authoring');
+const isExternalAuthoring = computed(
+  () => isAuthoring.value && project.value?.authoringMeta?.authorSource === 'external'
+);
+
+const projectTypeLabelMap: Record<string, string> = {
+  normal: '普通项目',
+  contest: '竞赛项目',
+  authoring: '出题项目'
+};
+
+const authorSourceLabelMap: Record<string, string> = {
+  self: '自己出',
+  external: '外采'
+};
+
+const authorSourceOptions = [
+  {label: '自己出', value: 'self'},
+  {label: '外采', value: 'external'}
+];
 
 // 基本信息行内编辑权限：项目管理员或超管
 const canEditBasicInfo = computed(() => isProjectAdmin.value || isSuperAdmin.value);
@@ -223,6 +243,7 @@ async function saveBasicField(patch: {
   name?: string;
   leader?: string;
   remark?: string;
+  authoringMeta?: Partial<Api.Cch.AuthoringMeta>;
   meta?: Partial<Api.Cch.ContestMeta>;
 }): Promise<boolean> {
   if (!project.value || savingBasic.value) return false;
@@ -253,6 +274,9 @@ async function saveBasicField(patch: {
   if (patch.name !== undefined) project.value.name = patch.name;
   if (patch.leader !== undefined) project.value.leader = patch.leader;
   if (patch.remark !== undefined) project.value.remark = patch.remark;
+  if (patch.authoringMeta !== undefined) {
+    project.value.authoringMeta = {...(project.value.authoringMeta || {}), ...patch.authoringMeta};
+  }
   if (isContestProject) project.value.meta = mergedMeta;
 
   savingBasic.value = true;
@@ -262,6 +286,10 @@ async function saveBasicField(patch: {
     name: project.value.name,
     leader: project.value.leader ?? '',
     remark: project.value.remark ?? '',
+    authoringMeta:
+      project.value.projectType === 'authoring'
+        ? {...(project.value.authoringMeta || {}), ...(patch.authoringMeta || {})}
+        : undefined,
     meta: isContestProject ? mergedMeta : undefined
   });
   savingBasic.value = false;
@@ -383,7 +411,13 @@ onMounted(() => {
                 <div v-if="isBasicViewMode" class="flex flex-col gap-16px">
                   <NDescriptions label-placement="left" bordered :column="2" size="small">
                     <NDescriptionsItem label="项目类型">
-                      {{ project.projectType === 'contest' ? '竞赛项目' : '普通项目' }}
+                      {{ projectTypeLabelMap[project.projectType] || project.projectType }}
+                    </NDescriptionsItem>
+                    <NDescriptionsItem v-if="isAuthoring" label="出题方式">
+                      {{ authorSourceLabelMap[project.authoringMeta?.authorSource || ''] || '-' }}
+                    </NDescriptionsItem>
+                    <NDescriptionsItem v-if="isExternalAuthoring" label="外采单位">
+                      {{ project.authoringMeta?.externalUnit || '-' }}
                     </NDescriptionsItem>
                     <NDescriptionsItem :label="isContest ? '竞赛名称' : '项目名称'">
                       {{ isContest ? project.meta?.contestName || project.name : project.name }}
@@ -443,7 +477,27 @@ onMounted(() => {
                 <div v-else class="flex flex-col">
                   <InlineEditRow
                     label="项目类型"
-                    :value="project.projectType === 'contest' ? '竞赛项目' : '普通项目'"
+                    :value="projectTypeLabelMap[project.projectType] || project.projectType"
+                  />
+                  <InlineEditRow
+                    v-if="isAuthoring"
+                    label="出题方式"
+                    :value="authorSourceLabelMap[project.authoringMeta?.authorSource || ''] || ''"
+                    type="select"
+                    :options="authorSourceOptions"
+                    :editable="canEditBasicInfo"
+                    :saving="savingBasic"
+                    placeholder="点击选择出题方式"
+                    @save="(v: string) => saveBasicField({authoringMeta: {authorSource: v as 'self' | 'external'}})"
+                  />
+                  <InlineEditRow
+                    v-if="isExternalAuthoring"
+                    label="外采单位"
+                    :value="project.authoringMeta?.externalUnit ?? ''"
+                    :editable="canEditBasicInfo"
+                    :saving="savingBasic"
+                    placeholder="点击填写外采单位"
+                    @save="(v: string) => saveBasicField({authoringMeta: {externalUnit: v}})"
                   />
                   <InlineEditRow
                     :label="isContest ? '竞赛名称' : '项目名称'"

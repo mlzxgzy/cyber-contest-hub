@@ -21,6 +21,12 @@ const appStore = useAppStore();
 const {download} = useDownload();
 const {hasAuth} = useAuth();
 
+const projectTypeLabelMap: Record<string, string> = {
+  normal: '普通项目',
+  contest: '竞赛项目',
+  authoring: '出题项目'
+};
+
 const searchParams = ref<Api.Cch.ProjectSearchParams>({
   pageNum: 1,
   pageSize: 10,
@@ -56,9 +62,7 @@ const {columns, columnChecks, data, getData, getDataByPage, loading, mobilePagin
         title: '项目类型',
         align: 'center',
         minWidth: 100,
-        render: row => {
-          return row.projectType === 'contest' ? '竞赛项目' : '普通项目';
-        }
+        render: row => projectTypeLabelMap[row.projectType] || row.projectType
       },
       {
         key: 'name',

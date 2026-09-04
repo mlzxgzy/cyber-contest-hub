@@ -22,7 +22,8 @@ const defaultModel = jsonClone(toRaw(model.value));
 
 const projectTypeOptions = [
   {label: '普通项目', value: 'normal'},
-  {label: '竞赛项目', value: 'contest'}
+  {label: '竞赛项目', value: 'contest'},
+  {label: '出题项目', value: 'authoring'}
 ];
 
 function resetModel() {

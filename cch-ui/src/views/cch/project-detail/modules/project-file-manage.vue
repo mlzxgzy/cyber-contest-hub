@@ -12,7 +12,7 @@ defineOptions({
 
 interface Props {
   projectId: CommonType.IdType;
-  projectType: 'normal' | 'contest';
+  projectType: 'normal' | 'contest' | 'authoring';
   isProjectAdmin?: boolean;
   isSuperAdmin?: boolean;
   files?: Api.Cch.ContestFile[];

@@ -2,6 +2,7 @@ package com.kdajv.cch.domain.vo;
 
 import cn.idev.excel.annotation.ExcelIgnoreUnannotated;
 import cn.idev.excel.annotation.ExcelProperty;
+import com.kdajv.cch.domain.AuthoringMeta;
 import com.kdajv.cch.domain.ContestMeta;
 import lombok.Data;
 
@@ -30,7 +31,7 @@ public class ProjectVo implements Serializable {
     private Long id;
 
     /**
-     * 项目类型（'normal'普通项目, 'contest'竞赛项目）
+     * 项目类型（'normal'普通项目, 'contest'竞赛项目, 'authoring'出题项目）
      */
     @ExcelProperty(value = "项目类型")
     private String projectType;
@@ -52,6 +53,11 @@ public class ProjectVo implements Serializable {
      */
     @ExcelProperty(value = "项目负责人")
     private String leader;
+
+    /**
+     * 出题meta信息（仅出题项目使用）
+     */
+    private AuthoringMeta authoringMeta;
 
     /**
      * 竞赛meta信息（仅竞赛项目使用）

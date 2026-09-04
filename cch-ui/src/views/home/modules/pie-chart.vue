@@ -21,7 +21,8 @@ const { record } = useDict('cch_question_categroy');
 
 const projectTypeLabelMap: Record<string, string> = {
   normal: '普通项目',
-  contest: '竞赛项目'
+  contest: '竞赛项目',
+  authoring: '出题项目'
 };
 
 const chartData = computed(() =>

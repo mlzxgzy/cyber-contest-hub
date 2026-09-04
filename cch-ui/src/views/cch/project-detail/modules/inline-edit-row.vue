@@ -12,7 +12,9 @@ interface Props {
   /** 当前值 */
   value?: string | null;
   /** 编辑控件类型 */
-  type?: 'text' | 'textarea' | 'date';
+  type?: 'text' | 'textarea' | 'date' | 'select';
+  /** select 类型可选选项 */
+  options?: { label: string; value: string }[];
   /** 是否可编辑 */
   editable?: boolean;
   /** 空值占位提示 */
@@ -26,6 +28,7 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   value: '',
   type: 'text',
+  options: undefined,
   editable: false,
   placeholder: '点击填写',
   saving: false,
@@ -103,6 +106,11 @@ function handleDateChange(val: string | null) {
   draft.value = val || '';
   commit();
 }
+
+function handleSelectChange(val: string | null) {
+  draft.value = val || '';
+  commit();
+}
 </script>
 
 <template>
@@ -150,6 +158,16 @@ function handleDateChange(val: string | null) {
           :disabled="saving"
           @blur="handleBlur"
           @keydown.esc.prevent="handleCancel"
+        />
+        <NSelect
+          v-else-if="type === 'select'"
+          :value="draft || null"
+          size="small"
+          :options="options || []"
+          clearable
+          :placeholder="placeholder"
+          :disabled="saving"
+          @update:value="handleSelectChange"
         />
         <NDatePicker
           v-else

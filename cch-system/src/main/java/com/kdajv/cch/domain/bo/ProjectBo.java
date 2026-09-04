@@ -1,5 +1,6 @@
 package com.kdajv.cch.domain.bo;
 
+import com.kdajv.cch.domain.AuthoringMeta;
 import com.kdajv.cch.domain.ContestMeta;
 import com.kdajv.cch.domain.Project;
 import io.github.linpeilie.annotations.AutoMapper;
@@ -31,7 +32,7 @@ public class ProjectBo extends BaseEntity {
     private Long id;
 
     /**
-     * 项目类型（'normal'普通项目, 'contest'竞赛项目）
+     * 项目类型（'normal'普通项目, 'contest'竞赛项目, 'authoring'出题项目）
      */
     @NotBlank(message = "项目类型不能为空", groups = {AddGroup.class, EditGroup.class})
     private String projectType;
@@ -53,6 +54,11 @@ public class ProjectBo extends BaseEntity {
      */
     @Size(max = 64, message = "项目负责人长度不能超过64字符", groups = {AddGroup.class, EditGroup.class})
     private String leader;
+
+    /**
+     * 出题meta信息（仅出题项目使用）
+     */
+    private AuthoringMeta authoringMeta;
 
     /**
      * 竞赛meta信息（仅竞赛项目使用）

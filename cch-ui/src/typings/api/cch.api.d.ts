@@ -603,18 +603,28 @@ declare namespace Api {
       platforms?: ContestPlatform[];
     };
 
+    /** authoring meta */
+    type AuthoringMeta = {
+      /** 出题来源（'self'自己出, 'external'外采） */
+      authorSource?: 'self' | 'external';
+      /** 外采单位（仅出题来源为外采时填写） */
+      externalUnit?: string;
+    };
+
     /** project */
     type Project = Common.CommonRecord<{
       /** 主键 */
       id: CommonType.IdType;
-      /** 项目类型（'normal'普通项目, 'contest'竞赛项目） */
-      projectType: 'normal' | 'contest';
+      /** 项目类型（'normal'普通项目, 'contest'竞赛项目, 'authoring'出题项目） */
+      projectType: 'normal' | 'contest' | 'authoring';
       /** 项目名称 */
       name: string;
       /** 项目负责人（手填人名） */
       leader?: string;
       /** 备注 */
       remark?: string;
+      /** 出题meta信息（仅出题项目使用） */
+      authoringMeta?: AuthoringMeta;
       /** 竞赛meta信息（仅竞赛项目使用） */
       meta?: ContestMeta;
       /** 成员列表 */
@@ -645,6 +655,7 @@ declare namespace Api {
         | 'name'
         | 'leader'
         | 'remark'
+        | 'authoringMeta'
         | 'meta'
       >
     >;

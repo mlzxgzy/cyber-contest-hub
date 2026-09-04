@@ -40,7 +40,7 @@ public class Project extends BaseEntity {
     private Long id;
 
     /**
-     * 项目类型（'normal'普通项目, 'contest'竞赛项目）
+     * 项目类型（'normal'普通项目, 'contest'竞赛项目, 'authoring'出题项目）
      */
     private String projectType;
 
@@ -58,6 +58,12 @@ public class Project extends BaseEntity {
      * 项目负责人（手填人名）
      */
     private String leader;
+
+    /**
+     * 出题meta信息（仅出题项目使用）
+     */
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private AuthoringMeta authoringMeta;
 
     /**
      * JSON字段，存储竞赛项目的额外信息（竞赛时间段、相关文件等）

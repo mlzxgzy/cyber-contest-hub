@@ -253,6 +253,15 @@ public class ProjectServiceImpl implements IProjectService {
             updateWrapper.set(Project::getLeader, bo.getLeader());
         }
         
+        // 处理 authoringMeta 字段（仅出题项目使用）
+        // 与 meta 同理，显式序列化为 JSON 字符串后存储
+        if (bo.getAuthoringMeta() != null) {
+            updateWrapper.set(Project::getAuthoringMeta, JsonUtils.toJsonString(bo.getAuthoringMeta()));
+        } else if (!"authoring".equals(bo.getProjectType())) {
+            // 非出题项目，清除 authoringMeta 字段
+            updateWrapper.set(Project::getAuthoringMeta, null);
+        }
+
         // 处理 meta 字段
         // 注意：LambdaUpdateWrapper.set 不会自动应用实体字段上的 JacksonTypeHandler，
         // 直接传入 ContestMeta 对象会被 MyBatis 用 Java 默认序列化（产生 \xAC\xED 魔数），
@@ -262,8 +271,8 @@ public class ProjectServiceImpl implements IProjectService {
         } else if (bo.getMeta() == null && "contest".equals(bo.getProjectType())) {
             // 如果是竞赛项目但没有提供 meta，保持原有 meta 不变
             // 这里不设置 meta 字段，让它保持原值
-        } else if ("normal".equals(bo.getProjectType())) {
-            // 如果是普通项目，清除 meta 字段
+        } else {
+            // 非竞赛项目（普通/出题），清除 meta 字段
             updateWrapper.set(Project::getMeta, null);
         }
 

@@ -12,7 +12,8 @@ const props = defineProps<{
 
 const projectTypeLabelMap: Record<string, string> = {
   normal: '普通项目',
-  contest: '竞赛项目'
+  contest: '竞赛项目',
+  authoring: '出题项目'
 };
 
 const newses = computed(() =>
