@@ -17,7 +17,8 @@ import {
   fetchGetChallengeContainerImageByChallengeId,
   fetchUploadChallengeContainerImage,
   fetchManualLoadImage,
-  fetchBatchDeleteChallengeContainerImage
+  fetchBatchDeleteChallengeContainerImage,
+  fetchReuploadChallengeContainerImage
 } from '@/service/api/cch/challenge-container-image';
 
 interface Props {
@@ -116,6 +117,41 @@ async function handleImageUpload(options: {
   } catch (err) {
     window.$message?.error(`上传异常: ${err}`);
     options.onError();
+  }
+}
+
+// 重新上传镜像（用于上传/Load失败的镜像重传）
+const reuploadInputRef = ref<HTMLInputElement | null>(null);
+const reuploadTargetImage = ref<Api.Cch.ChallengeContainerImage | null>(null);
+
+function triggerReupload(image: Api.Cch.ChallengeContainerImage) {
+  reuploadTargetImage.value = image;
+  reuploadInputRef.value?.click();
+}
+
+async function handleReuploadFileChange(e: Event) {
+  const input = e.target as HTMLInputElement;
+  const file = input.files?.[0];
+  const target = reuploadTargetImage.value;
+  // 重置input，允许再次选择同一个文件
+  input.value = '';
+  if (!file || !target) return;
+
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    const {error} = await fetchReuploadChallengeContainerImage(target.id, formData);
+
+    if (error) {
+      window.$message?.error(`重新上传失败: ${error}`);
+      return;
+    }
+
+    window.$message?.success('重新上传成功');
+    emit('update');
+    await loadImageList();
+  } catch (err) {
+    window.$message?.error(`重新上传异常: ${err}`);
   }
 }
 
@@ -231,6 +267,14 @@ onMounted(async () => {
 
 <template>
   <div class="image-management-container">
+    <!-- 重新上传镜像的隐藏文件选择框 -->
+    <input
+      ref="reuploadInputRef"
+      type="file"
+      accept=".tar,.tar.gz,.zip"
+      class="hidden"
+      @change="handleReuploadFileChange"
+    >
     <h3 class="section-title">容器镜像管理</h3>
 
     <!-- 镜像上传区域 -->
@@ -310,6 +354,14 @@ onMounted(async () => {
                   @click="handleManualLoadImage(image.id)"
                 >
                   Load到Docker
+                </NButton>
+                <NButton
+                  v-if="image.status === 'error'"
+                  type="warning"
+                  size="small"
+                  @click="triggerReupload(image)"
+                >
+                  重新上传
                 </NButton>
                 <NButton
                   text
