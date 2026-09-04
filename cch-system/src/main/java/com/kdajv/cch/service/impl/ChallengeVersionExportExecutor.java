@@ -262,6 +262,7 @@ public class ChallengeVersionExportExecutor {
             if (draft != null && draft.getConfig() != null) {
                 DraftConfig config = draft.getConfig();
                 downloadAttachmentsViaTempFile(zos, zipRootDir + "attachments/", config.getAttachments());
+                downloadAttachmentsViaTempFile(zos, zipRootDir + "internal_attachments/", config.getInternalAttachments());
                 downloadAttachments(zos, zipRootDir + "writeups/", config.getWriteups());
             }
 

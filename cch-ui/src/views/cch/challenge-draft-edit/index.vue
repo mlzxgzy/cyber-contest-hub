@@ -157,6 +157,7 @@ function applyDraftData(data: Api.Cch.ChallengeDraft) {
   dataInitialized.value = false;
   draftData.value = data;
   draftData.value.config.attachments ??= [];
+  draftData.value.config.internalAttachments ??= [];
   draftData.value.config.writeups ??= [];
   draftData.value.config.knowledge ??= [];
   draftData.value.config.flags ??= [];
@@ -261,6 +262,7 @@ function enterCreateMode() {
       runType: 'static',
       knowledge: [],
       attachments: [],
+      internalAttachments: [],
       writeups: [],
       flags: [],
       containerTargets: []

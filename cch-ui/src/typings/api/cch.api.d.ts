@@ -72,7 +72,10 @@ declare namespace Api {
       difficulty: string;
       runType?: string;
       knowledge?: string[];
+      /** 选手附件（对选手可见） */
       attachments: ChallengeDraftConfigAttachment[];
+      /** 内部附件（仅出题/管理端可见，如题目源码、POC 等） */
+      internalAttachments?: ChallengeDraftConfigAttachment[];
       writeups?: ChallengeDraftConfigAttachment[];
       flags?: ChallengeDraftConfigFlag[];
       containerTargets?: ChallengeDraftContainerTarget[];

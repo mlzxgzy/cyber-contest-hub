@@ -42,6 +42,7 @@ const challengeRules: Record<challengeRuleKey, App.Global.FormRule> = {
 const draftRules: Record<string, App.Global.FormRule> = {};
 
 const draftAttachmentList = ref<UploadFileInfo[]>([]);
+const draftInternalAttachmentList = ref<UploadFileInfo[]>([]);
 const draftWriteupList = ref<UploadFileInfo[]>([]);
 
 // 上传时必须携带已创建的题目ID；创建模式下 challengeId 为空，不发送该字段（避免 "null" 字符串导致后端类型转换报错）
@@ -67,6 +68,18 @@ function handleAttachmentUploadSuccess(data: Api.Cch.ChallengeFile) {
     remark: null
   });
   draftAttachmentList.value.length = 0;
+}
+
+function handleInternalAttachmentUploadSuccess(data: Api.Cch.ChallengeFile) {
+  if (!props.draftData) return;
+  props.draftData.config.internalAttachments ??= [];
+  props.draftData.config.internalAttachments = props.draftData.config.internalAttachments.concat({
+    fileId: data.id,
+    fileName: data.originalName,
+    fileUrl: data.url,
+    remark: null
+  });
+  draftInternalAttachmentList.value.length = 0;
 }
 
 function handleWriteupUploadSuccess(data: Api.Cch.ChallengeFile) {
@@ -142,6 +155,37 @@ function deleteAttachment(fileId: CommonType.IdType, fileName: string) {
           const index = props.draftData.config.attachments.findIndex(item => item.fileId === fileId);
           if (index !== -1) {
             props.draftData.config.attachments.splice(index, 1);
+          }
+        }
+
+        window.$message?.success('删除成功');
+      } catch (err) {
+        window.$message?.error(`删除异常: ${err}`);
+      }
+    }
+  });
+}
+
+function deleteInternalAttachment(fileId: CommonType.IdType, fileName: string) {
+  dialog.warning({
+    title: '确认删除',
+    content: `确定要删除内部附件「${fileName}」吗？删除后将无法恢复。`,
+    positiveText: '确认删除',
+    negativeText: '取消',
+    onPositiveClick: async () => {
+      try {
+        // 调用后端API删除文件
+        const { error } = await fetchBatchDeleteChallengeFile([fileId]);
+        if (error) {
+          window.$message?.error(`删除失败: ${error}`);
+          return;
+        }
+
+        // 从前端数据中移除
+        if (props.draftData?.config.internalAttachments) {
+          const index = props.draftData.config.internalAttachments.findIndex(item => item.fileId === fileId);
+          if (index !== -1) {
+            props.draftData.config.internalAttachments.splice(index, 1);
           }
         }
 
@@ -286,12 +330,12 @@ function deleteWriteup(fileId: CommonType.IdType, fileName: string) {
     </div>
 
     <div class="grid2">
-      <!-- 附件管理卡片 -->
+      <!-- 选手附件卡片（对选手可见） -->
       <div class="info-card" v-if="draftData">
         <div class="card-header">
           <span class="card-dot attachment"></span>
-          <h3 class="card-title">附件管理</h3>
-          <span class="card-hint">{{ draftData.config.attachments?.length || 0 }} 个文件</span>
+          <h3 class="card-title">选手附件</h3>
+          <span class="card-hint">{{ draftData.config.attachments?.length || 0 }} 个文件 · 选手可见</span>
           <FileUpload
             v-if="draftData.challengeId"
             v-model:file-list="draftAttachmentList"
@@ -313,7 +357,7 @@ function deleteWriteup(fileId: CommonType.IdType, fileName: string) {
               <line x1="12" y1="16" x2="12" y2="12"/>
               <line x1="12" y1="8" x2="12.01" y2="8"/>
             </svg>
-            请先点击「创建并保存草稿」创建题目后，再上传附件
+            请先点击「创建并保存草稿」创建题目后，再上传选手附件
           </div>
           <div v-if="draftData.config.attachments?.length" class="file-list">
             <div
@@ -376,7 +420,101 @@ function deleteWriteup(fileId: CommonType.IdType, fileName: string) {
               </div>
             </div>
           </div>
-          <NEmpty v-else-if="draftData.challengeId" description="暂无附件" size="small" class="empty-small" />
+          <NEmpty v-else-if="draftData.challengeId" description="暂无选手附件" size="small" class="empty-small" />
+        </div>
+      </div>
+
+      <!-- 内部附件卡片（仅出题/管理端可见） -->
+      <div class="info-card" v-if="draftData">
+        <div class="card-header">
+          <span class="card-dot internal"></span>
+          <h3 class="card-title">内部附件</h3>
+          <span class="card-hint">{{ draftData.config.internalAttachments?.length || 0 }} 个文件 · 仅管理端可见</span>
+          <FileUpload
+            v-if="draftData.challengeId"
+            v-model:file-list="draftInternalAttachmentList"
+            upload-type="file"
+            trigger="button"
+            :show-file-list="false"
+            :show-tip="false"
+            :accept="AcceptType.ChallengeAttachment"
+            :data="uploadData"
+            action="/cch/challengeFile/upload"
+            :on-success="handleInternalAttachmentUploadSuccess"
+            class="card-upload"
+          />
+        </div>
+        <div class="card-body">
+          <div v-if="!draftData.challengeId" class="upload-disabled-tip">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="16" x2="12" y2="12"/>
+              <line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+            请先点击「创建并保存草稿」创建题目后，再上传内部附件
+          </div>
+          <div v-if="draftData.config.internalAttachments?.length" class="file-list">
+            <div
+              v-for="x of draftData.config.internalAttachments"
+              :key="x.fileId"
+              class="file-item"
+            >
+              <div class="file-icon internal">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+              </div>
+              <span class="file-name">{{ x.fileName }}</span>
+              <NInput
+                v-model:value="x.remark"
+                placeholder="填写备注（可选）"
+                size="tiny"
+                class="file-remark"
+              />
+              <div class="file-acts">
+                <NButton
+                  v-if="isPdf(x.fileName)"
+                  text
+                  type="info"
+                  size="tiny"
+                  title="预览"
+                  @click="previewPdf(x.fileId, x.fileName)"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                </NButton>
+                <NButton
+                  text
+                  type="primary"
+                  size="tiny"
+                  title="下载"
+                  @click="downloadFile(x.fileId)"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                </NButton>
+                <NButton
+                  text
+                  type="error"
+                  size="tiny"
+                  title="删除"
+                  @click="deleteInternalAttachment(x.fileId, x.fileName)"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  </svg>
+                </NButton>
+              </div>
+            </div>
+          </div>
+          <NEmpty v-else-if="draftData.challengeId" description="暂无内部附件" size="small" class="empty-small" />
         </div>
       </div>
 
@@ -570,6 +708,10 @@ $shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
       background: #10b981;
     }
 
+    &.internal {
+      background: #8b5cf6;
+    }
+
     &.writeup {
       background: #f59e0b;
     }
@@ -704,6 +846,11 @@ $shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
   &.attachment {
     background: rgba(16, 185, 129, 0.1);
     color: #10b981;
+  }
+
+  &.internal {
+    background: rgba(139, 92, 246, 0.1);
+    color: #8b5cf6;
   }
 
   &.writeup {

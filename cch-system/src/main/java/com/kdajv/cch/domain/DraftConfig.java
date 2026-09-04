@@ -43,9 +43,14 @@ public class DraftConfig implements Serializable {
     private List<String> knowledge;
 
     /**
-     * 题目附件
+     * 选手附件（对选手可见，如题目给定的材料、抓包文件等）
      */
     private List<Attachment> attachments;
+
+    /**
+     * 内部附件（仅出题/管理端可见，如题目源码、POC、部署脚本等）
+     */
+    private List<Attachment> internalAttachments;
 
     /**
      * Writeup
