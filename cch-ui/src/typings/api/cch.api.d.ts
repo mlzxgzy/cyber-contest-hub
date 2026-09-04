@@ -697,6 +697,8 @@ declare namespace Api {
       challengeName?: string;
       /** 版本号（用于显示） */
       versionTag?: string;
+      /** 标签（逗号分隔字符串） */
+      tags?: string | null;
       /** 创建时间 */
       createTime?: string;
       /** 创建人 */

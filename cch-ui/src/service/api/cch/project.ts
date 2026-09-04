@@ -116,6 +116,18 @@ export function fetchRemoveProjectChallenges(projectId: CommonType.IdType, chall
     });
 }
 
+/** 批量更新题目标签（append=true 追加去重，false 覆盖） */
+export function fetchUpdateProjectChallengeTags(
+    projectId: CommonType.IdType,
+    data: { ids: CommonType.IdType[]; tags: string[]; append?: boolean }
+) {
+    return request<boolean>({
+        url: `/cch/project/${projectId}/challenges/tags`,
+        method: 'put',
+        data
+    });
+}
+
 /** 上传竞赛文件 */
 export function fetchUploadContestFile(projectId: CommonType.IdType, file: File, fileTag?: string) {
     const formData = new FormData();

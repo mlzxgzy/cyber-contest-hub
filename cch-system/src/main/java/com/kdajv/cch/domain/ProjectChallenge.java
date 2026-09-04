@@ -53,6 +53,11 @@ public class ProjectChallenge extends BaseEntity {
     private Long versionId;
 
     /**
+     * 标签（逗号分隔）
+     */
+    private String tags;
+
+    /**
      * 删除标志
      */
     @TableLogic

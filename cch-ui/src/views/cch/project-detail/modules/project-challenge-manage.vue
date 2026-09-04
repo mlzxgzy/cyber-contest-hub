@@ -2,8 +2,13 @@
 import {computed, h, ref, watch} from 'vue';
 import {useRouter} from 'vue-router';
 import type {DataTableColumns} from 'naive-ui';
-import {NButton} from 'naive-ui';
-import {fetchGetProjectChallenges, fetchRemoveProjectChallenges} from '@/service/api/cch/project';
+import {NButton, NTag} from 'naive-ui';
+import {
+  fetchGetProjectChallenges,
+  fetchGetProjectDetail,
+  fetchRemoveProjectChallenges,
+  fetchUpdateProjectChallengeTags
+} from '@/service/api/cch/project';
 import {useAuthStore} from '@/store/modules/auth';
 
 defineOptions({
@@ -33,8 +38,14 @@ const currentUserId = computed(() => authStore.userInfo.user?.userId);
 
 const loading = ref(false);
 const challenges = ref<Api.Cch.ProjectChallenge[]>([]);
+const project = ref<Api.Cch.Project | null>(null);
 
-// 是否具备针对所有题目的管理能力（删除任意题目）
+// 勾选的关联记录ID（t_project_challenge.id）
+const checkedRowKeys = ref<CommonType.IdType[]>([]);
+const tagLoading = ref(false);
+const customTag = ref('');
+
+// 是否具备针对所有题目的管理能力（删除任意题目、打标签）
 const canManageAll = computed(() => {
   return !!(props.isSuperAdmin || props.isProjectAdmin || props.currentPermissionType === 'admin');
 });
@@ -67,13 +78,41 @@ const displayChallenges = computed<Api.Cch.ProjectChallenge[]>(() => {
   return challenges.value;
 });
 
-// 是否需要展示“操作”列：有导入或删除能力的成员都需要看到
+// 是否需要展示"操作"列：有导入或删除能力的成员都需要看到
 const canShowOperateColumn = computed(() => {
   return canImport.value || canManageAll.value;
 });
 
+// 快捷标签：阶段名称（来自项目 meta.stages）
+const stageTags = computed<string[]>(() => {
+  const stages = project.value?.meta?.stages || [];
+  return stages
+    .map(item => (item.stageName || '').trim())
+    .filter(Boolean);
+});
+
+// 快捷标签：项目负责人
+const leaderTag = computed<string>(() => {
+  return (project.value?.leader || '').trim();
+});
+
+function parseTags(tags?: string | null): string[] {
+  if (!tags) return [];
+  return tags
+    .split(',')
+    .map(item => item.trim())
+    .filter(Boolean);
+}
+
 const columns = computed<DataTableColumns<Api.Cch.ProjectChallenge>>(() => {
-  const baseColumns: DataTableColumns<Api.Cch.ProjectChallenge> = [
+  const baseColumns: DataTableColumns<Api.Cch.ProjectChallenge> = [];
+
+  // 管理员可勾选批量打标签
+  if (canManageAll.value) {
+    baseColumns.push({type: 'selection'});
+  }
+
+  baseColumns.push(
     {
       key: 'challengeName',
       title: '题目名称',
@@ -87,12 +126,19 @@ const columns = computed<DataTableColumns<Api.Cch.ProjectChallenge>>(() => {
       minWidth: 120
     },
     {
+      key: 'tags',
+      title: '标签',
+      align: 'center',
+      minWidth: 180,
+      render: row => renderRowTags(row)
+    },
+    {
       key: 'createTime',
       title: '导入时间',
       align: 'center',
       minWidth: 160
     }
-  ];
+  );
 
   if (canShowOperateColumn.value) {
     baseColumns.push({
@@ -125,6 +171,34 @@ const columns = computed<DataTableColumns<Api.Cch.ProjectChallenge>>(() => {
   return baseColumns;
 });
 
+function renderRowTags(row: Api.Cch.ProjectChallenge) {
+  const tags = parseTags(row.tags);
+  if (tags.length === 0) {
+    return h('span', {class: 'text-gray-300'}, {default: () => '—'});
+  }
+
+  return h(
+    'div',
+    {class: 'flex flex-wrap justify-center gap-4px'},
+    {
+      default: () =>
+        tags.map(tag =>
+          h(
+            NTag,
+            {
+              key: tag,
+              size: 'small',
+              round: true,
+              closable: canManageAll.value,
+              onClose: canManageAll.value ? () => handleRemoveTag(row, tag) : undefined
+            },
+            {default: () => tag}
+          )
+        )
+    }
+  );
+}
+
 async function loadChallenges() {
   loading.value = true;
   const {data, error} = await fetchGetProjectChallenges(props.projectId);
@@ -134,6 +208,14 @@ async function loadChallenges() {
   loading.value = false;
 }
 
+// 加载项目信息（用于生成快捷标签：阶段名称、负责人等）
+async function loadProject() {
+  const {data, error} = await fetchGetProjectDetail(props.projectId);
+  if (!error && data) {
+    project.value = data;
+  }
+}
+
 async function handleRemoveChallenge(challengeId: CommonType.IdType) {
   const {error} = await fetchRemoveProjectChallenges(props.projectId, [challengeId]);
   if (error) return;
@@ -141,6 +223,71 @@ async function handleRemoveChallenge(challengeId: CommonType.IdType) {
   window.$message?.success('移除成功');
   await loadChallenges();
   emit('refresh');
+}
+
+/**
+ * 给勾选的题目追加标签（合并去重）
+ */
+async function handleAddTag(tag: string) {
+  const cleaned = sanitizeTag(tag);
+  if (!cleaned) {
+    window.$message?.warning('标签不能为空或包含逗号');
+    return;
+  }
+
+  const rows = displayChallenges.value.filter(item => checkedRowKeys.value.includes(item.id));
+  if (rows.length === 0) return;
+
+  // 所选题目全部已包含该标签时，跳过
+  if (rows.every(row => parseTags(row.tags).includes(cleaned))) {
+    window.$message?.info('所选题目已包含该标签');
+    return;
+  }
+
+  tagLoading.value = true;
+  const {error} = await fetchUpdateProjectChallengeTags(props.projectId, {
+    ids: checkedRowKeys.value,
+    tags: [cleaned],
+    append: true
+  });
+  tagLoading.value = false;
+  if (error) return;
+
+  window.$message?.success(`已为 ${rows.length} 道题目添加标签「${cleaned}」`);
+  customTag.value = '';
+  checkedRowKeys.value = [];
+  await loadChallenges();
+  emit('refresh');
+}
+
+/**
+ * 移除单条记录上的某个标签（覆盖模式传剩余标签）
+ */
+async function handleRemoveTag(row: Api.Cch.ProjectChallenge, tag: string) {
+  const remaining = parseTags(row.tags).filter(item => item !== tag);
+
+  const {error} = await fetchUpdateProjectChallengeTags(props.projectId, {
+    ids: [row.id],
+    tags: remaining,
+    append: false
+  });
+  if (error) return;
+
+  window.$message?.success(`已移除标签「${tag}」`);
+  await loadChallenges();
+  emit('refresh');
+}
+
+function handleAddCustomTag() {
+  void handleAddTag(customTag.value);
+}
+
+function sanitizeTag(tag: string) {
+  const trimmed = tag.trim();
+  if (!trimmed || trimmed.includes(',') || trimmed.includes('，')) {
+    return '';
+  }
+  return trimmed.slice(0, 50);
 }
 
 function navigateToImportPage() {
@@ -153,6 +300,7 @@ function navigateToImportPage() {
 watch(() => props.projectId, () => {
   if (props.projectId) {
     loadChallenges();
+    loadProject();
   }
 }, {immediate: true});
 
@@ -165,8 +313,72 @@ watch(() => props.projectId, () => {
     </NCard>
 
     <NCard :bordered="false" size="small" title="题目列表">
+      <div v-if="canManageAll" class="mb-12px flex items-center gap-12px">
+        <span class="text-12px text-gray-400">已选 {{ checkedRowKeys.length }} 项</span>
+        <NPopover trigger="click" placement="bottom-start" :show-arrow="false">
+          <template #trigger>
+            <NButton
+              size="small"
+              type="primary"
+              ghost
+              :loading="tagLoading"
+              :disabled="checkedRowKeys.length === 0"
+            >
+              快速添加标签
+            </NButton>
+          </template>
+          <div class="w-300px flex flex-col gap-12px">
+            <div v-if="stageTags.length">
+              <div class="mb-6px text-12px text-gray-400">阶段</div>
+              <NSpace size="small">
+                <NTag
+                  v-for="tag in stageTags"
+                  :key="`stage-${tag}`"
+                  size="small"
+                  round
+                  :color="{ borderColor: '#36ad6a', textColor: '#36ad6a' }"
+                  class="cursor-pointer"
+                  @click="handleAddTag(tag)"
+                >
+                  {{ tag }}
+                </NTag>
+              </NSpace>
+            </div>
+            <div v-if="leaderTag">
+              <div class="mb-6px text-12px text-gray-400">负责人</div>
+              <NSpace size="small">
+                <NTag
+                  size="small"
+                  round
+                  :color="{ borderColor: '#2080f0', textColor: '#2080f0' }"
+                  class="cursor-pointer"
+                  @click="handleAddTag(leaderTag)"
+                >
+                  {{ leaderTag }}
+                </NTag>
+              </NSpace>
+            </div>
+            <div>
+              <div class="mb-6px text-12px text-gray-400">自定义标签</div>
+              <div class="flex gap-8px">
+                <NInput
+                  v-model:value="customTag"
+                  size="small"
+                  placeholder="输入标签，回车添加"
+                  maxlength="50"
+                  clearable
+                  @keydown.enter.prevent="handleAddCustomTag"
+                />
+                <NButton size="small" @click="handleAddCustomTag">添加</NButton>
+              </div>
+            </div>
+          </div>
+        </NPopover>
+      </div>
+
       <NSpin :show="loading">
         <NDataTable
+          v-model:checked-row-keys="checkedRowKeys"
           :columns="columns"
           :data="displayChallenges"
           :row-key="row => row.id"

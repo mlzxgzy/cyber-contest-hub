@@ -3,6 +3,7 @@ package com.kdajv.cch.service;
 import com.kdajv.cch.domain.bo.ContestFileBo;
 import com.kdajv.cch.domain.bo.ProjectBo;
 import com.kdajv.cch.domain.bo.ProjectChallengeBo;
+import com.kdajv.cch.domain.bo.ProjectChallengeTagBo;
 import com.kdajv.cch.domain.bo.ProjectMemberBo;
 import com.kdajv.cch.domain.vo.ContestFileVo;
 import com.kdajv.cch.domain.vo.ProjectChallengeVo;
@@ -136,6 +137,15 @@ public interface IProjectService {
      * @return 是否移除成功
      */
     Boolean removeChallenges(Long projectId, List<Long> challengeIds);
+
+    /**
+     * 批量更新题目标签（需要项目管理员权限）
+     *
+     * @param projectId 项目ID
+     * @param bo        标签请求（ids: 关联记录ID列表, tags: 标签列表, append: 是否追加模式）
+     * @return 是否更新成功
+     */
+    Boolean updateChallengeTags(Long projectId, ProjectChallengeTagBo bo);
 
     /**
      * 上传竞赛文件（验证项目类型是contest，需要项目管理员权限）

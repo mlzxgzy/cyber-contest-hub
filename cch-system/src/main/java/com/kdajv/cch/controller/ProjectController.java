@@ -3,6 +3,7 @@ package com.kdajv.cch.controller;
 import cn.dev33.satoken.annotation.SaCheckPermission;
 import com.kdajv.cch.domain.bo.ProjectBo;
 import com.kdajv.cch.domain.bo.ProjectChallengeBo;
+import com.kdajv.cch.domain.bo.ProjectChallengeTagBo;
 import com.kdajv.cch.domain.bo.ProjectInviteCodeBo;
 import com.kdajv.cch.domain.bo.ProjectJoinByInviteBo;
 import com.kdajv.cch.domain.bo.ProjectMemberBo;
@@ -219,6 +220,23 @@ public class ProjectController extends BaseController {
         @RequestBody List<Long> challengeIds
     ) {
         return toAjax(projectService.removeChallenges(projectId, challengeIds));
+    }
+
+    /**
+     * 批量更新题目标签（需要项目管理员权限）
+     *
+     * @param projectId 项目ID
+     * @param bo        标签请求（ids: 关联记录ID列表, tags: 标签列表, append: 是否追加模式）
+     */
+    @SaCheckPermission("cch:project:edit")
+    @Log(title = "项目题目标签", businessType = BusinessType.UPDATE)
+    @RepeatSubmit()
+    @PutMapping("/{projectId}/challenges/tags")
+    public R<Void> updateChallengeTags(
+        @NotNull(message = "项目ID不能为空") @PathVariable Long projectId,
+        @Validated @RequestBody ProjectChallengeTagBo bo
+    ) {
+        return toAjax(projectService.updateChallengeTags(projectId, bo));
     }
 
     /**

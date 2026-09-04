@@ -40,6 +40,11 @@ public class ProjectChallengeBo extends BaseEntity {
     private Long versionId;
 
     /**
+     * 标签（逗号分隔，可选）
+     */
+    private String tags;
+
+    /**
      * 题目名称（用于显示，不存储）
      */
     private String challengeName;

@@ -9,6 +9,7 @@ import com.kdajv.cch.domain.*;
 import com.kdajv.cch.enums.ChallengeStatus;
 import com.kdajv.cch.domain.bo.ProjectBo;
 import com.kdajv.cch.domain.bo.ProjectChallengeBo;
+import com.kdajv.cch.domain.bo.ProjectChallengeTagBo;
 import com.kdajv.cch.domain.bo.ProjectMemberBo;
 import com.kdajv.cch.domain.vo.ContestFileVo;
 import com.kdajv.cch.domain.vo.ProjectChallengeVo;
@@ -706,6 +707,103 @@ public class ProjectServiceImpl implements IProjectService {
                 .eq(ProjectChallenge::getProjectId, projectId)
                 .in(ProjectChallenge::getId, challengeIds)
         ) > 0;
+    }
+
+    /**
+     * 批量更新题目标签（需要项目管理员权限）
+     *
+     * @param projectId 项目ID
+     * @param bo        标签请求（ids: 关联记录ID列表, tags: 标签列表, append: 是否追加模式）
+     * @return 是否更新成功
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Boolean updateChallengeTags(Long projectId, ProjectChallengeTagBo bo) {
+        if (CollUtil.isEmpty(bo.getIds())) {
+            return true;
+        }
+
+        // 检查管理员权限
+        checkAdminPermission(projectId);
+
+        // 校验项目是否存在
+        ProjectVo project = baseMapper.selectVoById(projectId);
+        if (ObjectUtil.isNull(project)) {
+            throw new ServiceException("项目不存在");
+        }
+
+        // 清洗本次提交的标签
+        List<String> cleanList = cleanTags(bo.getTags());
+        boolean append = !Boolean.FALSE.equals(bo.getAppend());
+
+        // 查询本项目下的关联记录（防止跨项目篡改）
+        List<ProjectChallenge> records = projectChallengeMapper.selectList(
+            new LambdaQueryWrapper<ProjectChallenge>()
+                .eq(ProjectChallenge::getProjectId, projectId)
+                .in(ProjectChallenge::getId, bo.getIds())
+        );
+
+        if (CollUtil.isEmpty(records)) {
+            throw new ServiceException("题目关联记录不存在");
+        }
+
+        for (ProjectChallenge record : records) {
+            List<String> finalTags;
+            if (append) {
+                // 追加模式：合并已有标签并去重
+                Set<String> merged = new LinkedHashSet<>(cleanList);
+                merged.addAll(cleanTags(record.getTags()));
+                finalTags = new ArrayList<>(merged);
+            } else {
+                // 覆盖模式
+                finalTags = cleanList;
+            }
+            String tagsStr = CollUtil.isEmpty(finalTags) ? "" : String.join(",", finalTags);
+
+            ProjectChallenge update = new ProjectChallenge();
+            update.setId(record.getId());
+            update.setTags(tagsStr);
+            projectChallengeMapper.updateById(update);
+        }
+
+        return true;
+    }
+
+    /**
+     * 清洗标签列表：去空白、禁止逗号与超长标签、去重
+     */
+    private List<String> cleanTags(List<String> tags) {
+        List<String> result = new ArrayList<>();
+        if (CollUtil.isEmpty(tags)) {
+            return result;
+        }
+        Set<String> dedup = new LinkedHashSet<>();
+        for (String tag : tags) {
+            if (StringUtils.isBlank(tag)) {
+                continue;
+            }
+            String trimmed = tag.trim();
+            // 标签以逗号分隔存储，不允许包含逗号
+            if (trimmed.contains(",") || trimmed.contains("，")) {
+                throw new ServiceException("标签不能包含逗号: " + trimmed);
+            }
+            if (trimmed.length() > 50) {
+                throw new ServiceException("标签长度不能超过50个字符: " + trimmed);
+            }
+            dedup.add(trimmed);
+        }
+        result.addAll(dedup);
+        return result;
+    }
+
+    /**
+     * 清洗逗号分隔的标签字符串
+     */
+    private List<String> cleanTags(String tagsStr) {
+        if (StringUtils.isBlank(tagsStr)) {
+            return new ArrayList<>();
+        }
+        return cleanTags(Arrays.asList(tagsStr.split(",")));
     }
 
     /**

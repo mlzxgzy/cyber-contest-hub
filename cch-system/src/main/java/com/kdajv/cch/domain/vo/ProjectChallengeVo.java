@@ -54,6 +54,11 @@ public class ProjectChallengeVo implements Serializable {
     private String versionTag;
 
     /**
+     * 标签（逗号分隔，用于显示）
+     */
+    private String tags;
+
+    /**
      * 创建时间
      */
     private Date createTime;
