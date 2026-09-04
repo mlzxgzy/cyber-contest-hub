@@ -45,6 +45,9 @@ const checkedRowKeys = ref<CommonType.IdType[]>([]);
 const tagLoading = ref(false);
 const customTag = ref('');
 
+// 标签筛选项（多选，题目需包含全部所选标签才展示）
+const filterTags = ref<string[]>([]);
+
 // 是否具备针对所有题目的管理能力（删除任意题目、打标签）
 const canManageAll = computed(() => {
   return !!(props.isSuperAdmin || props.isProjectAdmin || props.currentPermissionType === 'admin');
@@ -76,6 +79,26 @@ const displayChallenges = computed<Api.Cch.ProjectChallenge[]>(() => {
   }
 
   return challenges.value;
+});
+
+// 当前列表所有题目的标签汇总（去重），作为筛选选项
+const allTagOptions = computed<string[]>(() => {
+  const set = new Set<string>();
+  displayChallenges.value.forEach(row => {
+    parseTags(row.tags).forEach(tag => set.add(tag));
+  });
+  return Array.from(set).sort((a, b) => a.localeCompare(b, 'zh-CN'));
+});
+
+// 按标签筛选后的题目列表：需包含全部所选标签
+const filteredChallenges = computed<Api.Cch.ProjectChallenge[]>(() => {
+  if (filterTags.value.length === 0) {
+    return displayChallenges.value;
+  }
+  return displayChallenges.value.filter(row => {
+    const tags = parseTags(row.tags);
+    return filterTags.value.every(tag => tags.includes(tag));
+  });
 });
 
 // 是否需要展示"操作"列：有导入或删除能力的成员都需要看到
@@ -304,6 +327,11 @@ watch(() => props.projectId, () => {
   }
 }, {immediate: true});
 
+// 切换筛选条件时清空勾选，避免对被隐藏的题目误操作
+watch(filterTags, () => {
+  checkedRowKeys.value = [];
+});
+
 </script>
 
 <template>
@@ -313,6 +341,20 @@ watch(() => props.projectId, () => {
     </NCard>
 
     <NCard :bordered="false" size="small" title="题目列表">
+      <div v-if="allTagOptions.length > 0" class="mb-12px flex items-center gap-12px">
+        <span class="text-12px text-gray-400">标签筛选</span>
+        <NSelect
+          v-model:value="filterTags"
+          class="w-320px"
+          size="small"
+          multiple
+          clearable
+          placeholder="按标签筛选题目（需包含全部所选标签）"
+          :options="allTagOptions.map(tag => ({ label: tag, value: tag }))"
+          :max-tag-count="3"
+        />
+      </div>
+
       <div v-if="canManageAll" class="mb-12px flex items-center gap-12px">
         <span class="text-12px text-gray-400">已选 {{ checkedRowKeys.length }} 项</span>
         <NPopover trigger="click" placement="bottom-start" :show-arrow="false">
@@ -380,7 +422,7 @@ watch(() => props.projectId, () => {
         <NDataTable
           v-model:checked-row-keys="checkedRowKeys"
           :columns="columns"
-          :data="displayChallenges"
+          :data="filteredChallenges"
           :row-key="row => row.id"
           size="small"
         />
